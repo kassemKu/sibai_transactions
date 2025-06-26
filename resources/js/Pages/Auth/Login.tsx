@@ -34,9 +34,7 @@ export default function Login({ canResetPassword, status }: Props) {
       <Head title="Login" />
 
       {status && (
-        <div className="mb-4 font-medium text-sm text-green-600">
-          {status}
-        </div>
+        <div className="mb-4 font-medium text-sm text-green-600">{status}</div>
       )}
 
       <form onSubmit={onSubmit}>
@@ -77,9 +75,7 @@ export default function Login({ canResetPassword, status }: Props) {
                 form.setData('remember', e.currentTarget.checked ? 'on' : '')
               }
             />
-            <span className="ml-2 text-sm text-gray-600">
-              Remember me
-            </span>
+            <span className="ml-2 text-sm text-gray-600">Remember me</span>
           </label>
         </div>
 
@@ -96,13 +92,6 @@ export default function Login({ canResetPassword, status }: Props) {
           )}
 
           <div className="flex items-center justify-end">
-            <Link
-              href={route('register')}
-              className="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Need an account?
-            </Link>
-
             <PrimaryButton
               className={classNames('ml-4', { 'opacity-25': form.processing })}
               disabled={form.processing}
