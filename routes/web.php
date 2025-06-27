@@ -18,4 +18,7 @@ Route::middleware([
             'currency' => Currency::with('currencyRates')->get(),
         ]);
     })->name('dashboard');
+    Route::get('/cashers', function () {
+        return Inertia::render('Cashers');
+    })->name('cashers');
 });
