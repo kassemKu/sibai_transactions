@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\CashSession;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +22,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Inertia::share([
+            'auth' => fn () => [
+                'user' => Auth::user(),
+                'roles' => Auth::check() ? Auth::user()->roles->pluck('name') : [],
+                // 'permissions' => Auth::check() ? Auth::user()->allPermissions()->pluck('name') : [],
+            ],
+            'cash_session' => fn () => CashSession::latest()->where('closed_at', null)->first() ?? false,
+        ]);
     }
 }

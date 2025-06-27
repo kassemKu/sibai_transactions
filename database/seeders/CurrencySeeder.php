@@ -11,7 +11,7 @@ class CurrencySeeder extends Seeder
     {
         $currencies = [
             ['name' => 'دولار أمريكي',  'code' => 'USD'],
-            ['name' => 'دولار سوري',    'code' => 'SYP'],
+            ['name' => 'ليرة سوري',    'code' => 'SYP'],
             ['name' => 'ليرة تركية',     'code' => 'TRY'],
             ['name' => 'يورو',         'code' => 'EUR'],
             ['name' => 'دينار أردني',   'code' => 'JOD'],
