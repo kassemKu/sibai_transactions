@@ -33,7 +33,7 @@ class CurrencyRateSeeder extends Seeder
                     ],
                     [
                         'rate_to_usd' => $rate,
-                        'profit_margin_percent' => 0.0, // You can customize
+                        'profit_margin_percent' => 1.0,
                     ]
                 );
             }

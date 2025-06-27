@@ -13,8 +13,8 @@ return new class extends Migration
             $table->timestamp('opened_at');
             $table->timestamp('closed_at')->nullable();
             $table->json('open_exchange_rates');
-            $table->json('close_exchange_rates');
-            $table->boolean('is_closed');
+            $table->json('close_exchange_rates')->nullable();
+            $table->boolean('is_closed')->default(false);
 
             $table->unsignedBigInteger('opened_by')->nullable();
             $table->foreign('opened_by')->references('id')->on('users')->onDelete('set null')->onUpdate('cascade');
