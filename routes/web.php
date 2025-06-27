@@ -16,7 +16,4 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
-    Route::get('/cashers', function () {
-        return Inertia::render('Cashers');
-    })->name('cashers');
 });
