@@ -17,7 +17,7 @@
 create_branch() {
     echo "=== Create New Branch ==="
     echo "Select branch type:"
-    
+
     # List branch types; modify the array if needed.
     branch_types=("feature" "bugfix" "release" "hotfix")
     PS3="Choose branch type (enter number): "
@@ -33,7 +33,7 @@ create_branch() {
     # Prompt for branch name
     read -p "Enter branch name (e.g., my-new-feature): " branch_name
     full_branch="${branch_type}-${branch_name}"
-    
+
     # Check if branch already exists
     if git show-ref --verify --quiet "refs/heads/$full_branch"; then
         echo "Error: Branch '$full_branch' already exists."
@@ -45,7 +45,7 @@ create_branch() {
     git checkout develop || { echo "Error: Cannot checkout develop"; exit 1; }
     echo "Pulling latest changes from origin/develop..."
     git pull origin develop || { echo "Error: Failed to pull develop"; exit 1; }
-    
+
     # Create and switch to the new branch
     echo "Creating new branch: $full_branch"
     git checkout -b "$full_branch" || { echo "Error: Failed to create branch"; exit 1; }
@@ -58,14 +58,14 @@ update_branch() {
     # Determine the current branch name
     current_branch=$(git rev-parse --abbrev-ref HEAD)
     echo "Current branch is: $current_branch"
-    
+
     # Confirm before proceeding
     read -p "Merge changes from 'develop' into '$current_branch' and push? [y/n]: " confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         # Add all changes and commit before pulling from develop
         echo "Staging all changes..."
         git add -A || { echo "Error: Failed to stage changes"; exit 1; }
-        
+
         # Prompt for commit message
         read -p "Enter commit message for the changes: " commit_message
         git commit -m "$commit_message" || { echo "Error: Commit failed"; exit 1; }
@@ -75,13 +75,13 @@ update_branch() {
         git checkout develop || { echo "Error: Cannot checkout develop"; exit 1; }
         echo "Pulling latest changes from origin/develop..."
         git pull origin develop || { echo "Error: Failed to pull develop"; exit 1; }
-        
+
         # Merge develop into the current branch
         echo "Switching back to '$current_branch'..."
         git checkout "$current_branch" || { echo "Error: Cannot checkout $current_branch"; exit 1; }
         echo "Merging 'develop' into '$current_branch'..."
         git merge develop || { echo "Merge conflicts detected. Please resolve them manually."; exit 1; }
-        
+
         # Push the updated branch to remote
         echo "Pushing '$current_branch' to remote..."
         git push origin "$current_branch" || { echo "Error: Failed to push branch"; exit 1; }
@@ -94,11 +94,11 @@ update_branch() {
 # Function to delete a local branch (with optional remote deletion)
 delete_branch() {
     echo "=== Delete a Branch ==="
-    
+
     # Get current branch name to prevent deletion of the branch you're on
     current_branch=$(git rev-parse --abbrev-ref HEAD)
     echo "You are currently on branch: $current_branch"
-    
+
     # Gather local branches excluding the current branch
     local_branches=()
     while IFS= read -r line; do
