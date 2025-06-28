@@ -48,6 +48,19 @@ class SessionAndBalanceSeeder extends Seeder
                     'currency_id' => $currency->id,
                     'opening_balance' => $openingBalance,
                 ]);
+            }
+
+            // Close the session
+            $firstCashSession->update([
+                'closed_at' => Carbon::now()->addHours(8), // Example: session lasted 8 hours
+                'closed_by' => 1, // You may want to use the real admin id
+                'close_exchange_rates' => json_encode(CurrencyRate::pluck('rate_to_usd', 'currency_id')->toArray()),
+                'is_closed' => true,
+            ]);
+
+            // Create CashBalance for each currency based on the opening
+            foreach ($currencies as $currency) {
+                $openingBalance = $openingBalances[$currency->code] ?? 0;
                 CashBalance::create([
                     'cash_session_id' => $firstCashSession->id,
                     'currency_id' => $currency->id,
@@ -59,14 +72,6 @@ class SessionAndBalanceSeeder extends Seeder
                     'difference' => 0,
                 ]);
             }
-
-            // Close the session
-            $firstCashSession->update([
-                'closed_at' => Carbon::now()->addHours(8), // Example: session lasted 8 hours
-                'closed_by' => 1, // You may want to use the real admin id
-                'close_exchange_rates' => json_encode(CurrencyRate::pluck('rate_to_usd', 'currency_id')->toArray()),
-                'is_closed' => true,
-            ]);
 
             DB::commit();
         } catch (\Exception $e) {
