@@ -22,7 +22,7 @@ Route::middleware([
                 ->get(),
         ]);
     })->name('dashboard');
-    Route::get('/cashers', function () {
-        return Inertia::render('Cashers');
-    })->name('cashers');
+    // Route::get('/cashers', function () {
+    //     return Inertia::render('Cashers');
+    // })->name('cashers');
 });
