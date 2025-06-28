@@ -11,9 +11,9 @@ class Currency extends Model
 
     protected $fillable = ['name', 'code', 'is_crypto'];
 
-    public function currencyRates()
+    public function currencyRate()
     {
-        return $this->hasMany(CurrencyRate::class);
+        return $this->hasOne(CurrencyRate::class);
     }
 
     public function cashMovements()

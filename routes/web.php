@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CashSession;
 use App\Models\Currency;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -15,7 +16,10 @@ Route::middleware([
     Route::get('/dashboard', function () {
 
         return Inertia::render('Dashboard')->with([
-            'currency' => Currency::with('currencyRates')->get(),
+            'currency' => Currency::with('currencyRate')->get(),
+            'cashSessions' => CashSession::with(['sessionOpeningBalances.currency', 'sessionClosingBalances.currency'])
+                ->orderBy('opened_at', 'desc')
+                ->get(),
         ]);
     })->name('dashboard');
     Route::get('/cashers', function () {
