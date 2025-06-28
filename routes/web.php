@@ -17,7 +17,7 @@ Route::middleware([
 
         return Inertia::render('Dashboard')->with([
             'currency' => Currency::with('currencyRate')->get(),
-            'cashSessions' => CashSession::with(['sessionOpeningBalances.currency', 'sessionClosingBalances.currency'])
+            'cashSessions' => CashSession::with(['openingBalances', 'cashBalances'])
                 ->orderBy('opened_at', 'desc')
                 ->get(),
         ]);
