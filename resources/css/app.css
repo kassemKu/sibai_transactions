@@ -3,5 +3,25 @@
 @tailwind utilities;
 
 [x-cloak] {
-    display: none;
+  display: none;
+}
+
+/* RTL Support */
+@layer utilities {
+  .rtl {
+    direction: rtl;
+  }
+
+  .ltr {
+    direction: ltr;
+  }
+}
+
+/* Ensure proper text alignment for RTL */
+html[dir='rtl'] {
+  text-align: right;
+}
+
+html[dir='rtl'] body {
+  text-align: right;
 }

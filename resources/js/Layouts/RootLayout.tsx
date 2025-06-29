@@ -7,6 +7,7 @@ import ApplicationMark from '@/Components/ApplicationMark';
 import Banner from '@/Components/Banner';
 import Dropdown from '@/Components/Dropdown';
 import DropdownLink from '@/Components/DropdownLink';
+import Logo from '@/Components/Logo';
 
 interface Props {
   title: string;
@@ -100,25 +101,25 @@ export default function RootLayout({
   // Navigation items
   const navigation: NavItem[] = [
     {
-      name: 'Dashboard',
+      name: 'لوحة التحكم',
       href: route('dashboard'),
       icon: DashboardIcon,
       current: route().current('dashboard'),
     },
     {
-      name: 'Transactions',
+      name: 'المعاملات',
       href: '#', // Replace with actual route
       icon: TransactionsIcon,
       current: false,
     },
     {
-      name: 'Currencies',
+      name: 'العملات',
       href: '#', // Replace with actual route
       icon: CurrenciesIcon,
       current: false,
     },
     {
-      name: 'Reports',
+      name: 'التقارير',
       href: '#', // Replace with actual route
       icon: ReportsIcon,
       current: false,
@@ -131,7 +132,7 @@ export default function RootLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" dir="rtl">
       <Head title={title} />
       <Banner />
 
@@ -147,14 +148,14 @@ export default function RootLayout({
           onClick={() => setSidebarOpen(false)}
         />
         <div className="fixed inset-0 flex">
-          <div className="relative mr-16 flex w-full max-w-xs flex-1">
-            <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
+          <div className="relative ml-16 flex w-full max-w-xs flex-1">
+            <div className="absolute right-full top-0 flex w-16 justify-center pt-5">
               <button
                 type="button"
                 className="-m-2.5 p-2.5"
                 onClick={() => setSidebarOpen(false)}
               >
-                <span className="sr-only">Close sidebar</span>
+                <span className="sr-only">إغلاق الشريط الجانبي</span>
                 <svg
                   className="h-6 w-6 text-white"
                   fill="none"
@@ -212,12 +213,9 @@ export default function RootLayout({
 
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-l border-gray-200 bg-white px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
-            <ApplicationMark className="h-8 w-auto" />
-            <span className="ml-3 text-xl font-semibold text-gray-900">
-              Sibai Transactions
-            </span>
+            <Logo />
           </div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -254,7 +252,7 @@ export default function RootLayout({
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-72">
+      <div className="lg:pr-72">
         {/* Top navigation */}
         <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
           <button
@@ -262,7 +260,7 @@ export default function RootLayout({
             className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
-            <span className="sr-only">Open sidebar</span>
+            <span className="sr-only">فتح الشريط الجانبي</span>
             <svg
               className="h-6 w-6"
               fill="none"
@@ -285,13 +283,16 @@ export default function RootLayout({
             <div className="flex flex-1 items-center">
               {breadcrumbs.length > 0 && (
                 <nav className="flex" aria-label="Breadcrumb">
-                  <ol role="list" className="flex items-center space-x-4">
+                  <ol
+                    role="list"
+                    className="flex items-center space-x-4 space-x-reverse"
+                  >
                     {breadcrumbs.map((breadcrumb, index) => (
                       <li key={index}>
                         <div className="flex items-center">
                           {index > 0 && (
                             <svg
-                              className="h-5 w-5 flex-shrink-0 text-gray-400 mr-4"
+                              className="h-5 w-5 flex-shrink-0 text-gray-400 ml-4 rotate-180"
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
@@ -328,11 +329,11 @@ export default function RootLayout({
               {/* Profile dropdown */}
               <div className="relative">
                 <Dropdown
-                  align="right"
+                  align="left"
                   width="48"
                   renderTrigger={() => (
                     <button className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                      <span className="sr-only">Open user menu</span>
+                      <span className="sr-only">فتح قائمة المستخدم</span>
                       {page.props.jetstream.managesProfilePhotos ? (
                         <img
                           className="h-8 w-8 rounded-full object-cover"
@@ -356,20 +357,20 @@ export default function RootLayout({
                       {page.props.auth.user?.email}
                     </div>
                     <DropdownLink href={route('profile.show')}>
-                      Profile Settings
+                      إعدادات الملف الشخصي
                     </DropdownLink>
                     {page.props.jetstream.hasApiFeatures && (
                       <DropdownLink href={route('api-tokens.index')}>
-                        API Tokens
+                        رموز API
                       </DropdownLink>
                     )}
                     <div className="border-t border-gray-100" />
                     <form onSubmit={handleLogout}>
                       <button
                         type="submit"
-                        className="block w-full px-4 py-2 text-left text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out"
+                        className="block w-full px-4 py-2 text-right text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out"
                       >
-                        Sign Out
+                        تسجيل الخروج
                       </button>
                     </form>
                   </div>
