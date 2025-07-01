@@ -8,7 +8,8 @@ import Banner from '@/Components/Banner';
 import Dropdown from '@/Components/Dropdown';
 import DropdownLink from '@/Components/DropdownLink';
 import Logo from '@/Components/Logo';
-
+import { FaChartLine, FaCoins, FaExchangeAlt, FaUsers } from 'react-icons/fa';
+import { BsSafeFill } from "react-icons/bs";
 interface Props {
   title: string;
   breadcrumbs?: Array<{ label: string; href?: string }>;
@@ -18,7 +19,7 @@ interface Props {
 interface NavItem {
   name: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string }> | React.ReactNode;
   current?: boolean;
 }
 
@@ -101,27 +102,33 @@ export default function RootLayout({
   // Navigation items
   const navigation: NavItem[] = [
     {
-      name: 'لوحة التحكم',
+      name: 'الرئيسية',
       href: route('dashboard'),
-      icon: DashboardIcon,
+      icon: <FaChartLine className='h-5 w-5' />,
       current: route().current('dashboard'),
     },
     {
-      name: 'المعاملات',
+      name: 'الجلسات',
       href: '#', // Replace with actual route
-      icon: TransactionsIcon,
+      icon: <FaExchangeAlt className='h-5 w-5' />,
+      current: false,
+    },
+    {
+      name: 'الصندوق',
+      href: '#', // Replace with actual route
+      icon: <BsSafeFill className='h-5 w-5' />,
+      current: false,
+    },
+    {
+      name: 'الموظفين',
+      href: '#', // Replace with actual route
+      icon: <FaUsers className='h-5 w-5' />,
       current: false,
     },
     {
       name: 'العملات',
       href: '#', // Replace with actual route
-      icon: CurrenciesIcon,
-      current: false,
-    },
-    {
-      name: 'التقارير',
-      href: '#', // Replace with actual route
-      icon: ReportsIcon,
+      icon: <FaCoins  className='h-5 w-5' />,
       current: false,
     },
   ];
@@ -190,7 +197,8 @@ export default function RootLayout({
                               'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold',
                             )}
                           >
-                            <item.icon
+                            {typeof item.icon === 'function' ? (
+                              <item.icon
                               className={classNames(
                                 item.current
                                   ? 'text-indigo-600'
@@ -198,7 +206,10 @@ export default function RootLayout({
                                 'h-6 w-6 shrink-0',
                               )}
                             />
-                            {item.name}
+                            ) : (
+                              item.icon
+                                )}
+                                {item.name} 
                           </Link>
                         </li>
                       ))}
@@ -220,26 +231,30 @@ export default function RootLayout({
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
-                <ul role="list" className="-mx-2 space-y-1">
+                <ul role="list" className="-mx-2 space-y-4">
                   {navigation.map(item => (
                     <li key={item.name}>
                       <Link
                         href={item.href}
                         className={classNames(
                           item.current
-                            ? 'bg-gray-50 text-indigo-600'
-                            : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50',
-                          'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors duration-200',
+                            ? 'bg-[#EFF6FF] text-primaryBlue'
+                            : 'text-gray-700 hover:text-primaryBlue hover:bg-gray-50',
+                            'group flex gap-x-3  items-center rounded-md p-2 text-sm leading-6 font-semibold transition-colors duration-200',
                         )}
                       >
-                        <item.icon
+                        {typeof item.icon === 'function' ? (
+                          <item.icon
                           className={classNames(
                             item.current
-                              ? 'text-indigo-600'
-                              : 'text-gray-400 group-hover:text-indigo-600',
-                            'h-6 w-6 shrink-0',
+                              ? 'text-primaryBlue'
+                              : 'text-gray-400 group-hover:text-primaryBlue',
+                            'h-6 w-6 shrink-0 flex items-center',
                           )}
-                        />
+                                />
+                        ) : (
+                          item.icon
+                        )}
                         {item.name}
                       </Link>
                     </li>

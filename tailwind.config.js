@@ -4,6 +4,7 @@ import typography from '@tailwindcss/typography';
 import rtl from 'tailwindcss-rtl';
 
 /** @type {import('tailwindcss').Config} */
+const { heroui } = require('@heroui/react');
 export default {
   content: [
     './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
@@ -11,6 +12,7 @@ export default {
     './storage/framework/views/*.php',
     './resources/views/**/*.blade.php',
     './resources/js/**/*.tsx',
+    './node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}',
   ],
 
   theme: {
@@ -54,5 +56,5 @@ export default {
     },
   },
 
-  plugins: [forms, typography, rtl],
+  plugins: [forms, typography, rtl, heroui()],
 };
