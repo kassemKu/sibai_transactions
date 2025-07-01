@@ -65,7 +65,7 @@ export default function AppLayout({
                 </div>
 
                 {/* <!-- Navigation Links --> */}
-                <div className="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                   <NavLink
                     href={route('dashboard')}
                     active={route().current('dashboard')}
@@ -75,8 +75,8 @@ export default function AppLayout({
                 </div>
               </div>
 
-              <div className="hidden sm:flex sm:items-center sm:ml-6">
-                <div className="ml-3 relative">
+              <div className="hidden sm:flex sm:items-center sm:ms-6">
+                <div className="ms-3 relative">
                   {/* <!-- Teams Dropdown --> */}
                   {page.props.jetstream.hasTeamFeatures ? (
                     <Dropdown
@@ -91,7 +91,7 @@ export default function AppLayout({
                             {page.props.auth.user?.current_team?.name}
 
                             <svg
-                              className="ml-2 -mr-0.5 h-4 w-4"
+                              className="ms-2 -me-0.5 h-4 w-4"
                               xmlns="http://www.w3.org/2000/svg"
                               viewBox="0 0 20 20"
                               fill="currentColor"
@@ -146,7 +146,7 @@ export default function AppLayout({
                                     {team.id ==
                                       page.props.auth.user?.current_team_id && (
                                       <svg
-                                        className="mr-2 h-5 w-5 text-green-400"
+                                        className="me-2 h-5 w-5 text-green-400"
                                         fill="none"
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -170,7 +170,7 @@ export default function AppLayout({
                 </div>
 
                 {/* <!-- Settings Dropdown --> */}
-                <div className="ml-3 relative">
+                <div className="ms-3 relative">
                   <Dropdown
                     align="right"
                     width="48"
@@ -241,6 +241,7 @@ export default function AppLayout({
                   }
                   className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out"
                 >
+                    
                   <svg
                     className="h-6 w-6"
                     stroke="currentColor"

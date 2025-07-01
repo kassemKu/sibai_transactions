@@ -3,7 +3,7 @@ import classNames from 'classnames';
 
 interface CardProps {
   className?: string;
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  padding?: 'none' | 'xs' | 'sm' | 'md' | 'lg';
 }
 
 interface CardHeaderProps {
@@ -24,6 +24,7 @@ export function Card({
 }: PropsWithChildren<CardProps>) {
   const paddingClasses = {
     none: '',
+    xs: 'p-2',
     sm: 'p-4',
     md: 'p-6',
     lg: 'p-8',
