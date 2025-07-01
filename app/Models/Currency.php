@@ -40,4 +40,9 @@ class Currency extends Model
     {
         return $this->hasMany(CashBalance::class);
     }
+
+    public function latestRate()
+    {
+        return $this->hasOne(CurrencyRate::class)->latestOfMany('date');
+    }
 }
