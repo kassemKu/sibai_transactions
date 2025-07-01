@@ -16,7 +16,7 @@ class TransactionCalculateRequest extends FormRequest
         return [
             'from_currency_id' => 'required|exists:currencies,id',
             'to_currency_id' => 'required|exists:currencies,id',
-            'amount' => 'required|numeric|min:0.01',
+            'amount_original' => 'required|numeric|min:0.01',
         ];
     }
 
@@ -25,9 +25,9 @@ class TransactionCalculateRequest extends FormRequest
         return [
             'from_currency_id.required' => 'من فضلك اختر العملة المحولة منها.',
             'to_currency_id.required' => 'من فضلك اختر العملة المحولة إليها.',
-            'amount.required' => 'المبلغ مطلوب.',
-            'amount.numeric' => 'المبلغ يجب أن يكون رقمي.',
-            'amount.min' => 'المبلغ يجب أن يكون أكبر من صفر.',
+            'amount_original.required' => 'المبلغ مطلوب.',
+            'amount_original.numeric' => 'المبلغ يجب أن يكون رقمي.',
+            'amount_original.min' => 'المبلغ يجب أن يكون أكبر من صفر.',
         ];
     }
 }

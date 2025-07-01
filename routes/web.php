@@ -14,8 +14,9 @@ Route::get('/', function () {
  
 Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/transactions/calc', [TransactionController::class, 'calc'])->middleware(EnsureCashSessionOpen::class);
+    Route::get('/transactions/calc', [TransactionController::class, 'calc'])->name('transactions.calc');
     Route::post('/transactions', [TransactionController::class, 'store']);
+    
  
     Route::group(['middleware' => ['role:super_admin']], function () {
         Route::post('/cash-sessions/open', [CashSessionController::class, 'open'])->middleware(EnsureNoOpenCashSession::class);
