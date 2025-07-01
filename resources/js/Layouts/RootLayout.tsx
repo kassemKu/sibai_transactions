@@ -9,7 +9,7 @@ import Dropdown from '@/Components/Dropdown';
 import DropdownLink from '@/Components/DropdownLink';
 import Logo from '@/Components/Logo';
 import { FaChartLine, FaCoins, FaExchangeAlt, FaUsers } from 'react-icons/fa';
-import { BsSafeFill } from "react-icons/bs";
+import { BsSafeFill } from 'react-icons/bs';
 interface Props {
   title: string;
   breadcrumbs?: Array<{ label: string; href?: string }>;
@@ -104,31 +104,31 @@ export default function RootLayout({
     {
       name: 'الرئيسية',
       href: route('dashboard'),
-      icon: <FaChartLine className='h-5 w-5' />,
+      icon: <FaChartLine className="h-5 w-5" />,
       current: route().current('dashboard'),
     },
     {
       name: 'الجلسات',
       href: '#', // Replace with actual route
-      icon: <FaExchangeAlt className='h-5 w-5' />,
+      icon: <FaExchangeAlt className="h-5 w-5" />,
       current: false,
     },
     {
       name: 'الصندوق',
       href: '#', // Replace with actual route
-      icon: <BsSafeFill className='h-5 w-5' />,
+      icon: <BsSafeFill className="h-5 w-5" />,
       current: false,
     },
     {
       name: 'الموظفين',
       href: '#', // Replace with actual route
-      icon: <FaUsers className='h-5 w-5' />,
+      icon: <FaUsers className="h-5 w-5" />,
       current: false,
     },
     {
       name: 'العملات',
       href: '#', // Replace with actual route
-      icon: <FaCoins  className='h-5 w-5' />,
+      icon: <FaCoins className="h-5 w-5" />,
       current: false,
     },
   ];
@@ -199,17 +199,17 @@ export default function RootLayout({
                           >
                             {typeof item.icon === 'function' ? (
                               <item.icon
-                              className={classNames(
-                                item.current
-                                  ? 'text-indigo-600'
-                                  : 'text-gray-400 group-hover:text-indigo-600',
-                                'h-6 w-6 shrink-0',
-                              )}
-                            />
+                                className={classNames(
+                                  item.current
+                                    ? 'text-indigo-600'
+                                    : 'text-gray-400 group-hover:text-indigo-600',
+                                  'h-6 w-6 shrink-0',
+                                )}
+                              />
                             ) : (
                               item.icon
-                                )}
-                                {item.name} 
+                            )}
+                            {item.name}
                           </Link>
                         </li>
                       ))}
@@ -240,18 +240,18 @@ export default function RootLayout({
                           item.current
                             ? 'bg-[#EFF6FF] text-primaryBlue'
                             : 'text-gray-700 hover:text-primaryBlue hover:bg-gray-50',
-                            'group flex gap-x-3  items-center rounded-md p-2 text-sm leading-6 font-semibold transition-colors duration-200',
+                          'group flex gap-x-3  items-center rounded-md p-2 text-sm leading-6 font-semibold transition-colors duration-200',
                         )}
                       >
                         {typeof item.icon === 'function' ? (
                           <item.icon
-                          className={classNames(
-                            item.current
-                              ? 'text-primaryBlue'
-                              : 'text-gray-400 group-hover:text-primaryBlue',
-                            'h-6 w-6 shrink-0 flex items-center',
-                          )}
-                                />
+                            className={classNames(
+                              item.current
+                                ? 'text-primaryBlue'
+                                : 'text-gray-400 group-hover:text-primaryBlue',
+                              'h-6 w-6 shrink-0 flex items-center',
+                            )}
+                          />
                         ) : (
                           item.icon
                         )}
