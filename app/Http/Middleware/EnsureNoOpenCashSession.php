@@ -10,7 +10,7 @@ class EnsureNoOpenCashSession
 {
     public function handle(Request $request, Closure $next)
     {
-        $session = CashSession::where('is_closed', false)->first();
+        $session = CashSession::whereIn('status', ['active', 'pending'])->exists();
 
         if ($session) {
             return response()->json([

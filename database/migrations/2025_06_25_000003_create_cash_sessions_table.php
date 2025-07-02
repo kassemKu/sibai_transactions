@@ -14,7 +14,7 @@ return new class extends Migration
             $table->timestamp('closed_at')->nullable();
             $table->json('open_exchange_rates');
             $table->json('close_exchange_rates')->nullable();
-            $table->boolean('is_closed')->default(false);
+            $table->string('status')->default('active'); // active, pending, closed
 
             $table->foreignId('opened_by')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
             $table->foreignId('closed_by')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');

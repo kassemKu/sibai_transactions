@@ -16,7 +16,7 @@ class CashSession extends Model
         'closed_by',
         'open_exchange_rates',
         'close_exchange_rates',
-        'is_closed',
+        'status', // 'active', 'closed', 'pending'
     ];
 
     public function transactions()

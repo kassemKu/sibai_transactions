@@ -19,7 +19,7 @@ class Transaction extends Model
         'from_rate_to_usd',
         'to_rate_to_usd',
         'converted_amount',
-        'status',
+        'status', // 'pending', 'completed', 'cancelled', etc.
     ];
 
     public function cashMovements()

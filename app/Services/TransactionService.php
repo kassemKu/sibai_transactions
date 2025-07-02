@@ -31,7 +31,7 @@ class TransactionService
 
     public function createTransaction(array $data)
     {
-        $currentSession = CashSession::where('is_closed', false)->first();
+        $currentSession = CashSession::whereIn('status', ['active'])->first();
         if (! $currentSession) {
             throw new \Exception('Cannot record transaction. No open cash session.');
         }
@@ -61,7 +61,7 @@ class TransactionService
         CashMovement::create([
             'transaction_id' => $transaction->id,
             'currency_id' => $calc['from_currency_id'],
-            'type' => CashMovementType::IN,
+            'type' => CashMovementType::IN->value,
             'amount' => $calc['original_amount'],
             'cash_session_id' => $currentSession->id,
         ]);
@@ -69,7 +69,7 @@ class TransactionService
         CashMovement::create([
             'transaction_id' => $transaction->id,
             'currency_id' => $calc['to_currency_id'],
-            'type' => CashMovementType::OUT,
+            'type' => CashMovementType::OUT->value,
             'amount' => $calc['converted_amount'],
             'cash_session_id' => $currentSession->id,
         ]);
