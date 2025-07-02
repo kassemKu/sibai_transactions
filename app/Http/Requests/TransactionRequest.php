@@ -16,7 +16,7 @@ class TransactionRequest extends FormRequest
         return [
             'from_currency_id' => 'required|exists:currencies,id',
             'to_currency_id' => 'required|exists:currencies,id',
-            'amount_original' => 'required|numeric|min:0.01',
+            'original_amount' => 'required|numeric|min:0.01',
         ];
     }
 }
