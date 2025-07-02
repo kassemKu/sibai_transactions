@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ChangeTransactionStatusRequest;
 use App\Http\Requests\TransactionCalculateRequest;
 use App\Http\Requests\TransactionRequest;
+use App\Models\Transaction;
 use App\Services\TransactionService;
 
 class TransactionController extends Controller
@@ -20,6 +22,15 @@ class TransactionController extends Controller
         $transaction = $this->transactionService->createTransaction($request->validated());
 
         return $transaction;
+    }
+
+    public function changeStatus(ChangeTransactionStatusRequest $request, $id)
+    {
+        $transaction = Transaction::findOrFail($id);
+
+        $transaction->update(['status' => $request->status]);
+
+        return back()->with('changed');
     }
 
     public function calc(TransactionCalculateRequest $request, TransactionService $service)
