@@ -34,7 +34,7 @@ class TransactionControllerTest extends TestCase
             'customer_name' => 'Test Customer',
             'from_currency_id' => $currencies['USD'],
             'to_currency_id' => $currencies['EUR'],
-            'amount_original' => 100,
+            'original_amount' => 100,
         ];
         $response = $this->postJson('/transactions', $data);
         $response->assertStatus(201)->assertJsonStructure(['id', 'customer_name', 'user_id', 'cash_session_id']);
@@ -50,7 +50,7 @@ class TransactionControllerTest extends TestCase
             'customer_name' => 'Test Customer',
             'from_currency_id' => $currencies['USD'],
             'to_currency_id' => $currencies['EUR'],
-            'amount_original' => 100,
+            'original_amount' => 100,
         ];
         $response = $this->postJson('/transactions', $data);
         $response->assertStatus(500);

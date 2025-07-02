@@ -67,7 +67,7 @@ export default function Dashboard({
     setCurrentCashSession(null);
   };
 
-  const isSessionOpen = currentCashSession && !currentCashSession.is_closed;
+  const isSessionOpen = currentCashSession && currentCashSession.status === 'active';
 
   const headerActions = (
     <div className="flex items-center space-x-3 space-x-reverse">

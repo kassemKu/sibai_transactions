@@ -31,7 +31,7 @@ class SessionAndBalanceSeeder extends Seeder
                 'closed_by' => null,
                 'open_exchange_rates' => json_encode($exchangeRates),
                 'close_exchange_rates' => null,
-                'is_closed' => false,
+                'status' => 'active',
             ]);
 
             $openingBalances = [
@@ -58,7 +58,7 @@ class SessionAndBalanceSeeder extends Seeder
             $firstSession->update([
                 'closed_at' => Carbon::now()->addHours(8),
                 'closed_by' => $adminId,
-                'is_closed' => true,
+                'status' => 'closed',
                 'close_exchange_rates' => json_encode($exchangeRates),
             ]);
 

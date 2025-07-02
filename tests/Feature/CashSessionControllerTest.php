@@ -27,7 +27,7 @@ class CashSessionControllerTest extends TestCase
         $response = $this->withSession(['_token' => $token])
             ->post('/cash-sessions/open', ['_token' => $token]);
         $response->assertStatus(200)->assertJson(['success' => true]);
-        $this->assertDatabaseHas('cash_sessions', ['opened_by' => $user->id, 'is_closed' => false]);
+        $this->assertDatabaseHas('cash_sessions', ['opened_by' => $user->id, 'status' => 'active']);
         $this->assertDatabaseCount('cash_balances', Currency::count());
     }
 
@@ -35,7 +35,7 @@ class CashSessionControllerTest extends TestCase
     {
         $user = User::where('id', 1)->first();
         $this->actingAs($user);
-        CashSession::factory()->create(['is_closed' => false]);
+        CashSession::factory()->create(['status' => 'active']);
         $response = $this->postJson('/cash-session/open');
         $response->assertStatus(400)->assertJson(['success' => false]);
     }
@@ -52,6 +52,6 @@ class CashSessionControllerTest extends TestCase
             'actual_closing_balances' => $actual,
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
-        $this->assertDatabaseHas('cash_sessions', ['is_closed' => true]);
+        $this->assertDatabaseHas('cash_sessions', ['status' => 'closed']);
     }
 }

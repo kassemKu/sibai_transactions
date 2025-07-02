@@ -40,7 +40,7 @@ export default function TransactionForm({
         params: {
           from_currency_id: fromCurrency,
           to_currency_id: toCurrency,
-          amount_original: amount, 
+          original_amount: amount, 
         },
       });
 

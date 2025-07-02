@@ -15,14 +15,9 @@ class CashSessionService
     public function openCashSession($adminUser)
     {
         return DB::transaction(function () use ($adminUser) {
-            if (CashSession::where('is_closed', false)->exists()) {
-                throw new \Exception('A cash session is already open.');
-            }
-
             $session = CashSession::create([
                 'opened_at' => now(),
                 'opened_by' => $adminUser->id,
-                'is_closed' => false,
                 'open_exchange_rates' => json_encode($this->getCurrentExchangeRates()),
             ]);
 
@@ -42,6 +37,12 @@ class CashSessionService
                     'currency_id' => $currency->id,
                     'opening_balance' => $openingAmount,
                 ]);
+
+                CashBalance::create([
+                    'cash_session_id' => $session->id,
+                    'currency_id' => $currency->id,
+                    'opening_balance' => $openingAmount,
+                ]);
             }
 
             return $session;
@@ -50,9 +51,9 @@ class CashSessionService
 
     public function getClosingBalances()
     {
-        $session = CashSession::where('is_closed', false)->first();
+        $session = CashSession::whereIn('status', ['active', 'pending'])->first();
 
-        if (!$session) {
+        if (! $session) {
             throw new \Exception('No open cash session found.');
         }
 
@@ -65,12 +66,12 @@ class CashSessionService
                 ->first()
                 ->opening_balance ?? 0;
 
-            $totalIn = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id))
+            $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
                 ->where('currency_id', $currency->id)
                 ->where('type', CashMovementType::IN->value)
                 ->sum('amount');
 
-            $totalOut = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id))
+            $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id->where('status', 'completed')))
                 ->where('currency_id', $currency->id)
                 ->where('type', CashMovementType::OUT->value)
                 ->sum('amount');
@@ -100,19 +101,13 @@ class CashSessionService
             });
     }
 
-    public function closeCashSession($adminUser, array $data)
+    public function closeCashSession($adminUser, array $data, $session)
     {
-        return DB::transaction(function () use ($adminUser, $data) {
-            $session = CashSession::where('is_closed', false)->first();
-
-            if (! $session) {
-                throw new \Exception('No open cash session to close.');
-            }
-
+        return DB::transaction(function () use ($adminUser, $data, $session) {
             $session->update([
                 'closed_at' => now(),
                 'closed_by' => $adminUser->id,
-                'is_closed' => true,
+                'status' => 'closed',
                 'close_exchange_rates' => json_encode($this->getCurrentExchangeRates()),
             ]);
 
@@ -140,16 +135,15 @@ class CashSessionService
                 $systemClosing = $opening + $totalIn - $totalOut;
                 $difference = $actualClosing - $systemClosing;
 
-                $balances[] = CashBalance::create([
-                    'cash_session_id' => $session->id,
-                    'currency_id' => $currencyId,
-                    'opening_balance' => $opening,
-                    'total_in' => $totalIn,
-                    'total_out' => $totalOut,
-                    'system_closing_balance' => $systemClosing,
-                    'actual_closing_balance' => $actualClosing,
-                    'difference' => $difference,
-                ]);
+                $balances[] = CashBalance::where('cash_session_id', $session->id)
+                    ->where('currency_id', $currencyId)
+                    ->update([
+                        'total_in' => $totalIn,
+                        'total_out' => $totalOut,
+                        'closing_balance' => $systemClosing,
+                        'actual_closing_balance' => $actualClosing,
+                        'difference' => $difference,
+                    ]);
             }
 
             return [

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ChangeTransactionStatusRequest;
 use App\Http\Requests\TransactionCalculateRequest;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
@@ -24,13 +23,50 @@ class TransactionController extends Controller
         return $transaction;
     }
 
-    public function changeStatus(ChangeTransactionStatusRequest $request, $id)
+    public function pendingTransactions()
+    {
+        $transactions = Transaction::where('status', 'pending')
+            ->whereHas('cashSession', function ($query) {
+                $query->whereIn('status', ['active', 'pending'])->exists();
+            })
+            ->with(['fromCurrency', 'toCurrency'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return back()->with('pending transactions', $transactions);
+    }
+
+    public function pendingStatus($id)
     {
         $transaction = Transaction::findOrFail($id);
 
-        $transaction->update(['status' => $request->status]);
+        $transaction->update(['status' => 'pending']);
 
-        return back()->with('changed');
+        return $this->success('Transaction status changed to pending.', [
+            'transaction' => $transaction,
+        ]);
+    }
+
+    public function completeStatus($id)
+    {
+        $transaction = Transaction::findOrFail($id);
+
+        $transaction->update(['status' => 'completed']);
+
+        return $this->success('Transaction status changed to completed.', [
+            'transaction' => $transaction,
+        ]);
+    }
+
+    public function cancelStatus($id)
+    {
+        $transaction = Transaction::findOrFail($id);
+
+        $transaction->update(['status' => 'canceled']);
+
+        return $this->success('Transaction status changed to canceled.', [
+            'transaction' => $transaction,
+        ]);
     }
 
     public function calc(TransactionCalculateRequest $request, TransactionService $service)
@@ -38,7 +74,7 @@ class TransactionController extends Controller
         $result = $service->calculateCore(
             $request->from_currency_id,
             $request->to_currency_id,
-            $request->amount_original
+            $request->original_amount
         );
 
         $response = [

@@ -117,7 +117,7 @@ export interface CashSession {
   closed_by: Nullable<number>;
   open_exchange_rates: any;
   close_exchange_rates: Nullable<any>;
-  is_closed: boolean;
+  status: string;
   created_at: string;
   updated_at: string;
 }
