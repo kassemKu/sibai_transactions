@@ -37,7 +37,7 @@ class CashSessionController extends Controller
                 'closed_at' => null,
                 'opened_by' => $userId,
                 'closed_by' => null,
-                'open_exchange_rates' => json_encode(CurrencyRate::pluck('rate_to_usd', 'currency_id')->toArray()),
+                'open_exchange_rates' => json_encode(Currency::pluck('rate_to_usd', 'currency_id')->toArray()),
                 'close_exchange_rates' => null,
                 'is_closed' => false,
             ]);
@@ -106,7 +106,7 @@ class CashSessionController extends Controller
             $cashSession->update([
                 'closed_at' => now(),
                 'closed_by' => $userId,
-                'close_exchange_rates' => json_encode(CurrencyRate::pluck('rate_to_usd', 'currency_id')->toArray()),
+                'close_exchange_rates' => json_encode(Currency::pluck('rate_to_usd', 'currency_id')->toArray()),
                 'is_closed' => true,
             ]);
             DB::commit();
