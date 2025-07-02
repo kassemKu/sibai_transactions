@@ -25,6 +25,7 @@ export default function TransactionForm({
   const [amount, setAmount] = useState('');
   const [calculatedAmount, setCalculatedAmount] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate currency conversion
   const calculateCurrency = useCallback(async () => {
@@ -39,7 +40,7 @@ export default function TransactionForm({
         params: {
           from_currency_id: fromCurrency,
           to_currency_id: toCurrency,
-          amount_original: amount,
+          amount_original: amount, 
         },
       });
 
@@ -89,25 +90,30 @@ export default function TransactionForm({
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      // This would be the actual transaction creation API call
-      // const response = await axios.post('/transactions', {
-      //   from_currency_id: fromCurrency,
-      //   to_currency_id: toCurrency,
-      //   amount_original: amount,
-      //   customer_name: '', // You'd collect this from user input
-      // });
+      const response = await axios.post('/transactions', {
+        from_currency_id: parseInt(fromCurrency),
+        to_currency_id: parseInt(toCurrency),
+        original_amount: parseFloat(amount),
+        customer_name: '', // You can add a customer name field later
+      });
 
-      // For now, just show a success message and reset the form
-      toast.success('تم تنفيذ العملية بنجاح');
-      resetForm(false);
+      if (response.data) {
+        toast.success('تم تنفيذ العملية بنجاح');
+        resetForm(false);
+      }
     } catch (error) {
       console.error('Error executing transaction:', error);
       if (axios.isAxiosError(error) && error.response?.data?.error) {
         toast.error(error.response.data.error);
+      } else if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
       } else {
         toast.error('حدث خطأ أثناء تنفيذ العملية');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   }, [
     fromCurrency,
@@ -239,10 +245,10 @@ export default function TransactionForm({
                   اعاده التعيين
                 </SecondaryButton>
                 <PrimaryButton
-                  disabled={!calculatedAmount || isCalculating}
+                  disabled={!calculatedAmount || isCalculating || isSubmitting}
                   onClick={handleExecuteTransaction}
                 >
-                  تنفيذ العملية
+                  {isSubmitting ? 'جاري التنفيذ...' : 'تنفيذ العملية'}
                 </PrimaryButton>
               </div>
             </div>

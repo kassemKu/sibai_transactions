@@ -15,6 +15,7 @@ import RecentTransactionsTable from '@/Components/Dashboard/RecentTransactionsTa
 import RecentTransactionsList from '@/Components/Dashboard/RecentTransactionsList';
 import QuickActions from '@/Components/Dashboard/QuickActions';
 import DangerButton from '@/Components/DangerButton';
+import CloseSessionModal from '@/Components/CloseSessionModal';
 
 interface DashboardProps {
   currencies: CurrenciesResponse;
@@ -31,6 +32,7 @@ export default function Dashboard({
   const [currentCashSession, setCurrentCashSession] =
     useState<CashSession | null>(cash_session as CashSession | null);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
 
   // Handle opening a cash session
   const handleOpenSession = async () => {
@@ -55,36 +57,14 @@ export default function Dashboard({
     }
   };
 
-  // Handle closing a cash session
-  const handleCloseSession = async () => {
-    if (!currentCashSession) return;
+  // Handle opening close modal
+  const handleCloseSession = () => {
+    setShowCloseModal(true);
+  };
 
-    setIsSessionLoading(true);
-
-    try {
-      // For now, we'll send empty actual_closing_balances
-      // In a real implementation, you'd want to show a modal to collect this data
-      const response = await axios.post('/cash-sessions/close', {
-        actual_closing_balances: currencies.map(currency => ({
-          currency_id: currency.id,
-          amount: 0, // This should be collected from user input
-        })),
-      });
-
-      if (response.data.success) {
-        setCurrentCashSession(null);
-        toast.success('تم إغلاق الجلسة النقدية بنجاح');
-      }
-    } catch (error) {
-      console.error('Error closing cash session:', error);
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
-        toast.error(error.response.data.error);
-      } else {
-        toast.error('حدث خطأ أثناء إغلاق الجلسة');
-      }
-    } finally {
-      setIsSessionLoading(false);
-    }
+  // Handle successful session close
+  const handleSessionCloseSuccess = () => {
+    setCurrentCashSession(null);
   };
 
   const isSessionOpen = currentCashSession && !currentCashSession.is_closed;
@@ -98,12 +78,8 @@ export default function Dashboard({
 
       {/* Session Management Button */}
       {isSessionOpen ? (
-        <DangerButton
-          className="text-sm"
-          onClick={handleCloseSession}
-          disabled={isSessionLoading}
-        >
-          {isSessionLoading ? 'جاري الإغلاق...' : 'إغلاق الجلسة'}
+        <DangerButton className="text-sm" onClick={handleCloseSession}>
+          إغلاق الجلسة
         </DangerButton>
       ) : (
         <PrimaryButton
@@ -139,6 +115,13 @@ export default function Dashboard({
         <RecentTransactionsList />
         <QuickActions />
       </div> */}
+
+      {/* Close Session Modal */}
+      <CloseSessionModal
+        isOpen={showCloseModal}
+        onClose={() => setShowCloseModal(false)}
+        onSuccess={handleSessionCloseSuccess}
+      />
     </RootLayout>
   );
 }
