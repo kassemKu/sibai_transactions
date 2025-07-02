@@ -55,6 +55,7 @@ class TransactionService
             // Snapshots
             'from_rate_to_usd' => $calc['from_rate_to_usd'],
             'to_rate_to_usd' => $calc['to_rate_to_usd'],
+            'status' => 'pending',
         ]);
 
         CashMovement::create([
