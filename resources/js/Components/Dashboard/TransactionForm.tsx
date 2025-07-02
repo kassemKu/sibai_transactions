@@ -40,7 +40,7 @@ export default function TransactionForm({
         params: {
           from_currency_id: fromCurrency,
           to_currency_id: toCurrency,
-          original_amount: amount,
+          amount_original: amount, 
         },
       });
 
@@ -95,7 +95,7 @@ export default function TransactionForm({
       const response = await axios.post('/transactions', {
         from_currency_id: parseInt(fromCurrency),
         to_currency_id: parseInt(toCurrency),
-        amount_original: parseFloat(amount),
+        original_amount: parseFloat(amount),
         customer_name: '', // You can add a customer name field later
       });
 
