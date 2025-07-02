@@ -1,6 +1,7 @@
 import { Link, Head, useForm } from '@inertiajs/react';
 import classNames from 'classnames';
 import React, { PropsWithChildren, useState } from 'react';
+import { Toaster } from 'react-hot-toast';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
 import ApplicationMark from '@/Components/ApplicationMark';
@@ -400,6 +401,49 @@ export default function RootLayout({
           <div className="px-4 sm:px-6 lg:px-8">{children}</div>
         </main>
       </div>
+
+      {/* Toast notifications */}
+      <Toaster
+        position="top-left"
+        reverseOrder={false}
+        gutter={8}
+        containerClassName=""
+        containerStyle={{}}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#fff',
+            color: '#363636',
+            fontFamily: 'inherit',
+            fontSize: '14px',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb',
+          },
+          success: {
+            style: {
+              border: '1px solid #10b981',
+              background: '#f0fdf4',
+              color: '#065f46',
+            },
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#f0fdf4',
+            },
+          },
+          error: {
+            style: {
+              border: '1px solid #ef4444',
+              background: '#fef2f2',
+              color: '#991b1b',
+            },
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fef2f2',
+            },
+          },
+        }}
+      />
     </div>
   );
 }

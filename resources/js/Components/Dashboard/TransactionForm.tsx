@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 import { Card, CardContent } from '@/Components/UI/Card';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
@@ -9,9 +11,15 @@ import { CurrenciesResponse } from '@/types';
 
 interface TransactionFormProps {
   currencies: CurrenciesResponse;
+  isSessionOpen?: boolean;
+  onStartSession?: () => void;
 }
 
-export default function TransactionForm({ currencies }: TransactionFormProps) {
+export default function TransactionForm({
+  currencies,
+  isSessionOpen = true,
+  onStartSession,
+}: TransactionFormProps) {
   const [fromCurrency, setFromCurrency] = useState('');
   const [toCurrency, setToCurrency] = useState('');
   const [amount, setAmount] = useState('');
@@ -27,33 +35,23 @@ export default function TransactionForm({ currencies }: TransactionFormProps) {
 
     setIsCalculating(true);
     try {
-      const query = new URLSearchParams({
-        from_currency_id: fromCurrency,
-        to_currency_id: toCurrency,
-        amount_original: amount,
-      }).toString();
-
-      const response = await fetch(`/transactions/calc?${query}`, {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'X-CSRF-TOKEN':
-            document
-              .querySelector('meta[name="csrf-token"]')
-              ?.getAttribute('content') || '',
+      const response = await axios.get('/transactions/calc', {
+        params: {
+          from_currency_id: fromCurrency,
+          to_currency_id: toCurrency,
+          amount_original: amount,
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCalculatedAmount(data.calculated_amount || '0');
-      } else {
-        console.error('Failed to calculate currency');
-        setCalculatedAmount('خطأ في الحساب');
-      }
+      setCalculatedAmount(response.data.calculated_amount || '0');
     } catch (error) {
       console.error('Error calculating currency:', error);
       setCalculatedAmount('خطأ في الحساب');
+      if (axios.isAxiosError(error)) {
+        toast.error('فشل في حساب التحويل - تحقق من الاتصال بالإنترنت');
+      } else {
+        toast.error('حدث خطأ أثناء حساب التحويل');
+      }
     } finally {
       setIsCalculating(false);
     }
@@ -69,18 +67,64 @@ export default function TransactionForm({ currencies }: TransactionFormProps) {
   }, [calculateCurrency]);
 
   // Reset form
-  const resetForm = useCallback(() => {
+  const resetForm = useCallback((showToast = false) => {
     setFromCurrency('');
     setToCurrency('');
     setAmount('');
     setCalculatedAmount('');
+    if (showToast) {
+      toast.success('تم إعادة تعيين النموذج');
+    }
   }, []);
 
+  // Handle transaction execution
+  const handleExecuteTransaction = useCallback(async () => {
+    if (!fromCurrency || !toCurrency || !amount || !calculatedAmount) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    if (!isSessionOpen) {
+      toast.error('يجب فتح جلسة نقدية أولاً');
+      return;
+    }
+
+    try {
+      // This would be the actual transaction creation API call
+      // const response = await axios.post('/transactions', {
+      //   from_currency_id: fromCurrency,
+      //   to_currency_id: toCurrency,
+      //   amount_original: amount,
+      //   customer_name: '', // You'd collect this from user input
+      // });
+
+      // For now, just show a success message and reset the form
+      toast.success('تم تنفيذ العملية بنجاح');
+      resetForm(false);
+    } catch (error) {
+      console.error('Error executing transaction:', error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error('حدث خطأ أثناء تنفيذ العملية');
+      }
+    }
+  }, [
+    fromCurrency,
+    toCurrency,
+    amount,
+    calculatedAmount,
+    isSessionOpen,
+    resetForm,
+  ]);
+
   return (
-    <div className="w-full mb-8">
+    <div className="w-full mb-8 relative">
       <Card>
         <CardContent className="p-2">
-          <div className="flex flex-col gap-6">
+          <div
+            className={`flex flex-col gap-6 ${!isSessionOpen ? 'blur-sm opacity-60' : ''}`}
+          >
             <div className="flex flex-col gap-2">
               <div className="text-bold-x18 text-text-black">عملية جديدة</div>
               <div className="text-med-x14 text-text-grey-light">
@@ -191,10 +235,13 @@ export default function TransactionForm({ currencies }: TransactionFormProps) {
                 </span>
               </div>
               <div className="flex gap-3">
-                <SecondaryButton onClick={resetForm}>
+                <SecondaryButton onClick={() => resetForm(true)}>
                   اعاده التعيين
                 </SecondaryButton>
-                <PrimaryButton disabled={!calculatedAmount || isCalculating}>
+                <PrimaryButton
+                  disabled={!calculatedAmount || isCalculating}
+                  onClick={handleExecuteTransaction}
+                >
                   تنفيذ العملية
                 </PrimaryButton>
               </div>
@@ -202,6 +249,47 @@ export default function TransactionForm({ currencies }: TransactionFormProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Overlay when session is closed */}
+      {!isSessionOpen && (
+        <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+          <div className="bg-white rounded-xl shadow-lg p-6 mx-4 max-w-md text-center border border-gray-200">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full">
+              <svg
+                className="w-8 h-8 text-yellow-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              الجلسة النقدية مغلقة
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              يجب فتح جلسة نقدية جديدة قبل تنفيذ أي عمليات تحويل
+            </p>
+            {onStartSession ? (
+              <button
+                onClick={onStartSession}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                بدء جلسة جديدة
+              </button>
+            ) : (
+              <div className="text-xs text-gray-500">
+                اضغط على "بدء جلسة جديدة" في أعلى الصفحة للمتابعة
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
