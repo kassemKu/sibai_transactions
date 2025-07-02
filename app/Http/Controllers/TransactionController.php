@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TransactionCalculateRequest;
 use App\Http\Requests\TransactionRequest;
-use App\Http\Resources\TransactionResource;
 use App\Services\TransactionService;
 
 class TransactionController extends Controller
@@ -20,7 +19,7 @@ class TransactionController extends Controller
     {
         $transaction = $this->transactionService->createTransaction($request->validated());
 
-        return new TransactionResource($transaction);
+        return $transaction;
     }
 
     public function calc(TransactionCalculateRequest $request, TransactionService $service)

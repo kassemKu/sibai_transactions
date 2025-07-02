@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\CashBalance;
 use App\Models\CashSession;
 use App\Models\Currency;
-use App\Models\CurrencyRate;
 use App\Models\SessionOpeningBalance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
