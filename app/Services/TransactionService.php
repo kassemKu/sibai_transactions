@@ -39,7 +39,7 @@ class TransactionService
         $calc = $this->calculateCore(
             $data['from_currency_id'],
             $data['to_currency_id'],
-            $data['amount_original']
+            $data['original_amount']
         );
 
         $transaction = Transaction::create([
