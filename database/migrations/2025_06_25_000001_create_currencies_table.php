@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('code');
+            $table->decimal('rate_to_usd', 18, 6);
             $table->boolean('is_crypto');
             $table->timestamps();
         });

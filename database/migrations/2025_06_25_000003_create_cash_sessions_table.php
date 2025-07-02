@@ -16,11 +16,8 @@ return new class extends Migration
             $table->json('close_exchange_rates')->nullable();
             $table->boolean('is_closed')->default(false);
 
-            $table->unsignedBigInteger('opened_by')->nullable();
-            $table->foreign('opened_by')->references('id')->on('users')->onDelete('set null')->onUpdate('cascade');
-
-            $table->unsignedBigInteger('closed_by')->nullable();
-            $table->foreign('closed_by')->references('id')->on('users')->onDelete('set null')->onUpdate('cascade');
+            $table->foreignId('opened_by')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
+            $table->foreignId('closed_by')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
 
             $table->timestamps();
         });

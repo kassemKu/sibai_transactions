@@ -25,22 +25,21 @@ class TransactionController extends Controller
 
     public function calc(TransactionCalculateRequest $request, TransactionService $service)
     {
-        $result = $service->calculateConversion(
+        $result = $service->calculateCore(
             $request->from_currency_id,
             $request->to_currency_id,
-            $request->amount_original ?? $request->amount
+            $request->amount_original
         );
 
-        // Format the response for the frontend
         $response = [
             'calculated_amount' => $result['converted_amount'],
             'original_amount' => $result['original_amount'],
-            'exchange_rate' => $result['exchange_rate_to_used'],
-            'profit_usd' => $result['profit_usd'],
+            'from_rate_to_usd' => $result['from_rate_to_usd'],
+            'to_rate_to_usd' => $result['to_rate_to_usd'],
+            'from_currency_id' => $result['from_currency_id'],
+            'to_currency_id' => $result['to_currency_id'],
         ];
 
-        // For Inertia, we can return JSON response for AJAX calls
-        // or redirect back with the result
         if ($request->wantsJson() || $request->expectsJson()) {
             return response()->json($response);
         }

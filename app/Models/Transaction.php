@@ -10,16 +10,16 @@ class Transaction extends Model
     use HasFactory;
 
     protected $fillable = [
-        'customer_name',
+        'customer_id',
         'user_id',
         'cash_session_id',
         'from_currency_id',
         'to_currency_id',
-        'amount_original',
-        'amount_usd',
-        'exchange_rate_used',
-        'market_exchange_rate',
-        'profit_usd',
+        'original_amount',
+        'from_rate_to_usd',
+        'to_rate_to_usd',
+        'converted_amount',
+        'status',
     ];
 
     public function cashMovements()
