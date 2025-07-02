@@ -19,7 +19,7 @@ class CashSessionController extends Controller
 
     public function index(): JsonResponse
     {
-        $cashSessions = CashSession::with(['openingBalances', 'cashBalances'])
+        $cashSessions = CashSession::with(['openingBalances', 'cashBalances', 'transactions', 'openedBy', 'closedBy'])
             ->orderBy('opened_at', 'desc')
             ->paginate(10);
 
