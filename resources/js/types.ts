@@ -116,3 +116,16 @@ export interface Currency {
 }
 
 export type CurrenciesResponse = Currency[];
+
+export interface CashSession {
+  id: number;
+  opened_at: string;
+  closed_at: Nullable<string>;
+  opened_by: number;
+  closed_by: Nullable<number>;
+  open_exchange_rates: any;
+  close_exchange_rates: Nullable<any>;
+  is_closed: boolean;
+  created_at: string;
+  updated_at: string;
+}
