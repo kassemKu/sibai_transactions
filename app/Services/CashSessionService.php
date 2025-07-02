@@ -48,6 +48,48 @@ class CashSessionService
         });
     }
 
+    public function getClosingBalances()
+    {
+        $session = CashSession::where('is_closed', false)->first();
+
+        if (!$session) {
+            throw new \Exception('No open cash session found.');
+        }
+
+        $currencies = Currency::all();
+        $balances = [];
+
+        foreach ($currencies as $currency) {
+            $opening = SessionOpeningBalance::where('cash_session_id', $session->id)
+                ->where('currency_id', $currency->id)
+                ->first()
+                ->opening_balance ?? 0;
+
+            $totalIn = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id))
+                ->where('currency_id', $currency->id)
+                ->where('type', CashMovementType::IN->value)
+                ->sum('amount');
+
+            $totalOut = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id))
+                ->where('currency_id', $currency->id)
+                ->where('type', CashMovementType::OUT->value)
+                ->sum('amount');
+
+            $systemClosing = $opening + $totalIn - $totalOut;
+
+            $balances[] = [
+                'currency_id' => $currency->id,
+                'currency' => $currency,
+                'opening_balance' => $opening,
+                'total_in' => $totalIn,
+                'total_out' => $totalOut,
+                'system_closing_balance' => $systemClosing,
+            ];
+        }
+
+        return $balances;
+    }
+
     protected function getCurrentExchangeRates()
     {
         return Currency::get()

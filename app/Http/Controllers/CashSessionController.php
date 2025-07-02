@@ -22,6 +22,13 @@ class CashSessionController extends Controller
         return response()->json(['success' => true, 'cash_session' => $cashSession]);
     }
 
+    public function getClosingBalances(): JsonResponse
+    {
+        $balances = $this->service->getClosingBalances();
+
+        return response()->json(['success' => true, 'balances' => $balances]);
+    }
+
     public function close(CloseCashSessionRequest $request): JsonResponse
     {
         $result = $this->service->closeCashSession(auth()->user(), $request->validated());
