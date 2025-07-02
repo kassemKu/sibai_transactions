@@ -10,7 +10,7 @@ interface CurrencyCardProps {
 export default function CurrencyCard({ currency }: CurrencyCardProps) {
   return (
     <Card
-      className="currency-card border border-gray-200 hover:border-gray-300 bg-gradient-to-br from-white to-gray-50 w-[280px] cursor-grab active:cursor-grabbing"
+      className="currency-card border border-gray-200  hover:border-gray-300 bg-gradient-to-br from-white to-gray-50 w-[280px] cursor-grab active:cursor-grabbing"
       padding="xs"
     >
       <CardContent className="flex flex-col justify-between gap-4 px-6 py-4">
