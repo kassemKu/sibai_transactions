@@ -96,7 +96,6 @@ class CashSessionService
             ->mapWithKeys(function ($currency) {
                 return [$currency->id => [
                     'rate_to_usd' => $currency->rate_to_usd,
-                    'margin' => $currency->profit_margin_percent,
                 ]];
             });
     }
@@ -128,12 +127,12 @@ class CashSessionService
                     ->first()
                     ->opening_balance ?? 0;
 
-                $totalIn = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id))
+                $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id))
                     ->where('currency_id', $currencyId)
                     ->where('type', CashMovementType::IN->value)
                     ->sum('amount');
 
-                $totalOut = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id))
+                $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id))
                     ->where('currency_id', $currencyId)
                     ->where('type', CashMovementType::OUT->value)
                     ->sum('amount');
