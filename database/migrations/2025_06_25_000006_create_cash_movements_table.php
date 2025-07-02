@@ -15,10 +15,8 @@ return new class extends Migration
             $table->decimal('exchange_rate', 18, 6)->nullable();
             $table->string('notes')->nullable();
 
-            $table->unsignedBigInteger('transaction_id')->nullable();
-            $table->foreign('transaction_id')->references('id')->on('transactions')->onDelete('set null')->onUpdate('cascade');
-            $table->unsignedBigInteger('currency_id')->nullable();
-            $table->foreign('currency_id')->references('id')->on('currencies')->onDelete('set null')->onUpdate('cascade');
+            $table->foreignId('transaction_id')->nullable()->constrained('transactions')->onUpdate('cascade')->onDelete('set null');
+            $table->foreignId('currency_id')->nullable()->constrained('currencies')->onUpdate('cascade')->onDelete('set null');
 
             $table->timestamps();
         });

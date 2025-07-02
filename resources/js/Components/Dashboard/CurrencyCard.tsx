@@ -49,7 +49,7 @@ export default function CurrencyCard({ currency }: CurrencyCardProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-bold-x20 text-primaryBlue font-bold">
-              {parseFloat(currency.currency_rate.rate_to_usd).toLocaleString(
+              {parseFloat(currency.rate_to_usd).toLocaleString(
                 'ar-EG',
                 {
                   minimumFractionDigits: 2,

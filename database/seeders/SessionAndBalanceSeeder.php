@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\CashBalance;
 use App\Models\CashSession;
 use App\Models\Currency;
-use App\Models\CurrencyRate;
 use App\Models\SessionOpeningBalance;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -18,10 +17,10 @@ class SessionAndBalanceSeeder extends Seeder
         DB::transaction(function () {
             $adminId = 1;
 
-            $exchangeRates = CurrencyRate::all()->mapWithKeys(fn ($rate) => [
+            $currencies = Currency::all();
+            $exchangeRates = $currencies->mapWithKeys(fn ($rate) => [
                 $rate->currency_id => [
                     'rate_to_usd' => $rate->rate_to_usd,
-                    'margin' => $rate->profit_margin_percent,
                 ],
             ])->toArray();
 
@@ -46,7 +45,6 @@ class SessionAndBalanceSeeder extends Seeder
                 'GBP' => 2500,
             ];
 
-            $currencies = Currency::all();
             foreach ($currencies as $currency) {
                 $amount = $openingBalances[$currency->code] ?? 0;
 

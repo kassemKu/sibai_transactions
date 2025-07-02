@@ -9,12 +9,7 @@ class Currency extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'code', 'is_crypto'];
-
-    public function currencyRate()
-    {
-        return $this->hasOne(CurrencyRate::class);
-    }
+    protected $fillable = ['name', 'code', 'is_crypto', 'rate_to_usd'];
 
     public function cashMovements()
     {
@@ -39,10 +34,5 @@ class Currency extends Model
     public function cashBalances()
     {
         return $this->hasMany(CashBalance::class);
-    }
-
-    public function latestRate()
-    {
-        return $this->hasOne(CurrencyRate::class)->latestOfMany('date');
     }
 }

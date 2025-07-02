@@ -16,7 +16,6 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             UserSeeder::class,
             CurrencySeeder::class,
-            CurrencyRateSeeder::class,
             SessionAndBalanceSeeder::class,
         ]);
     }

@@ -11,33 +11,22 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('cash_session_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('cash_session_id')->nullable()->constrained('cash_sessions')->onUpdate('cascade')->onDelete('set null');
+            $table->foreignId('user_id')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
 
-            $table->string('customer_name')->nullable();
+            $table->foreignId('customer_id')->nullable()->constrained('customers')->onUpdate('cascade')->onDelete('set null');
 
-            $table->foreignId('from_currency_id')->constrained('currencies');
-            $table->foreignId('to_currency_id')->constrained('currencies');
+            $table->foreignId('from_currency_id')->nullable()->constrained('currencies')->onUpdate('cascade')->onDelete('set null');
+            $table->foreignId('to_currency_id')->nullable()->constrained('currencies')->onUpdate('cascade')->onDelete('set null');
 
-            $table->decimal('amount_original', 18, 2);
-            $table->decimal('converted_amount', 18, 2); // 💚 NEW
+            $table->decimal('original_amount', 18, 2);
+            $table->decimal('converted_amount', 18, 2);
 
-            $table->decimal('amount_usd', 18, 2);
+            // Snapshots
+            $table->decimal('from_rate_to_usd', 18, 8);
+            $table->decimal('to_rate_to_usd', 18, 8);
 
-            // Snapshots for FROM
-            $table->decimal('from_rate_to_usd_snapshot', 18, 8);
-            $table->decimal('from_profit_margin_snapshot', 5, 2);
-
-            // Snapshots for TO
-            $table->decimal('to_rate_to_usd_snapshot', 18, 8);
-            $table->decimal('to_profit_margin_snapshot', 5, 2);
-
-            // Final price used
-            $table->decimal('exchange_rate_used', 18, 8);
-            $table->decimal('market_exchange_rate', 18, 8);
-
-            // Profit
-            $table->decimal('profit_usd', 18, 2);
+            $table->string('status')->default('pending'); // pending, completed, cancelled
 
             $table->timestamps();
         });
