@@ -16,4 +16,17 @@ class DashboardController extends Controller
                 ->get(),
         ]);
     }
+
+    public function currentSession()
+    {
+        $session = CashSession::whereIn('status', ['active', 'pending'])->first();
+
+        if (! $session) {
+            return $this->failed('No active or pending cash session found.');
+        }
+
+        return $this->success('Current cash session retrieved successfully.', [
+            'session' => $session,
+        ]);
+    }
 }
