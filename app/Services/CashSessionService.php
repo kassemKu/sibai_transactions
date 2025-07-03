@@ -81,7 +81,12 @@ class CashSessionService
 
             $balances[] = [
                 'currency_id' => $currency->id,
-                'currency' => $currency,
+                'currency' => [
+                    'id' => $currency->id,
+                    'name' => $currency->name,
+                    'code' => $currency->code,
+                    'rate_to_usd' => $currency->rate_to_usd,
+                ],
                 'opening_balance' => $opening,
                 'total_in' => $totalIn,
                 'total_out' => $totalOut,
