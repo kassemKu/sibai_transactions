@@ -4,10 +4,10 @@ namespace App\Services;
 
 use App\Enums\CashMovementType;
 use App\Models\CashMovement;
-use App\Models\CashSession;
 use App\Models\Currency;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class TransactionService
 {
@@ -29,51 +29,52 @@ class TransactionService
         ];
     }
 
-    public function createTransaction(array $data)
+    public function createTransaction(array $data, $currentSession)
     {
-        $currentSession = CashSession::whereIn('status', ['active'])->first();
-        if (! $currentSession) {
-            throw new \Exception('Cannot record transaction. No open cash session.');
-        }
-
         $calc = $this->calculateCore(
             $data['from_currency_id'],
             $data['to_currency_id'],
             $data['original_amount']
         );
 
+        $user = Auth::user();
+        $assignedTo = $user->hasRole('super_admin') ? $data['assigned_to'] : null;
+
         $transaction = Transaction::create([
             'customer_id' => null,
-            'user_id' => Auth::id(),
+            'user_id' => $user->id,
             'cash_session_id' => $currentSession->id,
             'from_currency_id' => $calc['from_currency_id'],
             'to_currency_id' => $calc['to_currency_id'],
-
             'original_amount' => $calc['original_amount'],
             'converted_amount' => $calc['converted_amount'],
-
-            // Snapshots
+            'assigned_to' => $assignedTo,
             'from_rate_to_usd' => $calc['from_rate_to_usd'],
             'to_rate_to_usd' => $calc['to_rate_to_usd'],
             'status' => 'pending',
         ]);
 
-        CashMovement::create([
-            'transaction_id' => $transaction->id,
-            'currency_id' => $calc['from_currency_id'],
-            'type' => CashMovementType::IN->value,
-            'amount' => $calc['original_amount'],
-            'cash_session_id' => $currentSession->id,
-        ]);
-
-        CashMovement::create([
-            'transaction_id' => $transaction->id,
-            'currency_id' => $calc['to_currency_id'],
-            'type' => CashMovementType::OUT->value,
-            'amount' => $calc['converted_amount'],
-            'cash_session_id' => $currentSession->id,
-        ]);
-
         return $transaction;
+    }
+
+    public function confirmCashMovement(Transaction $transaction)
+    {
+        DB::transaction(function () use ($transaction) {
+            CashMovement::create([
+                'transaction_id' => $transaction->id,
+                'currency_id' => $transaction->from_currency_id,
+                'type' => CashMovementType::IN->value,
+                'amount' => $transaction->original_amount,
+                'cash_session_id' => $transaction->cash_session_id,
+            ]);
+
+            CashMovement::create([
+                'transaction_id' => $transaction->id,
+                'currency_id' => $transaction->to_currency_id,
+                'type' => CashMovementType::OUT->value,
+                'amount' => $transaction->converted_amount,
+                'cash_session_id' => $transaction->cash_session_id,
+            ]);
+        });
     }
 }

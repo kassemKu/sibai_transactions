@@ -71,7 +71,7 @@ class CashSessionService
                 ->where('type', CashMovementType::IN->value)
                 ->sum('amount');
 
-            $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id->where('status', 'completed')))
+            $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
                 ->where('currency_id', $currency->id)
                 ->where('type', CashMovementType::OUT->value)
                 ->sum('amount');

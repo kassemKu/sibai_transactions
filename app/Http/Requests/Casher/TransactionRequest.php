@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Casher;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -17,7 +17,6 @@ class TransactionRequest extends FormRequest
             'from_currency_id' => 'required|exists:currencies,id',
             'to_currency_id' => 'required|exists:currencies,id',
             'original_amount' => 'required|numeric|min:0.01',
-            'assigned_to' => 'required|exists:users,id',
         ];
     }
 }
