@@ -26,7 +26,6 @@ export default function CurrencyCardsSlider({
     setIsBeginning(swiper.isBeginning);
     setIsEnd(swiper.isEnd);
   }, []);
-
   const handleManualNavigation = useCallback(() => {
     if (swiperRef.current) {
       setIsBeginning(swiperRef.current.isBeginning);

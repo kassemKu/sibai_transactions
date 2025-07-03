@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
                 'roles' => Auth::check() ? Auth::user()->roles->pluck('name') : [],
                 // 'permissions' => Auth::check() ? Auth::user()->allPermissions()->pluck('name') : [],
             ],
-            'cash_session' => fn () => CashSession::latest()->where('closed_at', null)->first() ?? false,
+            'cash_session' => fn () => CashSession::whereIn('status', ['active', 'pending'])->latest()->first() ?? false,
         ]);
     }
 }

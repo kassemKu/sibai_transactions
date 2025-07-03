@@ -13,6 +13,7 @@ interface CurrencyBalance {
     id: number;
     name: string;
     code: string;
+    rate_to_usd?: string | number;
   };
   opening_balance: number;
   total_in: number;

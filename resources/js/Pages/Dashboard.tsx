@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import { CurrenciesResponse, CashSession } from '@/types';
-import { usePage } from '@inertiajs/react';
+import { usePage, router } from '@inertiajs/react';
 import useRoute from '@/Hooks/useRoute';
 
 // Import dashboard components
@@ -34,6 +34,11 @@ export default function Dashboard({
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
 
+  // Sync with global cash_session state when it changes
+  useEffect(() => {
+    setCurrentCashSession(cash_session as CashSession | null);
+  }, [cash_session]);
+
   // Handle opening a cash session
   const handleOpenSession = async () => {
     setIsSessionLoading(true);
@@ -42,8 +47,12 @@ export default function Dashboard({
       const response = await axios.post('/cash-sessions/open');
 
       if (response.data.success) {
+        // Update local state immediately
         setCurrentCashSession(response.data.cash_session);
         toast.success('تم فتح الجلسة النقدية بنجاح');
+
+        // Refresh the shared state to sync with server
+        router.reload({ only: ['cash_session'] });
       }
     } catch (error) {
       console.error('Error opening cash session:', error);
@@ -65,9 +74,12 @@ export default function Dashboard({
   // Handle successful session close
   const handleSessionCloseSuccess = () => {
     setCurrentCashSession(null);
+    // Refresh the shared state to sync with server
+    router.reload({ only: ['cash_session'] });
   };
 
-  const isSessionOpen = currentCashSession && currentCashSession.status === 'active';
+  const isSessionOpen =
+    currentCashSession && currentCashSession.status === 'active';
 
   const headerActions = (
     <div className="flex items-center space-x-3 space-x-reverse">
