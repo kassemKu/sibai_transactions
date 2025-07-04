@@ -19,6 +19,7 @@ class Transaction extends Model
         'from_rate_to_usd',
         'to_rate_to_usd',
         'converted_amount',
+        'assigned_to',
         'status', // 'pending', 'completed', 'cancelled', etc.
     ];
 
@@ -28,6 +29,11 @@ class Transaction extends Model
     }
 
     public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function assignedTo()
     {
         return $this->belongsTo(User::class);
     }

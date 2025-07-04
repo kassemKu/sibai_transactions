@@ -65,7 +65,7 @@ export default function CloseSessionModal({
   const fetchClosingBalances = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get('/cash-sessions/closing-balances');
+      const response = await axios.get('/admin/cash-sessions/closing-balances');
       if (response.data.status || response.data.success) {
         const balancesData =
           response.data.data?.balances || response.data.balances || [];
@@ -189,7 +189,7 @@ export default function CloseSessionModal({
         amount: parseFloat(actualAmounts[balance.currency_id] || '0'),
       }));
 
-      const response = await axios.post('/cash-sessions/close', {
+      const response = await axios.post('/admin/cash-sessions/close', {
         actual_closing_balances: actualClosingBalances,
       });
 

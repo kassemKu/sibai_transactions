@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TransactionCalculateRequest;
 use App\Http\Requests\TransactionRequest;
+use App\Models\CashSession;
 use App\Models\Transaction;
 use App\Services\TransactionService;
+use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
 {
@@ -18,7 +20,11 @@ class TransactionController extends Controller
 
     public function store(TransactionRequest $request)
     {
-        $transaction = $this->transactionService->createTransaction($request->validated());
+        $currentSession = CashSession::whereIn('status', ['active'])->first();
+        if (! $currentSession) {
+            throw new \Exception('Cannot record transaction. No open cash session.');
+        }
+        $transaction = $this->transactionService->createTransaction($request->validated(), $currentSession);
 
         return $transaction;
     }
@@ -26,6 +32,10 @@ class TransactionController extends Controller
     public function pendingTransaction()
     {
         $transactions = Transaction::where('status', 'pending')
+            ->where(function ($query) {
+                $query->whereNot('user_id', Auth::id())
+                    ->orWhere('assigned_to', Auth::id());
+            })
             ->whereHas('cashSession', function ($query) {
                 $query->whereIn('status', ['active', 'pending']);
             })
@@ -38,20 +48,11 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function pendingStatus($id)
-    {
-        $transaction = Transaction::findOrFail($id);
-
-        $transaction->update(['status' => 'pending']);
-
-        return $this->success('Transaction status changed to pending.', [
-            'transaction' => $transaction,
-        ]);
-    }
-
     public function completeStatus($id)
     {
         $transaction = Transaction::findOrFail($id);
+
+        $this->transactionService->confirmCashMovement($transaction);
 
         $transaction->update(['status' => 'completed']);
 
