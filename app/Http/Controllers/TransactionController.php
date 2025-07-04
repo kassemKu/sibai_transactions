@@ -23,17 +23,19 @@ class TransactionController extends Controller
         return $transaction;
     }
 
-    public function pendingTransactions()
+    public function pendingTransaction()
     {
         $transactions = Transaction::where('status', 'pending')
             ->whereHas('cashSession', function ($query) {
-                $query->whereIn('status', ['active', 'pending'])->exists();
+                $query->whereIn('status', ['active', 'pending']);
             })
-            ->with(['fromCurrency', 'toCurrency'])
+            ->with(['fromCurrency', 'toCurrency', 'user', 'customer'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return back()->with('pending transactions', $transactions);
+        return $this->success('Pending transactions retrieved successfully.', [
+            'transactions' => $transactions,
+        ]);
     }
 
     public function pendingStatus($id)

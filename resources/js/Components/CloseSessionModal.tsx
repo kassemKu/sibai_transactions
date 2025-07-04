@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import DialogModal from '@/Components/DialogModal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
-import TextInput from '@/Components/TextInput';
+import NumberInput from '@/Components/NumberInput';
 import InputLabel from '@/Components/InputLabel';
 
 interface CurrencyBalance {
@@ -25,14 +25,16 @@ interface CloseSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  mode?: 'close' | 'view'; // New prop to determine modal mode
+  isSessionPending?: boolean; // New prop to indicate if session is already pending
+  onSessionPending?: () => void; // Callback when session becomes pending
 }
 
 export default function CloseSessionModal({
   isOpen,
   onClose,
   onSuccess,
-  mode = 'close',
+  isSessionPending = false,
+  onSessionPending,
 }: CloseSessionModalProps) {
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
   const [actualAmounts, setActualAmounts] = useState<Record<number, string>>(
@@ -40,21 +42,25 @@ export default function CloseSessionModal({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const isReadOnly = mode === 'view';
+  const [showActualInputs, setShowActualInputs] = useState(false);
 
   // Fetch closing balances when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchClosingBalances();
+      // If session is already pending, skip preview and go directly to actual inputs
+      if (isSessionPending) {
+        setShowActualInputs(true);
+      }
     } else {
       // Clean up state when modal closes
       setBalances([]);
       setActualAmounts({});
       setIsLoading(false);
       setIsSubmitting(false);
+      setShowActualInputs(false);
     }
-  }, [isOpen]);
+  }, [isOpen, isSessionPending]);
 
   const fetchClosingBalances = async () => {
     setIsLoading(true);
@@ -82,12 +88,10 @@ export default function CloseSessionModal({
   };
 
   const handleActualAmountChange = (currencyId: number, value: string) => {
-    if (!isReadOnly) {
-      setActualAmounts(prev => ({
-        ...prev,
-        [currencyId]: value,
-      }));
-    }
+    setActualAmounts(prev => ({
+      ...prev,
+      [currencyId]: value,
+    }));
   };
 
   // Convert amount to USD using exchange rate
@@ -106,7 +110,7 @@ export default function CloseSessionModal({
   };
 
   const calculateDifference = (currencyId: number, systemAmount: number) => {
-    if (isReadOnly) return 0;
+    if (!showActualInputs) return 0;
     const actualAmount = parseFloat(actualAmounts[currencyId] || '0');
     return actualAmount - systemAmount;
   };
@@ -122,7 +126,7 @@ export default function CloseSessionModal({
   };
 
   const getTotalActualBalance = () => {
-    if (isReadOnly) return getTotalSystemBalance();
+    if (!showActualInputs) return getTotalSystemBalance();
 
     return balances.reduce((total, balance) => {
       const actual = parseFloat(actualAmounts[balance.currency_id] || '0');
@@ -132,18 +136,54 @@ export default function CloseSessionModal({
   };
 
   const getTotalDifference = () => {
-    if (isReadOnly) return 0;
+    if (!showActualInputs) return 0;
     return getTotalActualBalance() - getTotalSystemBalance();
   };
 
+  // Helper function to format amount for display
+  const formatDisplayAmount = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: true,
+    }).format(amount);
+  };
+
+  const handleContinueToClose = async () => {
+    // If session is already pending, just show the actual inputs
+    if (isSessionPending) {
+      setShowActualInputs(true);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post('/cash-sessions/pending');
+      if (response.data.status || response.data.success) {
+        setShowActualInputs(true);
+        toast.success('تم تحويل الجلسة إلى وضع الإغلاق');
+        // Notify parent component about session status change
+        if (onSessionPending) {
+          onSessionPending();
+        }
+      }
+    } catch (error) {
+      console.error('Error setting session to pending:', error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error('حدث خطأ أثناء تحضير الجلسة للإغلاق');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (isReadOnly) return;
+    if (!showActualInputs) return;
 
     setIsSubmitting(true);
     try {
-      // First, set session to pending status
-      await axios.post('/cash-sessions/pending');
-
       const actualClosingBalances = balances.map(balance => ({
         currency_id: balance.currency_id,
         amount: parseFloat(actualAmounts[balance.currency_id] || '0'),
@@ -185,15 +225,14 @@ export default function CloseSessionModal({
       setActualAmounts({});
       setIsLoading(false);
       setIsSubmitting(false);
+      setShowActualInputs(false);
       onClose();
     }
   };
 
   return (
     <DialogModal isOpen={isOpen} onClose={handleClose} maxWidth="6xl">
-      <DialogModal.Content
-        title={isReadOnly ? 'عرض أرصدة الجلسة' : 'إغلاق الجلسة النقدية'}
-      >
+      <DialogModal.Content title="إغلاق الجلسة النقدية">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -202,9 +241,11 @@ export default function CloseSessionModal({
         ) : (
           <div className="space-y-6" dir="rtl">
             <div className="text-sm text-gray-600 mb-4 text-right">
-              {isReadOnly
-                ? 'عرض الأرصدة الحالية لكل عملة'
-                : 'يرجى مراجعة الأرصدة النهائية لكل عملة وإدخال المبالغ الفعلية المعدودة'}
+              {!showActualInputs
+                ? isSessionPending
+                  ? 'الجلسة في وضع الإغلاق - مراجعة الأرصدة النهائية لكل عملة'
+                  : 'مراجعة الأرصدة النهائية لكل عملة قبل الإغلاق'
+                : 'يرجى إدخال المبالغ الفعلية المعدودة لكل عملة'}
             </div>
 
             <div className="overflow-x-auto">
@@ -220,7 +261,7 @@ export default function CloseSessionModal({
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       القيمة بالدولار
                     </th>
-                    {!isReadOnly && (
+                    {showActualInputs && (
                       <>
                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                           الرصيد الفعلي
@@ -255,9 +296,11 @@ export default function CloseSessionModal({
                               balance.currency.rate_to_usd && (
                                 <div className="text-xs text-gray-400">
                                   1 USD ={' '}
-                                  {parseFloat(
-                                    balance.currency.rate_to_usd.toString(),
-                                  ).toLocaleString()}{' '}
+                                  {formatDisplayAmount(
+                                    parseFloat(
+                                      balance.currency.rate_to_usd.toString(),
+                                    ),
+                                  )}{' '}
                                   {balance.currency.code}
                                 </div>
                               )}
@@ -265,30 +308,33 @@ export default function CloseSessionModal({
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="text-sm text-gray-900">
-                            {balance.system_closing_balance.toLocaleString()}
+                            {formatDisplayAmount(
+                              balance.system_closing_balance,
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="text-sm text-gray-600">
-                            ${usdValue.toFixed(2)}
+                            ${formatDisplayAmount(usdValue)}
                           </div>
                         </td>
-                        {!isReadOnly && (
+                        {showActualInputs && (
                           <>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <TextInput
-                                type="number"
+                              <NumberInput
                                 value={actualAmounts[balance.currency_id] || ''}
-                                onChange={e =>
+                                onValueChange={values =>
                                   handleActualAmountChange(
                                     balance.currency_id,
-                                    e.target.value,
+                                    values.value,
                                   )
                                 }
                                 className="w-32 text-right"
-                                step="0.01"
-                                min="0"
+                                decimalScale={2}
+                                min={0}
+                                thousandSeparator={true}
                                 dir="rtl"
+                                aria-label={`الرصيد الفعلي لعملة ${balance.currency.name}`}
                               />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -302,7 +348,7 @@ export default function CloseSessionModal({
                                 }`}
                               >
                                 {difference > 0 ? '+' : ''}
-                                {difference.toLocaleString()}
+                                {formatDisplayAmount(Math.abs(difference))}
                               </span>
                             </td>
                           </>
@@ -317,27 +363,27 @@ export default function CloseSessionModal({
             {/* Summary Section */}
             <div className="bg-gray-50 rounded-lg p-6 space-y-4">
               <h4 className="font-medium text-gray-900 text-right text-lg">
-                {isReadOnly ? 'ملخص الأرصدة' : 'ملخص الإغلاق'}
+                {!showActualInputs ? 'ملخص الأرصدة' : 'ملخص الإغلاق'}
               </h4>
               <div
-                className={`grid grid-cols-1 ${isReadOnly ? 'md:grid-cols-1' : 'md:grid-cols-3'} gap-6 text-sm`}
+                className={`grid grid-cols-1 ${!showActualInputs ? 'md:grid-cols-1' : 'md:grid-cols-3'} gap-6 text-sm`}
               >
                 <div className="text-right">
                   <span className="text-gray-600 block mb-1">
                     إجمالي الرصيد المحسوب (بالدولار):
                   </span>
                   <div className="font-medium text-gray-900 text-lg">
-                    ${getTotalSystemBalance().toFixed(2)}
+                    ${formatDisplayAmount(getTotalSystemBalance())}
                   </div>
                 </div>
-                {!isReadOnly && (
+                {showActualInputs && (
                   <>
                     <div className="text-right">
                       <span className="text-gray-600 block mb-1">
                         إجمالي الرصيد الفعلي (بالدولار):
                       </span>
                       <div className="font-medium text-gray-900 text-lg">
-                        ${getTotalActualBalance().toFixed(2)}
+                        ${formatDisplayAmount(getTotalActualBalance())}
                       </div>
                     </div>
                     <div className="text-right">
@@ -354,7 +400,7 @@ export default function CloseSessionModal({
                         }`}
                       >
                         {getTotalDifference() > 0 ? '+' : ''}$
-                        {getTotalDifference().toFixed(2)}
+                        {formatDisplayAmount(Math.abs(getTotalDifference()))}
                       </div>
                     </div>
                   </>
@@ -368,10 +414,14 @@ export default function CloseSessionModal({
       <DialogModal.Footer>
         <div className="flex justify-end space-x-3 space-x-reverse">
           <SecondaryButton onClick={handleClose} disabled={isSubmitting}>
-            {isReadOnly ? 'إغلاق' : 'إلغاء'}
+            إلغاء
           </SecondaryButton>
 
-          {!isReadOnly && (
+          {!showActualInputs ? (
+            <PrimaryButton onClick={handleContinueToClose} disabled={isLoading}>
+              {isSessionPending ? 'إدخال الأرصدة الفعلية' : 'المتابعة للإغلاق'}
+            </PrimaryButton>
+          ) : (
             <PrimaryButton
               onClick={handleSubmit}
               disabled={isLoading || isSubmitting}

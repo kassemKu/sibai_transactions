@@ -34,7 +34,6 @@ export default function Dashboard({
     useState<CashSession | null>(cash_session as CashSession | null);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
-  const [modalMode, setModalMode] = useState<'close' | 'view'>('close');
 
   // Sync with global cash_session state when it changes
   useEffect(() => {
@@ -70,15 +69,8 @@ export default function Dashboard({
     }
   };
 
-  // Handle opening close modal
+  // Handle opening close session modal
   const handleCloseSession = () => {
-    setModalMode('close');
-    setShowCloseModal(true);
-  };
-
-  // Handle opening view balances modal
-  const handleViewBalances = () => {
-    setModalMode('view');
     setShowCloseModal(true);
   };
 
@@ -99,6 +91,22 @@ export default function Dashboard({
   // Handle modal close
   const handleModalClose = () => {
     setShowCloseModal(false);
+  };
+
+  // Handle session becoming pending
+  const handleSessionPending = () => {
+    // Update local state to reflect pending status
+    if (currentCashSession) {
+      setCurrentCashSession({
+        ...currentCashSession,
+        status: 'pending',
+      });
+    }
+
+    // Optionally reload the page state to sync with server
+    setTimeout(() => {
+      router.reload({ only: ['cash_session'] });
+    }, 100);
   };
 
   const isSessionOpen =
@@ -125,23 +133,13 @@ export default function Dashboard({
 
       {/* Session Management Buttons */}
       {isSessionOpen ? (
-        <div className="flex items-center space-x-2 space-x-reverse">
-          <SecondaryButton className="text-sm" onClick={handleViewBalances}>
-            عرض الأرصدة
-          </SecondaryButton>
-          <DangerButton className="text-sm" onClick={handleCloseSession}>
-            إغلاق الجلسة
-          </DangerButton>
-        </div>
+        <DangerButton className="text-sm" onClick={handleCloseSession}>
+          إغلاق الجلسة
+        </DangerButton>
       ) : isSessionPending ? (
-        <div className="flex items-center space-x-2 space-x-reverse">
-          <SecondaryButton className="text-sm" onClick={handleViewBalances}>
-            عرض الأرصدة
-          </SecondaryButton>
-          <DangerButton className="text-sm" onClick={handleCloseSession}>
-            إنهاء الإغلاق
-          </DangerButton>
-        </div>
+        <DangerButton className="text-sm" onClick={handleCloseSession}>
+          إنهاء الإغلاق
+        </DangerButton>
       ) : (
         <PrimaryButton
           className="text-sm"
@@ -167,10 +165,14 @@ export default function Dashboard({
       <TransactionForm
         currencies={currencies}
         isSessionOpen={!!isSessionOpen}
+        isSessionPending={!!isSessionPending}
         onStartSession={handleOpenSession}
       />
 
-      <RecentTransactionsTable />
+      <RecentTransactionsTable
+        isSessionActive={!!isSessionOpen}
+        isSessionPending={!!isSessionPending}
+      />
 
       {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <RecentTransactionsList />
@@ -182,7 +184,8 @@ export default function Dashboard({
         isOpen={showCloseModal}
         onClose={handleModalClose}
         onSuccess={handleSessionCloseSuccess}
-        mode={modalMode}
+        isSessionPending={!!isSessionPending}
+        onSessionPending={handleSessionPending}
       />
     </RootLayout>
   );
