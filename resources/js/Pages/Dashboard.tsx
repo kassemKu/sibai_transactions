@@ -44,7 +44,7 @@ export default function Dashboard({
     setIsSessionLoading(true);
 
     try {
-      const response = await axios.post('/cash-sessions/open');
+      const response = await axios.post('/admin/cash-sessions/open');
 
       if (response.data.success) {
         // Update local state immediately
