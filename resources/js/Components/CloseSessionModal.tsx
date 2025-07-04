@@ -33,7 +33,7 @@ export default function CloseSessionModal({
   isOpen,
   onClose,
   onSuccess,
-  isSessionPending = false,
+  isSessionPending = false ,
   onSessionPending,
 }: CloseSessionModalProps) {
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
