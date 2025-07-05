@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (Throwable $e, $request) use ($exceptions) {
+        $exceptions->render(function (Throwable $e, $request) {
             // Default status code
             $status = 500;
 
@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 if ($request->expectsJson()) {
                     return response()->json(['message' => $e->getMessage()], 401);
                 }
+
                 return redirect()->guest(route('login'));
             }
 
