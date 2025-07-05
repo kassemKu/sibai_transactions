@@ -26,7 +26,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
 
         Route::Resource('currencies', CurrencyController::class)->except(['destroy']);
 
-        Route::post('/transactions', [TransactionController::class, 'store']); // send the emp with request key:(assign_to)
+        Route::post('/transactions', [TransactionController::class, 'store']);
         Route::get('/pending-transactions', [TransactionController::class, 'pendingTransaction'])->middleware(EnsureActiveCashSession::class);
         Route::put('/transactions/{id}/complete', [TransactionController::class, 'completeStatus'])->middleware(EnsureActiveCashSession::class);
         Route::put('/transactions/{id}/cancel', [TransactionController::class, 'cancelStatus'])->middleware(EnsureActiveCashSession::class);
@@ -37,7 +37,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::post('/cash-sessions/pending', [CashSessionController::class, 'pending'])->middleware(EnsureActiveCashSession::class);
         Route::post('/cash-sessions/close', [CashSessionController::class, 'close'])->middleware(EnsureCashSessionOpen::class);
 
-        Route::get('/users', [UserController::class, 'index'])->name('users.index'); // show all chasher and admins 
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
     });
 
     Route::group(['middleware' => ['role:casher'], 'prefix' => 'casher'], function () {
