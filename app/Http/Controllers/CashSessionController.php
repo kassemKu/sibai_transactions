@@ -43,14 +43,18 @@ class CashSessionController extends Controller
 
         $cashSession = $this->service->openCashSession(Auth::user());
 
-        return response()->json(['success' => true, 'cash_session' => $cashSession]);
+        return $this->success('Cash session opened successfully.', [
+            'cash_session' => $cashSession,
+        ]);
     }
 
     public function getClosingBalances(): JsonResponse
     {
         $balances = $this->service->getClosingBalances();
 
-        return response()->json(['success' => true, 'balances' => $balances]);
+        return $this->success('Closing balances retrieved successfully.', [
+            'balances' => $balances,
+        ]);
     }
 
     public function pending(): JsonResponse

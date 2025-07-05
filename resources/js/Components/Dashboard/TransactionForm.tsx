@@ -3,7 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Card, CardContent } from '@/Components/UI/Card';
 import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
+import NumberInput from '@/Components/NumberInput';
 import SecondaryButton from '@/Components/SecondaryButton';
 import PrimaryButton from '@/Components/PrimaryButton';
 import Select from '@/Components/Select';
@@ -12,12 +12,14 @@ import { CurrenciesResponse } from '@/types';
 interface TransactionFormProps {
   currencies: CurrenciesResponse;
   isSessionOpen?: boolean;
+  isSessionPending?: boolean;
   onStartSession?: () => void;
 }
 
 export default function TransactionForm({
   currencies,
   isSessionOpen = true,
+  isSessionPending = false,
   onStartSession,
 }: TransactionFormProps) {
   const [fromCurrency, setFromCurrency] = useState('');
@@ -88,7 +90,11 @@ export default function TransactionForm({
     }
 
     if (!isSessionOpen) {
-      toast.error('يجب فتح جلسة نقدية أولاً');
+      if (isSessionPending) {
+        toast.error('لا يمكن تنفيذ عمليات جديدة أثناء جرد الأرصدة');
+      } else {
+        toast.error('يجب فتح جلسة نقدية أولاً');
+      }
       return;
     }
 
@@ -123,15 +129,30 @@ export default function TransactionForm({
     amount,
     calculatedAmount,
     isSessionOpen,
+    isSessionPending,
     resetForm,
   ]);
+
+  // Helper function to format amount for display
+  const formatDisplayAmount = (amount: string | number) => {
+    if (!amount) return '0.00';
+
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numAmount)) return '0.00';
+
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: true,
+    }).format(numAmount);
+  };
 
   return (
     <div className="w-full mb-8 relative">
       <Card>
         <CardContent className="p-2">
           <div
-            className={`flex flex-col gap-6 ${!isSessionOpen ? 'blur-sm opacity-60' : ''}`}
+            className={`flex flex-col gap-6 ${!isSessionOpen || isSessionPending ? 'blur-sm opacity-60' : ''}`}
           >
             <div className="flex flex-col gap-2">
               <div className="text-bold-x18 text-text-black">عملية جديدة</div>
@@ -166,15 +187,17 @@ export default function TransactionForm({
                     <InputLabel htmlFor="from_amount" className="mb-2">
                       المبلغ
                     </InputLabel>
-                    <TextInput
+                    <NumberInput
                       id="from_amount"
-                      type="number"
                       placeholder="أدخل المبلغ"
                       className="w-full"
                       value={amount}
-                      onChange={e => setAmount(e.target.value)}
-                      min="0"
-                      step="0.01"
+                      onValueChange={values => setAmount(values.value)}
+                      min={0}
+                      decimalScale={2}
+                      thousandSeparator={true}
+                      dir="ltr"
+                      aria-label="مبلغ التحويل"
                     />
                   </div>
                 </div>
@@ -206,19 +229,20 @@ export default function TransactionForm({
                       المبلغ المحسوب
                     </InputLabel>
                     <div className="relative">
-                      <TextInput
+                      <NumberInput
                         id="to_amount"
-                        type="text"
                         placeholder={
                           isCalculating
                             ? 'جاري الحساب...'
                             : 'سيتم الحساب تلقائياً'
                         }
                         className="w-full bg-gray-50"
-                        value={
-                          isCalculating ? 'جاري الحساب...' : calculatedAmount
-                        }
+                        value={isCalculating ? '' : calculatedAmount}
                         readOnly
+                        thousandSeparator={true}
+                        decimalScale={2}
+                        dir="ltr"
+                        aria-label="المبلغ المحسوب"
                       />
                       {isCalculating && (
                         <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
@@ -238,7 +262,7 @@ export default function TransactionForm({
                 </span>
                 <span className="text-bold-x20 text-[#10B981] font-bold">
                   {calculatedAmount
-                    ? `${calculatedAmount} ${currencies.find(c => c.id.toString() === toCurrency)?.code || ''}`
+                    ? `${formatDisplayAmount(calculatedAmount)} ${currencies.find(c => c.id.toString() === toCurrency)?.code || ''}`
                     : '0.00'}
                 </span>
               </div>
@@ -258,42 +282,81 @@ export default function TransactionForm({
         </CardContent>
       </Card>
 
-      {/* Overlay when session is closed */}
-      {!isSessionOpen && (
+      {/* Overlay when session is closed or pending */}
+      {(!isSessionOpen || isSessionPending) && (
         <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
           <div className="bg-white rounded-xl shadow-lg p-6 mx-4 max-w-md text-center border border-gray-200">
-            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full">
-              <svg
-                className="w-8 h-8 text-yellow-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              الجلسة النقدية مغلقة
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              يجب فتح جلسة نقدية جديدة قبل تنفيذ أي عمليات تحويل
-            </p>
-            {onStartSession ? (
-              <button
-                onClick={onStartSession}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                بدء جلسة جديدة
-              </button>
+            {isSessionPending ? (
+              // Pending session message
+              <>
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full">
+                  <svg
+                    className="w-8 h-8 text-orange-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  الجلسة النقدية معلقة
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  الجلسة الحالية معلقة، يتم الآن جرد الأرصدة ولا يمكن تنفيذ
+                  عمليات جديدة.
+                </p>
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-4">
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse flex-shrink-0"></div>
+                    <span className="text-xs text-orange-800">
+                      يرجى انتظار انتهاء عملية جرد الأرصدة لإكمال إغلاق الجلسة
+                    </span>
+                  </div>
+                </div>
+              </>
             ) : (
-              <div className="text-xs text-gray-500">
-                اضغط على "بدء جلسة جديدة" في أعلى الصفحة للمتابعة
-              </div>
+              // Closed session message
+              <>
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full">
+                  <svg
+                    className="w-8 h-8 text-yellow-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  الجلسة النقدية مغلقة
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  يجب فتح جلسة نقدية جديدة قبل تنفيذ أي عمليات تحويل
+                </p>
+                {onStartSession ? (
+                  <button
+                    onClick={onStartSession}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    بدء جلسة جديدة
+                  </button>
+                ) : (
+                  <div className="text-xs text-gray-500">
+                    اضغط على "بدء جلسة جديدة" في أعلى الصفحة للمتابعة
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

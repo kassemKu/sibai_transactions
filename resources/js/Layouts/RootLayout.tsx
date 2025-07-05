@@ -128,9 +128,9 @@ export default function RootLayout({
     },
     {
       name: 'العملات',
-      href: '#', // Replace with actual route
+      href: route('currencies.index'),
       icon: <FaCoins className="h-5 w-5" />,
-      current: false,
+      current: route().current('currencies.*'),
     },
   ];
 

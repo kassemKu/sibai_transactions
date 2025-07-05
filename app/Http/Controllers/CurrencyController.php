@@ -48,6 +48,9 @@ class CurrencyController extends Controller
             'rate_to_usd' => 'required|numeric|gt:0',
         ]);
 
+        // Set is_crypto to false by default for new currencies
+        $data['is_crypto'] = false;
+
         $currency = Currency::create($data);
 
         return $this->success('Currency created successfully.', [
@@ -55,10 +58,15 @@ class CurrencyController extends Controller
         ]);
     }
 
-    public function getCurrencies(Currency $currency)
+    public function getCurrencies()
     {
         return $this->success('Currencies retrieved successfully.', [
             'currencies' => Currency::all(),
         ]);
+    }
+
+    public function create()
+    {
+        return inertia('Currencies/Create');
     }
 }
