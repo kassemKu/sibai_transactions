@@ -19,10 +19,6 @@ class CurrencyController extends Controller
         return inertia('Currencies/Show')->with([
             'currency' => $currency,
         ]);
-
-        return $this->success('Currency retrieved successfully.', [
-            'currency' => $currency,
-        ]);
     }
 
     public function edit(Currency $currency)
