@@ -9,14 +9,25 @@ class CurrencyController extends Controller
 {
     public function index()
     {
-        return $this->success('Currencies retrieved successfully.', [
+        return inertia('Currencies/Index')->with([
             'currencies' => Currency::all(),
         ]);
     }
 
     public function show(Currency $currency)
     {
+        return inertia('Currencies/Show')->with([
+            'currency' => $currency,
+        ]);
+
         return $this->success('Currency retrieved successfully.', [
+            'currency' => $currency,
+        ]);
+    }
+
+    public function edit(Currency $currency)
+    {
+        return inertia('Currencies/Edit')->with([
             'currency' => $currency,
         ]);
     }
@@ -45,6 +56,13 @@ class CurrencyController extends Controller
 
         return $this->success('Currency created successfully.', [
             'currency' => $currency,
+        ]);
+    }
+
+    public function getCurrencies(Currency $currency)
+    {
+        return $this->success('Currencies retrieved successfully.', [
+            'currencies' => Currency::all(),
         ]);
     }
 }

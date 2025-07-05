@@ -22,9 +22,6 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $e, $request) {
-            // Default status code
-            $status = 500;
-
             // Handle Unauthenticated Exception as usual
             if ($e instanceof \Illuminate\Auth\AuthenticationException) {
                 if ($request->expectsJson()) {
@@ -41,16 +38,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // Handle Validation Exceptions separately
             if ($e instanceof ValidationException) {
-                return response()->json([
-                    'message' => 'Validation failed.',
-                    'errors' => $e->errors(),
-                ], 422);
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => 'Validation failed.',
+                        'errors' => $e->errors(),
+                    ], 422);
+                }
             }
-
-            // Generic JSON response
-            return response()->json([
-                'message' => $e->getMessage() ?: 'Server Error',
-                'trace' => config('app.debug') ? $e->getTrace() : null,
-            ], $status);
         });
     })->create();
