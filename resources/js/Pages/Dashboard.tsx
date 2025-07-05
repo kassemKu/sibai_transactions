@@ -34,11 +34,39 @@ export default function Dashboard({
     useState<CashSession | null>(cash_session as CashSession | null);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [currenciesState, setCurrenciesState] = useState<CurrenciesResponse>(currencies);
 
   // Sync with global cash_session state when it changes
   useEffect(() => {
     setCurrentCashSession(cash_session as CashSession | null);
   }, [cash_session]);
+
+  // Poll /current-session every 1 second to keep currentCashSession up to date
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await axios.get('/current-session');
+        setCurrentCashSession(response.data.data.session);
+      } catch (error) {
+        // Optionally handle error, e.g., setCurrentCashSession(null)
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Poll /currencies every 1 second to keep currencies up to date
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await axios.get('/currencies');
+        setCurrenciesState(response.data.data.currencies);
+
+      } catch (error) {
+        // Optionally handle error
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Handle opening a cash session
   const handleOpenSession = async () => {
@@ -159,11 +187,11 @@ export default function Dashboard({
       headerActions={headerActions}
     >
       <WelcomeSection />
-      <CurrencyCardsSlider currencies={currencies} />
+      <CurrencyCardsSlider currencies={currenciesState} />
 
       {/* Always show TransactionForm with overlay when session is not active */}
       <TransactionForm
-        currencies={currencies}
+        currencies={currenciesState}
         isSessionOpen={!!isSessionOpen}
         isSessionPending={!!isSessionPending}
         onStartSession={handleOpenSession}

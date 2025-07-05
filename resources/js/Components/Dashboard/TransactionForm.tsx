@@ -46,7 +46,9 @@ export default function TransactionForm({
         },
       });
 
-      setCalculatedAmount(response.data.calculated_amount || '0');
+      // console.log('Calculation response:', response.data.data.calculation_result);
+
+      setCalculatedAmount(response.data.data.calculation_result.converted_amount || '0');
     } catch (error) {
       console.error('Error calculating currency:', error);
       setCalculatedAmount('خطأ في الحساب');

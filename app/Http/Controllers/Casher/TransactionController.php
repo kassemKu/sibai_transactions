@@ -22,13 +22,13 @@ class TransactionController extends Controller
     {
         $currentSession = CashSession::whereIn('status', ['active'])->first();
 
-        if (! $currentSession) {
-            throw new \Exception('Cannot record transaction. No open cash session.');
-        }
+        $calc = $request->getCalc();
 
-        $transaction = $this->transactionService->createTransaction($request->validated(), $currentSession);
+        $transaction = $this->transactionService->createTransaction($calc, $currentSession);
 
-        return $transaction;
+        return $this->success('Transaction created successfully.', [
+            'transaction' => $transaction,
+        ]);
     }
 
     public function pendingTransactions()

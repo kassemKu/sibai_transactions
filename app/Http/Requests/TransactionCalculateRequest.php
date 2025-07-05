@@ -2,22 +2,49 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\SufficientBalance;
+use App\Services\TransactionService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TransactionCalculateRequest extends FormRequest
 {
+    protected $calc;
+
     public function authorize(): bool
     {
         return true;
     }
 
-    public function rules(): array
+    protected function prepareForValidation()
     {
+        $fromCurrencyId = $this->input('from_currency_id');
+        $toCurrencyId = $this->input('to_currency_id');
+        $amount = $this->input('original_amount');
+        if ($fromCurrencyId && $toCurrencyId && $amount) {
+            $service = app(TransactionService::class);
+            $this->calc = $service->calculateCore($fromCurrencyId, $toCurrencyId, $amount);
+        }
+    }
+
+    public function rules()
+    {
+        $calc = $this->calc;
+
         return [
             'from_currency_id' => 'required|exists:currencies,id',
             'to_currency_id' => 'required|exists:currencies,id',
-            'original_amount' => 'required|numeric|min:0.01',
+            'original_amount' => [
+                'required',
+                'numeric',
+                'min:0.01',
+                new SufficientBalance($calc),
+            ],
         ];
+    }
+
+    public function getCalc()
+    {
+        return $this->calc;
     }
 
     public function messages(): array
