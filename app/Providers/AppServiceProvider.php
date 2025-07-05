@@ -28,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
         Model::automaticallyEagerLoadRelationships();
 
         Inertia::share([
-            'auth' => fn() => [
+            'auth' => fn () => [
                 'user' => Auth::user(),
                 'roles' => Auth::user()->roles->pluck('name'),
                 // 'permissions' => Auth::check() ? Auth::user()->allPermissions()->pluck('name') : [],
