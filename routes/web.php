@@ -22,7 +22,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::get('/transactions/calc', [TransactionController::class, 'calc'])->name('transactions.calc')->middleware(EnsureCashSessionOpen::class);
 
     Route::group(['middleware' => ['role:super_admin'], 'prefix' => 'admin'], function () {
-        Route::get('/dashboard', [DashboardController::class, 'AdminDashboard'])->name('admin.dashboard');
+        Route::get('/', [DashboardController::class, 'AdminDashboard'])->name('admin.dashboard');
 
         Route::Resource('currencies', CurrencyController::class)->except(['destroy']);
 
@@ -41,7 +41,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     });
 
     Route::group(['middleware' => ['role:casher'], 'prefix' => 'casher'], function () {
-        Route::get('/dashboard', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
+        Route::get('/', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
         Route::post('/transactions', [CasherTransactionController::class, 'store']);
         Route::get('/transactions/pending', [CasherTransactionController::class, 'pendingTransactions'])->name('casher.transactions.pending');
         Route::put('/transactions/{id}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware(EnsureActiveCashSession::class);
