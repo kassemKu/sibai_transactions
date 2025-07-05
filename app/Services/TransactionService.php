@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Enums\CashMovementType;
 use App\Models\CashMovement;
+use App\Models\CashSession;
 use App\Models\Currency;
+use App\Models\SessionOpeningBalance;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -31,12 +33,6 @@ class TransactionService
 
     public function createTransaction(array $data, $currentSession)
     {
-        $calc = $this->calculateCore(
-            $data['from_currency_id'],
-            $data['to_currency_id'],
-            $data['original_amount']
-        );
-
         $user = Auth::user();
         $assignedTo = $user->hasRole('super_admin') ? $data['assigned_to'] : null;
 
@@ -44,13 +40,13 @@ class TransactionService
             'customer_id' => null,
             'user_id' => $user->id,
             'cash_session_id' => $currentSession->id,
-            'from_currency_id' => $calc['from_currency_id'],
-            'to_currency_id' => $calc['to_currency_id'],
-            'original_amount' => $calc['original_amount'],
-            'converted_amount' => $calc['converted_amount'],
+            'from_currency_id' => $data['from_currency_id'],
+            'to_currency_id' => $data['to_currency_id'],
+            'original_amount' => $data['original_amount'],
+            'converted_amount' => $data['converted_amount'],
             'assigned_to' => $assignedTo,
-            'from_rate_to_usd' => $calc['from_rate_to_usd'],
-            'to_rate_to_usd' => $calc['to_rate_to_usd'],
+            'from_rate_to_usd' => $data['from_rate_to_usd'],
+            'to_rate_to_usd' => $data['to_rate_to_usd'],
             'status' => 'pending',
         ]);
 
@@ -76,5 +72,37 @@ class TransactionService
                 'cash_session_id' => $transaction->cash_session_id,
             ]);
         });
+    }
+
+    public function getCurrencyAvailableBalance($currencyId)
+    {
+        $session = CashSession::whereIn('status', ['active', 'pending'])->first();
+        if (! $session) {
+            throw new \Exception('No open cash session found.');
+        }
+
+        $opening = SessionOpeningBalance::where('cash_session_id', $session->id)
+            ->where('currency_id', $currencyId)
+            ->first()
+            ->opening_balance ?? 0;
+
+        $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
+            ->where('currency_id', $currencyId)
+            ->where('type', CashMovementType::IN->value)
+            ->sum('amount');
+
+        $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
+            ->where('currency_id', $currencyId)
+            ->where('type', CashMovementType::OUT->value)
+            ->sum('amount');
+
+        return $opening + $totalIn - $totalOut;
+    }
+
+    public function hasSufficientBalance($currencyId, $amount)
+    {
+        $closingBalance = $this->getCurrencyAvailableBalance($currencyId);
+
+        return $closingBalance >= $amount;
     }
 }

@@ -21,12 +21,14 @@ class TransactionController extends Controller
     public function store(TransactionRequest $request)
     {
         $currentSession = CashSession::whereIn('status', ['active'])->first();
-        if (! $currentSession) {
-            throw new \Exception('Cannot record transaction. No open cash session.');
-        }
-        $transaction = $this->transactionService->createTransaction($request->validated(), $currentSession);
 
-        return $transaction;
+        $calc = $request->getCalc();
+
+        $transaction = $this->transactionService->createTransaction($calc, $currentSession);
+
+        return $this->success('Transaction created successfully.', [
+            'transaction' => $transaction,
+        ]);
     }
 
     public function pendingTransactions()
@@ -43,7 +45,9 @@ class TransactionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return back()->with('pending transactions', $transactions);
+        return $this->success('Pending transactions', [
+            'transaction' => $transactions,
+        ]);
     }
 
     public function completeStatus($id)
@@ -78,20 +82,8 @@ class TransactionController extends Controller
             $request->original_amount
         );
 
-        $response = [
-            'calculated_amount' => $result['converted_amount'],
-            'original_amount' => $result['original_amount'],
-            'from_rate_to_usd' => $result['from_rate_to_usd'],
-            'to_rate_to_usd' => $result['to_rate_to_usd'],
-            'from_currency_id' => $result['from_currency_id'],
-            'to_currency_id' => $result['to_currency_id'],
-        ];
-
-        if ($request->wantsJson() || $request->expectsJson()) {
-            return response()->json($response);
-        }
-
-        // For Inertia form submissions, redirect back with the result
-        return back()->with('calculation_result', $response);
+        return $this->success('Calculation result', [
+            'calculation_result' => $result,
+        ]);
     }
 }

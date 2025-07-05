@@ -3,6 +3,8 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,5 +21,35 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (Throwable $e, $request) use ($exceptions) {
+            // Default status code
+            $status = 500;
+
+            // Handle Unauthenticated Exception as usual
+            if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => $e->getMessage()], 401);
+                }
+                return redirect()->guest(route('login'));
+            }
+
+            // Handle HTTP Exceptions
+            if ($e instanceof HttpExceptionInterface) {
+                $status = $e->getStatusCode();
+            }
+
+            // Handle Validation Exceptions separately
+            if ($e instanceof ValidationException) {
+                return response()->json([
+                    'message' => 'Validation failed.',
+                    'errors' => $e->errors(),
+                ], 422);
+            }
+
+            // Generic JSON response
+            return response()->json([
+                'message' => $e->getMessage() ?: 'Server Error',
+                'trace' => config('app.debug') ? $e->getTrace() : null,
+            ], $status);
+        });
     })->create();
