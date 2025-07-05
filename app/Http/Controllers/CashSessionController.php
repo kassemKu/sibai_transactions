@@ -17,14 +17,21 @@ class CashSessionController extends Controller
         $this->service = $service;
     }
 
-    public function index(): JsonResponse
+    public function index()
     {
         $cashSessions = CashSession::with(['openingBalances', 'cashBalances', 'transactions', 'openedBy', 'closedBy'])
             ->orderBy('opened_at', 'desc')
             ->paginate(10);
 
-        return $this->success('Cash sessions retrieved successfully.', [
+        return inertia('CashSessions/Index')->with([
             'cashSessions' => $cashSessions,
+        ]);
+    }
+
+    public function show(CashSession $cashSession)
+    {
+        return inertia('CashSessions/Show')->with([
+            'currency' => $cashSession->load(['openingBalances', 'cashBalances', 'transactions', 'openedBy', 'closedBy']),
         ]);
     }
 
