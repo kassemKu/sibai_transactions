@@ -58,7 +58,7 @@ export default function Dashboard({
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const response = await axios.get('/currencies');
+        const response = await axios.get('/get-currencies');
         setCurrenciesState(response.data.data.currencies);
 
       } catch (error) {
