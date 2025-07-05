@@ -28,6 +28,7 @@ export default function Dashboard({
   cashSessions,
 }: DashboardProps) {
   const { auth, cash_session } = usePage().props;
+  console.log(auth)
   const route = useRoute();
 
   const [currentCashSession, setCurrentCashSession] =

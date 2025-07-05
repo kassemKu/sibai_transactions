@@ -95,7 +95,6 @@ export interface TeamInvitation {
   updated_at: DateTime;
 }
 
-
 export interface Currency {
   rate_to_usd: string;
   id: number;

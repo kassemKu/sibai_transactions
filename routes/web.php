@@ -31,8 +31,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::put('/transactions/{id}/complete', [TransactionController::class, 'completeStatus'])->middleware(EnsureActiveCashSession::class);
         Route::put('/transactions/{id}/cancel', [TransactionController::class, 'cancelStatus'])->middleware(EnsureActiveCashSession::class);
 
-        Route::Resource('currencies', CurrencyController::class)->except(['destroy']);
-
         Route::get('/cash-sessions', [CashSessionController::class, 'index'])->name('cash_sessions.index');
         Route::get('/cash-sessions/{cashSession}', [CashSessionController::class, 'show'])->name('cash_sessions.show');
         Route::post('/cash-sessions/open', [CashSessionController::class, 'open'])->middleware(EnsureNoOpenCashSession::class);
