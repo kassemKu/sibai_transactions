@@ -61,6 +61,7 @@ class TransactionService
                 'currency_id' => $transaction->from_currency_id,
                 'type' => CashMovementType::IN->value,
                 'amount' => $transaction->original_amount,
+                'cash_session_id' => $transaction->cash_session_id,
             ]);
 
             CashMovement::create([
@@ -68,6 +69,7 @@ class TransactionService
                 'currency_id' => $transaction->to_currency_id,
                 'type' => CashMovementType::OUT->value,
                 'amount' => $transaction->converted_amount,
+                'cash_session_id' => $transaction->cash_session_id,
             ]);
         });
     }
@@ -84,16 +86,12 @@ class TransactionService
             ->first()
             ->opening_balance ?? 0;
 
-        $totalIn = CashMovement::whereHas('transaction', function ($q) use ($session) {
-                $q->where('cash_session_id', $session->id)->where('status', 'completed');
-            })
+        $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
             ->where('currency_id', $currencyId)
             ->where('type', CashMovementType::IN->value)
             ->sum('amount');
 
-        $totalOut = CashMovement::whereHas('transaction', function ($q) use ($session) {
-                $q->where('cash_session_id', $session->id)->where('status', 'completed');
-            })
+        $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
             ->where('currency_id', $currencyId)
             ->where('type', CashMovementType::OUT->value)
             ->sum('amount');

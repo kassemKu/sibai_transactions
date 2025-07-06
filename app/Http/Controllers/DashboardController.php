@@ -4,27 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\CashSession;
 use App\Models\Currency;
-use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    private function getUserRoles()
-    {
-        $user = Auth::user();
-        if (!$user) return [];
-        
-        // Use the User model to load roles properly
-        $userWithRoles = \App\Models\User::with('roles')->find($user->id);
-        return $userWithRoles->roles->pluck('name')->toArray();
-    }
-
     public function index()
     {
-        $roles = $this->getUserRoles();
-        
-        if (in_array('super_admin', $roles) || in_array('admin', $roles)) {
+        if (auth()->user()->hasRole(['super_admin', 'admin'])) {
             return redirect()->route('admin.dashboard');
-        } elseif (in_array('casher', $roles)) {
+        } elseif (auth()->user()->hasRole('casher')) {
             return redirect()->route('casher.dashboard');
         }
     }
@@ -36,7 +23,6 @@ class DashboardController extends Controller
             'cashSessions' => CashSession::with(['openingBalances', 'cashBalances'])
                 ->orderBy('opened_at', 'desc')
                 ->get(),
-            'user_roles' => $this->getUserRoles(),
         ]);
     }
 
@@ -47,7 +33,6 @@ class DashboardController extends Controller
             'cashSessions' => CashSession::with(['openingBalances', 'cashBalances'])
                 ->orderBy('opened_at', 'desc')
                 ->get(),
-            'user_roles' => $this->getUserRoles(),
         ]);
     }
 
