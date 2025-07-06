@@ -28,11 +28,9 @@ export default function Dashboard({
   currencies,
   user_roles,
 }: DashboardProps) {
-  const { auth, cash_session } = usePage().props;
+  const { auth, cash_session , roles } = usePage().props;
   const route = useRoute();
-  const isAdmin =
-    user_roles &&
-    (user_roles.includes('super_admin') || user_roles.includes('admin'));
+  const isAdmin = roles && (roles as string[]).includes('super_admin')
   const [currentCashSession, setCurrentCashSession] =
     useState<CashSession | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(false);

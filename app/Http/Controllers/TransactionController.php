@@ -23,8 +23,8 @@ class TransactionController extends Controller
         $currentSession = CashSession::whereIn('status', ['active'])->first();
 
         $calc = $request->getCalc();
-
-        $transaction = $this->transactionService->createTransaction($calc, $currentSession);
+        $result = array_merge($calc,["assigned_to" => $request->assigned_to]);
+        $transaction = $this->transactionService->createTransaction($result, $currentSession);
 
         return $this->success('Transaction created successfully.', [
             'transaction' => $transaction,
@@ -46,7 +46,7 @@ class TransactionController extends Controller
             ->get();
 
         return $this->success('Pending transactions', [
-            'transaction' => $transactions,
+            'transactions' => $transactions,
         ]);
     }
 

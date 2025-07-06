@@ -162,6 +162,7 @@ export default function RecentTransactionsTable({
       );
       if (response.data.status) {
         setTransactions(response.data.data.transactions || []);
+
         setLastUpdated(new Date());
       }
     } catch (error) {
@@ -194,7 +195,7 @@ export default function RecentTransactionsTable({
     setUpdatingTransactions(prev => new Set(prev).add(transactionId));
 
     try {
-      const endpoint = `/transactions/${transactionId}/${status}`;
+      const endpoint = `/admin/transactions/${transactionId}/${status}`;
       const response = await axios.put(endpoint);
 
       if (response.data.status) {
@@ -259,7 +260,6 @@ export default function RecentTransactionsTable({
       // Cleanup any ongoing requests or intervals
     };
   }, []);
-
   return (
     <div className="w-full mb-8">
       <Table
@@ -368,28 +368,28 @@ export default function RecentTransactionsTable({
                     <div className="font-medium">
                       {transaction.from_currency
                         ? formatAmount(
-                          transaction.original_amount,
-                          transaction.from_currency,
-                        )
+                            transaction.original_amount,
+                            transaction.from_currency,
+                          )
                         : new Intl.NumberFormat('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                          useGrouping: true,
-                        }).format(transaction.original_amount || 0)}
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                            useGrouping: true,
+                          }).format(transaction.original_amount || 0)}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">
                       {transaction.to_currency
                         ? formatAmount(
-                          transaction.converted_amount,
-                          transaction.to_currency,
-                        )
+                            transaction.converted_amount,
+                            transaction.to_currency,
+                          )
                         : new Intl.NumberFormat('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                          useGrouping: true,
-                        }).format(transaction.converted_amount || 0)}
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                            useGrouping: true,
+                          }).format(transaction.converted_amount || 0)}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -421,14 +421,10 @@ export default function RecentTransactionsTable({
                       <DropdownMenu
                         aria-label="Transaction actions"
                         onAction={key => {
-                          if (
-                            key === 'complete' ||
-                            key === 'cancel' ||
-                            key === 'pending'
-                          ) {
+                          if (key === 'complete' || key === 'cancel') {
                             updateTransactionStatus(
                               transaction.id,
-                              key as 'complete' | 'cancel' | 'pending',
+                              key as 'complete' | 'cancel',
                             );
                           }
                         }}
@@ -446,13 +442,6 @@ export default function RecentTransactionsTable({
                           description="إلغاء المعاملة"
                         >
                           إلغاء المعاملة
-                        </DropdownItem>
-                        <DropdownItem
-                          key="pending"
-                          color="warning"
-                          description="إعادة إلى الانتظار"
-                        >
-                          إعادة للانتظار
                         </DropdownItem>
                       </DropdownMenu>
                     </Dropdown>
