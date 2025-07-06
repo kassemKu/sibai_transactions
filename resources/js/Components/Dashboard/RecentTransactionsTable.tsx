@@ -158,7 +158,7 @@ export default function RecentTransactionsTable({
 
     try {
       const response = await axios.get<PendingTransactionsResponse>(
-        '/pending-transactions',
+        '/admin/pending-transactions',
       );
       if (response.data.status) {
         setTransactions(response.data.data.transactions || []);
