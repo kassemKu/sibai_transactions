@@ -3,7 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
-import { CurrenciesResponse, CashSession } from '@/types';
+import { CurrenciesResponse, CashSession, InertiaSharedProps } from '@/types';
 import { usePage, router } from '@inertiajs/react';
 import useRoute from '@/Hooks/useRoute';
 
@@ -21,26 +21,44 @@ import SecondaryButton from '@/Components/SecondaryButton';
 interface DashboardProps {
   currencies: CurrenciesResponse;
   cashSessions: any;
+  user_roles: string[];
 }
 
 export default function Dashboard({
   currencies,
-  cashSessions,
+  user_roles,
 }: DashboardProps) {
-  const { auth, cash_session } = usePage().props;
-  console.log(auth)
+  const { auth } = usePage().props as InertiaSharedProps;
+  console.log('Auth object:', auth);
+  console.log('User roles prop:', user_roles);
   const route = useRoute();
-
+  const isAdmin =
+    user_roles &&
+    (user_roles.includes('super_admin') || user_roles.includes('admin'));
   const [currentCashSession, setCurrentCashSession] =
-    useState<CashSession | null>(cash_session as CashSession | null);
+    useState<CashSession | null>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
+  const [isInitialSessionLoading, setIsInitialSessionLoading] = useState(true);
   const [showCloseModal, setShowCloseModal] = useState(false);
-  const [currenciesState, setCurrenciesState] = useState<CurrenciesResponse>(currencies);
+  const [currenciesState, setCurrenciesState] =
+    useState<CurrenciesResponse>(currencies);
 
   // Sync with global cash_session state when it changes
   useEffect(() => {
-    setCurrentCashSession(cash_session as CashSession | null);
-  }, [cash_session]);
+    const loadInitialSession = async () => {
+      try {
+        const response = await axios.get('/current-session');
+        setCurrentCashSession(response.data.data.session);
+      } catch (error) {
+        // Silently handle error - session might not exist
+        setCurrentCashSession(null);
+      } finally {
+        setIsInitialSessionLoading(false);
+      }
+    };
+
+    loadInitialSession();
+  }, []);
 
   // Poll /current-session every 1 second to keep currentCashSession up to date
   useEffect(() => {
@@ -61,7 +79,6 @@ export default function Dashboard({
       try {
         const response = await axios.get('/get-currencies');
         setCurrenciesState(response.data.data.currencies);
-
       } catch (error) {
         // Optionally handle error
       }
@@ -76,15 +93,10 @@ export default function Dashboard({
     try {
       const response = await axios.post('/admin/cash-sessions/open');
 
-      if (response.data.status || response.data.success) {
+      if (response.data.success) {
         // Update local state immediately
-        setCurrentCashSession(
-          response.data.data?.cash_session || response.data.cash_session,
-        );
+        setCurrentCashSession(response.data.cash_session);
         toast.success('تم فتح الجلسة النقدية بنجاح');
-
-        // Refresh the shared state to sync with server
-        router.reload({ only: ['cash_session'] });
       }
     } catch (error) {
       console.error('Error opening cash session:', error);
@@ -110,11 +122,6 @@ export default function Dashboard({
 
     // Update local state immediately
     setCurrentCashSession(null);
-
-    // Refresh the shared state to sync with server after a short delay
-    setTimeout(() => {
-      router.reload({ only: ['cash_session'] });
-    }, 100);
   };
 
   // Handle modal close
@@ -160,26 +167,52 @@ export default function Dashboard({
         <PrimaryButton className="text-sm">معاملة جديدة</PrimaryButton>
       )}
 
-      {/* Session Management Buttons */}
-      {isSessionOpen ? (
-        <DangerButton className="text-sm" onClick={handleCloseSession}>
-          إغلاق الجلسة
-        </DangerButton>
-      ) : isSessionPending ? (
-        <DangerButton className="text-sm" onClick={handleCloseSession}>
-          إنهاء الإغلاق
-        </DangerButton>
-      ) : (
-        <PrimaryButton
-          className="text-sm"
-          onClick={handleOpenSession}
-          disabled={isSessionLoading}
-        >
-          {isSessionLoading ? 'جاري الفتح...' : 'بدء جلسة جديدة'}
-        </PrimaryButton>
+      {/* Session Management Buttons - ADMIN ONLY */}
+      {isAdmin && (
+        <>
+          {isInitialSessionLoading ? (
+            <div className="text-sm text-gray-500 px-4 py-2">
+              جاري التحقق...
+            </div>
+          ) : isSessionOpen ? (
+            <DangerButton className="text-sm" onClick={handleCloseSession}>
+              إغلاق الجلسة
+            </DangerButton>
+          ) : isSessionPending ? (
+            <DangerButton className="text-sm" onClick={handleCloseSession}>
+              إنهاء الإغلاق
+            </DangerButton>
+          ) : (
+            <PrimaryButton
+              className="text-sm"
+              onClick={handleOpenSession}
+              disabled={isSessionLoading}
+            >
+              {isSessionLoading ? 'جاري الفتح...' : 'بدء جلسة جديدة'}
+            </PrimaryButton>
+          )}
+        </>
       )}
     </div>
   );
+
+  // Show loading state while fetching initial session - only for the main content
+  if (isInitialSessionLoading) {
+    return (
+      <RootLayout
+        title="لوحة التحكم"
+        breadcrumbs={[{ label: 'لوحة التحكم' }]}
+        headerActions={headerActions}
+      >
+        <div className="flex items-center justify-center min-h-[200px]">
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+            <span className="text-gray-600">جاري تحميل بيانات الجلسة...</span>
+          </div>
+        </div>
+      </RootLayout>
+    );
+  }
 
   return (
     <RootLayout
@@ -195,7 +228,7 @@ export default function Dashboard({
         currencies={currenciesState}
         isSessionOpen={!!isSessionOpen}
         isSessionPending={!!isSessionPending}
-        onStartSession={handleOpenSession}
+        onStartSession={isAdmin ? handleOpenSession : undefined}
       />
 
       <RecentTransactionsTable
