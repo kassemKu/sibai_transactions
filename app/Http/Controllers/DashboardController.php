@@ -20,22 +20,12 @@ class DashboardController extends Controller
 
     public function adminDashboard()
     {
-        return inertia('Dashboard')->with([
-            'currencies' => Currency::get(),
-            'cashSessions' => CashSession::with(['openingBalances', 'cashBalances'])
-                ->orderBy('opened_at', 'desc')
-                ->get(),
-        ]);
+        return inertia('Dashboard');
     }
 
     public function casherDashboard()
     {
-        return inertia('CasherDashboard')->with([
-            'currencies' => Currency::get(),
-            'cashSessions' => CashSession::with(['openingBalances', 'cashBalances'])
-                ->orderBy('opened_at', 'desc')
-                ->get(),
-        ]);
+        return inertia('CasherDashboard');
     }
 
     public function currentSession()

@@ -6,6 +6,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import { CurrenciesResponse, CashSession, InertiaSharedProps } from '@/types';
 import { usePage, router } from '@inertiajs/react';
 import useRoute from '@/Hooks/useRoute';
+import { useStatusPolling } from '@/Hooks/useStatusPolling';
 
 // Import dashboard components
 import WelcomeSection from '@/Components/Dashboard/WelcomeSection';
@@ -24,65 +25,27 @@ interface DashboardProps {
   user_roles: string[];
 }
 
-export default function Dashboard({
-  currencies,
-  user_roles,
-}: DashboardProps) {
+export default function Dashboard({ currencies, user_roles }: DashboardProps) {
   const { auth, cash_session, roles } = usePage().props;
   const route = useRoute();
-  const isAdmin = roles && (roles as string[]).includes('super_admin')
-  const [currentCashSession, setCurrentCashSession] =
-    useState<CashSession | null>(null);
+  const isAdmin =
+    roles &&
+    Array.isArray(roles) &&
+    (roles as string[]).includes('super_admin');
   const [isSessionLoading, setIsSessionLoading] = useState(false);
-  const [isInitialSessionLoading, setIsInitialSessionLoading] = useState(true);
   const [showCloseModal, setShowCloseModal] = useState(false);
-  const [currenciesState, setCurrenciesState] =
-    useState<CurrenciesResponse>(currencies);
 
-  const response = axios.get("/status");
-  console.log('response', response);
-  // Sync with global cash_session state when it changes
-  useEffect(() => {
-    const loadInitialSession = async () => {
-      try {
-        const response = await axios.get('/current-session');
-        setCurrentCashSession(response.data.data.session);
-      } catch (error) {
-        // Silently handle error - session might not exist
-        setCurrentCashSession(null);
-      } finally {
-        setIsInitialSessionLoading(false);
-      }
-    };
-
-    loadInitialSession();
-  }, []);
-
-  // Poll /current-session every 1 second to keep currentCashSession up to date
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await axios.get('/current-session');
-        setCurrentCashSession(response.data.data.session);
-      } catch (error) {
-        // Optionally handle error, e.g., setCurrentCashSession(null)
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Poll /currencies every 1 second to keep currencies up to date
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await axios.get('/get-currencies');
-        setCurrenciesState(response.data.data.currencies);
-      } catch (error) {
-        // Optionally handle error
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  // Use unified status polling hook
+  const {
+    currentSession: currentCashSession,
+    currencies: currenciesState,
+    transactions,
+    isLoading: isInitialSessionLoading,
+    isPolling,
+    lastUpdated,
+    error,
+    refetch,
+  } = useStatusPolling(3000, true);
 
   // Handle opening a cash session
   const handleOpenSession = async () => {
@@ -92,8 +55,8 @@ export default function Dashboard({
       const response = await axios.post('/admin/cash-sessions/open');
 
       if (response.data.success) {
-        // Update local state immediately
-        setCurrentCashSession(response.data.cash_session);
+        // Refetch status to update local state
+        await refetch();
         toast.success('تم فتح الجلسة النقدية بنجاح');
       }
     } catch (error) {
@@ -118,8 +81,8 @@ export default function Dashboard({
     // Close modal first
     setShowCloseModal(false);
 
-    // Update local state immediately
-    setCurrentCashSession(null);
+    // Refetch status to update local state
+    refetch();
   };
 
   // Handle modal close
@@ -129,13 +92,8 @@ export default function Dashboard({
 
   // Handle session becoming pending
   const handleSessionPending = () => {
-    // Update local state to reflect pending status
-    if (currentCashSession) {
-      setCurrentCashSession({
-        ...currentCashSession,
-        status: 'pending',
-      });
-    }
+    // Refetch status to update local state
+    refetch();
 
     // Optionally reload the page state to sync with server
     setTimeout(() => {
@@ -143,12 +101,14 @@ export default function Dashboard({
     }, 100);
   };
 
-  const isSessionOpen =
-    currentCashSession && currentCashSession.status === 'active';
-  const isSessionPending =
-    currentCashSession && currentCashSession.status === 'pending';
+  const isSessionOpen = !!(
+    currentCashSession && currentCashSession.status === 'active'
+  );
+  const isSessionPending = !!(
+    currentCashSession && currentCashSession.status === 'pending'
+  );
 
-  const headerActions = (
+  const headerActions: React.ReactNode = (
     <div className="flex items-center space-x-3 space-x-reverse">
       {/* Session Status Indicator */}
       {isSessionPending && (
@@ -160,7 +120,6 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* New Transaction Button - only show if session is open */}
       {isSessionOpen && (
         <PrimaryButton className="text-sm">معاملة جديدة</PrimaryButton>
       )}
@@ -230,8 +189,13 @@ export default function Dashboard({
       />
 
       <RecentTransactionsTable
+        transactions={transactions}
         isSessionActive={!!isSessionOpen}
         isSessionPending={!!isSessionPending}
+        isLoading={isInitialSessionLoading}
+        isPolling={isPolling}
+        lastUpdated={lastUpdated}
+        onRefetch={refetch}
       />
 
       {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
