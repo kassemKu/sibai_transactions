@@ -33,7 +33,7 @@ export default function CloseSessionModal({
   isOpen,
   onClose,
   onSuccess,
-  isSessionPending = false ,
+  isSessionPending = false,
   onSessionPending,
 }: CloseSessionModalProps) {
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
@@ -65,7 +65,7 @@ export default function CloseSessionModal({
   const fetchClosingBalances = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get('/admin/cash-sessions/closing-balances');
+      const response = await axios.get('/admin/get-session-closing-balances');
       if (response.data.status || response.data.success) {
         const balancesData =
           response.data.data?.balances || response.data.balances || [];
@@ -339,13 +339,12 @@ export default function CloseSessionModal({
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
                               <span
-                                className={`text-sm font-medium ${
-                                  difference > 0
+                                className={`text-sm font-medium ${difference > 0
                                     ? 'text-green-600'
                                     : difference < 0
                                       ? 'text-red-600'
                                       : 'text-gray-900'
-                                }`}
+                                  }`}
                               >
                                 {difference > 0 ? '+' : ''}
                                 {formatDisplayAmount(Math.abs(difference))}
@@ -391,13 +390,12 @@ export default function CloseSessionModal({
                         إجمالي الفرق (بالدولار):
                       </span>
                       <div
-                        className={`font-medium text-lg ${
-                          getTotalDifference() > 0
+                        className={`font-medium text-lg ${getTotalDifference() > 0
                             ? 'text-green-600'
                             : getTotalDifference() < 0
                               ? 'text-red-600'
                               : 'text-gray-900'
-                        }`}
+                          }`}
                       >
                         {getTotalDifference() > 0 ? '+' : ''}$
                         {formatDisplayAmount(Math.abs(getTotalDifference()))}
