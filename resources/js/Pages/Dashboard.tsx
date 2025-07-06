@@ -28,7 +28,6 @@ export default function Dashboard({
   cashSessions,
 }: DashboardProps) {
   const { auth, cash_session } = usePage().props;
-  console.log(auth)
   const route = useRoute();
 
   const [currentCashSession, setCurrentCashSession] =
@@ -84,7 +83,7 @@ export default function Dashboard({
         toast.success('تم فتح الجلسة النقدية بنجاح');
 
         // Refresh the shared state to sync with server
-        router.reload({ only: ['cash_session'] });
+        // router.reload({ only: ['cash_session'] });
       }
     } catch (error) {
       console.error('Error opening cash session:', error);
