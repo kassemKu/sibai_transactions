@@ -27,7 +27,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::Resource('currencies', CurrencyController::class)->except(['destroy']);
 
         Route::post('/transactions', [TransactionController::class, 'store']);
-        Route::get('/pending-transactions', [TransactionController::class, 'pendingTransaction'])->middleware(EnsureActiveCashSession::class);
+        Route::get('/pending-transactions', [TransactionController::class, 'pendingTransactions'])->middleware(EnsureActiveCashSession::class);
         Route::put('/transactions/{id}/complete', [TransactionController::class, 'completeStatus'])->middleware(EnsureActiveCashSession::class);
         Route::put('/transactions/{id}/cancel', [TransactionController::class, 'cancelStatus'])->middleware(EnsureActiveCashSession::class);
 
