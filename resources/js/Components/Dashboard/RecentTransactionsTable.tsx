@@ -368,28 +368,28 @@ export default function RecentTransactionsTable({
                     <div className="font-medium">
                       {transaction.from_currency
                         ? formatAmount(
-                            transaction.original_amount,
-                            transaction.from_currency,
-                          )
+                          transaction.original_amount,
+                          transaction.from_currency,
+                        )
                         : new Intl.NumberFormat('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                            useGrouping: true,
-                          }).format(transaction.original_amount || 0)}
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                          useGrouping: true,
+                        }).format(transaction.original_amount || 0)}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">
                       {transaction.to_currency
                         ? formatAmount(
-                            transaction.converted_amount,
-                            transaction.to_currency,
-                          )
+                          transaction.converted_amount,
+                          transaction.to_currency,
+                        )
                         : new Intl.NumberFormat('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                            useGrouping: true,
-                          }).format(transaction.converted_amount || 0)}
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                          useGrouping: true,
+                        }).format(transaction.converted_amount || 0)}
                     </div>
                   </TableCell>
                   <TableCell>

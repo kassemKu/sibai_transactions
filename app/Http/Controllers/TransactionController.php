@@ -34,12 +34,12 @@ class TransactionController extends Controller
     public function pendingTransactions()
     {
         $transactions = Transaction::where('status', 'pending')
-            ->where(function ($query) {
-                $query->whereNot('user_id', Auth::id())
-                    ->orWhere('assigned_to', Auth::id());
-            })
             ->whereHas('cashSession', function ($query) {
-                $query->whereIn('status', ['active', 'pending'])->exists();
+                $query->whereIn('status', ['active', 'pending']);
+            })
+            ->where(function ($query) {
+                $query->where('assigned_to', Auth::id())
+                    ->orWhereNull('assigned_to');
             })
             ->with(['fromCurrency', 'toCurrency'])
             ->orderBy('created_at', 'desc')
