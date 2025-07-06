@@ -28,7 +28,7 @@ export default function Dashboard({
   currencies,
   user_roles,
 }: DashboardProps) {
-  const { auth, cash_session , roles } = usePage().props;
+  const { auth, cash_session, roles } = usePage().props;
   const route = useRoute();
   const isAdmin = roles && (roles as string[]).includes('super_admin')
   const [currentCashSession, setCurrentCashSession] =
@@ -39,6 +39,8 @@ export default function Dashboard({
   const [currenciesState, setCurrenciesState] =
     useState<CurrenciesResponse>(currencies);
 
+  const response = axios.get("/status");
+  console.log('response', response);
   // Sync with global cash_session state when it changes
   useEffect(() => {
     const loadInitialSession = async () => {
