@@ -8,6 +8,13 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import PrimaryButton from '@/Components/PrimaryButton';
 import Select from '@/Components/Select';
 import { CurrenciesResponse } from '@/types';
+import { usePage } from '@inertiajs/react';
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
 
 interface TransactionFormProps {
   currencies: CurrenciesResponse;
@@ -22,12 +29,40 @@ export default function TransactionForm({
   isSessionPending = false,
   onStartSession,
 }: TransactionFormProps) {
+  const { auth, roles } = usePage().props as any;
+  const isAdmin = roles && (roles as string[]).includes('super_admin');
+
   const [fromCurrency, setFromCurrency] = useState('');
   const [toCurrency, setToCurrency] = useState('');
   const [amount, setAmount] = useState('');
   const [calculatedAmount, setCalculatedAmount] = useState('');
+  const [assignedTo, setAssignedTo] = useState(
+    auth?.user?.id?.toString() || '',
+  );
+  const [users, setUsers] = useState<User[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+  // Fetch users for admin dropdown
+  useEffect(() => {
+    if (isAdmin) {
+      const fetchUsers = async () => {
+        setIsLoadingUsers(true);
+        try {
+          const response = await axios.get('/admin/users');
+          setUsers(response.data.data.users || []);
+        } catch (error) {
+          console.error('Error fetching users:', error);
+          toast.error('فشل في تحميل قائمة المستخدمين');
+        } finally {
+          setIsLoadingUsers(false);
+        }
+      };
+
+      fetchUsers();
+    }
+  }, [isAdmin]);
 
   // Calculate currency conversion
   const calculateCurrency = useCallback(async () => {
@@ -48,7 +83,9 @@ export default function TransactionForm({
 
       // console.log('Calculation response:', response.data.data.calculation_result);
 
-      setCalculatedAmount(response.data.data.calculation_result.converted_amount || '0');
+      setCalculatedAmount(
+        response.data.data.calculation_result.converted_amount || '0',
+      );
     } catch (error) {
       console.error('Error calculating currency:', error);
       setCalculatedAmount('خطأ في الحساب');
@@ -72,15 +109,19 @@ export default function TransactionForm({
   }, [calculateCurrency]);
 
   // Reset form
-  const resetForm = useCallback((showToast = false) => {
-    setFromCurrency('');
-    setToCurrency('');
-    setAmount('');
-    setCalculatedAmount('');
-    if (showToast) {
-      toast.success('تم إعادة تعيين النموذج');
-    }
-  }, []);
+  const resetForm = useCallback(
+    (showToast = false) => {
+      setFromCurrency('');
+      setToCurrency('');
+      setAmount('');
+      setCalculatedAmount('');
+      setAssignedTo(auth?.user?.id?.toString() || '');
+      if (showToast) {
+        toast.success('تم إعادة تعيين النموذج');
+      }
+    },
+    [auth?.user?.id],
+  );
 
   // Handle transaction execution
   const handleExecuteTransaction = useCallback(async () => {
@@ -100,12 +141,15 @@ export default function TransactionForm({
 
     setIsSubmitting(true);
     try {
-      const response = await axios.post('/admin/transactions', {
+      const transactionData = {
         from_currency_id: parseInt(fromCurrency),
         to_currency_id: parseInt(toCurrency),
         original_amount: parseFloat(amount),
         customer_name: '', // You can add a customer name field later
-      });
+        ...(isAdmin && assignedTo ? { assigned_to: parseInt(assignedTo) } : {}),
+      };
+
+      const response = await axios.post('/admin/transactions', transactionData);
 
       if (response.data) {
         toast.success('تم تنفيذ العملية بنجاح');
@@ -128,6 +172,8 @@ export default function TransactionForm({
     toCurrency,
     amount,
     calculatedAmount,
+    assignedTo,
+    isAdmin,
     isSessionOpen,
     isSessionPending,
     resetForm,
@@ -161,6 +207,52 @@ export default function TransactionForm({
               </div>
             </div>
 
+            {/* Admin User Assignment Section */}
+            {isAdmin && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex flex-col gap-3">
+                  <div className="text-bold-x16 text-blue-900">
+                    تعيين المسؤول
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <InputLabel
+                        htmlFor="assigned_to"
+                        className="mb-2 text-blue-800"
+                      >
+                        تعيين العملية إلى
+                      </InputLabel>
+                      <Select
+                        id="assigned_to"
+                        aria-label="تعيين العملية إلى"
+                        value={assignedTo}
+                        onChange={e => setAssignedTo(e.target.value)}
+                        className="border-blue-300 focus:border-blue-500"
+                        disabled={isLoadingUsers}
+                      >
+                        {isLoadingUsers ? (
+                          <option value="">جاري التحميل...</option>
+                        ) : (
+                          <>
+                            {users.map(user => (
+                              <option key={user.id} value={user.id}>
+                                {user.name} ({user.email})
+                              </option>
+                            ))}
+                          </>
+                        )}
+                      </Select>
+                      {isLoadingUsers && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          جاري تحميل قائمة المستخدمين...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div className="text-bold-x16 text-text-black">من</div>
@@ -190,13 +282,13 @@ export default function TransactionForm({
                     <NumberInput
                       id="from_amount"
                       placeholder="أدخل المبلغ"
-                      className="w-full"
+                      className="w-full text-right"
                       value={amount}
                       onValueChange={values => setAmount(values.value)}
                       min={0}
                       decimalScale={2}
                       thousandSeparator={true}
-                      dir="ltr"
+                      dir="rtl"
                       aria-label="مبلغ التحويل"
                     />
                   </div>
@@ -236,12 +328,12 @@ export default function TransactionForm({
                             ? 'جاري الحساب...'
                             : 'سيتم الحساب تلقائياً'
                         }
-                        className="w-full bg-gray-50"
+                        className="w-full bg-gray-50 text-right"
                         value={isCalculating ? '' : calculatedAmount}
                         readOnly
                         thousandSeparator={true}
                         decimalScale={2}
-                        dir="ltr"
+                        dir="rtl"
                         aria-label="المبلغ المحسوب"
                       />
                       {isCalculating && (
