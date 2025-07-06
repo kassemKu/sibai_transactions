@@ -158,7 +158,7 @@ export default function CloseSessionModal({
 
     setIsLoading(true);
     try {
-      const response = await axios.post('admin/cash-sessions/pending');
+      const response = await axios.post('/admin/cash-sessions/pending');
       if (response.data.status || response.data.success) {
         setShowActualInputs(true);
         toast.success('تم تحويل الجلسة إلى وضع الإغلاق');

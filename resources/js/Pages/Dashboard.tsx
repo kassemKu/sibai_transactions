@@ -28,9 +28,7 @@ export default function Dashboard({
   currencies,
   user_roles,
 }: DashboardProps) {
-  const { auth } = usePage().props as InertiaSharedProps;
-  console.log('Auth object:', auth);
-  console.log('User roles prop:', user_roles);
+  const { auth, cash_session } = usePage().props;
   const route = useRoute();
   const isAdmin =
     user_roles &&
