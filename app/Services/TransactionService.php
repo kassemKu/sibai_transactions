@@ -38,7 +38,7 @@ class TransactionService
 
         $transaction = Transaction::create([
             'customer_id' => null,
-            'user_id' => $user->id,
+            'created_by' => $user->id,
             'cash_session_id' => $currentSession->id,
             'from_currency_id' => $data['from_currency_id'],
             'to_currency_id' => $data['to_currency_id'],
