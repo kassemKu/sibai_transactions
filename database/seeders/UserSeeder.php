@@ -13,7 +13,7 @@ class UserSeeder extends Seeder
         $admin = User::firstOrCreate(
             ['email' => 'admin@admin.com'],
             [
-                'name' => 'Super Admin',
+                'name' => 'Alaa',
                 'password' => Hash::make('12345678'),
             ]
         );
@@ -23,11 +23,20 @@ class UserSeeder extends Seeder
         $casher = User::firstOrCreate(
             ['email' => 'casher@casher.com'],
             [
-                'name' => 'Casher',
+                'name' => 'Salah',
                 'password' => Hash::make('12345678'),
             ]
         );
 
         $casher->addRole('casher');
+        $user = User::firstOrCreate(
+            ['email' => 'user@user.com'],
+            [
+                'name' => 'Mohamed',
+                'password' => Hash::make('12345678'),
+            ]
+        );
+
+        $user->addRole('casher');
     }
 }

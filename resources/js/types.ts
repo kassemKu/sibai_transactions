@@ -122,15 +122,88 @@ export interface Currency {
 
 export type CurrenciesResponse = Currency[];
 
+export interface Customer {
+  id: number;
+  name: string;
+  phone?: string;
+}
+
+export interface Transaction {
+  id: number;
+  cash_session_id: number;
+  user_id: number;
+  assigned_to: number | null;
+  customer_id: number | null;
+  from_currency_id: number;
+  to_currency_id: number;
+  original_amount: number;
+  converted_amount: number;
+  from_rate_to_usd: string | number;
+  to_rate_to_usd: string | number;
+  status: 'pending' | 'completed' | 'canceled';
+  created_at: string;
+  updated_at: string;
+  from_currency: Currency; // ✅ Now loaded from backend
+  to_currency: Currency; // ✅ Now loaded from backend
+  user: User; // ✅ Now loaded from backend
+  customer?: Customer; // Optional - not always needed
+}
+
+export interface SessionOpeningBalance {
+  id: number;
+  opening_balance: string;
+  cash_session_id: number;
+  currency_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CashBalance {
+  id: number;
+  opening_balance: string;
+  total_in: string;
+  total_out: string;
+  closing_balance: string;
+  actual_closing_balance: string;
+  difference: string;
+  cash_session_id: number;
+  currency_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CashSession {
   id: number;
   opened_at: string;
   closed_at: Nullable<string>;
-  opened_by: number;
-  closed_by: Nullable<number>;
-  open_exchange_rates: any;
-  close_exchange_rates: Nullable<any>;
-  status: string;
+  opened_by: User;
+  closed_by: Nullable<User>;
+  open_exchange_rates: string; // JSON string
+  close_exchange_rates: Nullable<string>; // JSON string
+  status: 'active' | 'pending' | 'closed';
   created_at: string;
   updated_at: string;
+  opening_balances: SessionOpeningBalance[];
+  cash_balances: CashBalance[];
+  transactions: Transaction[];
+}
+
+export interface CashSessionsResponse {
+  current_page: number;
+  data: CashSession[];
+  first_page_url: string;
+  from: number;
+  last_page: number;
+  last_page_url: string;
+  links: Array<{
+    url: string | null;
+    label: string;
+    active: boolean;
+  }>;
+  next_page_url: string | null;
+  path: string;
+  per_page: number;
+  prev_page_url: string | null;
+  to: number;
+  total: number;
 }

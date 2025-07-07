@@ -19,19 +19,41 @@ class CashSessionController extends Controller
 
     public function index()
     {
-        $cashSessions = CashSession::with(['openingBalances', 'cashBalances', 'transactions', 'openedBy', 'closedBy'])
+        $cashSessions = CashSession::with([
+            'openingBalances', 
+            'cashBalances', 
+            'transactions.user', // ✅ Load transaction users
+            'transactions.fromCurrency',
+            'transactions.toCurrency', 
+            'openedBy', 
+            'closedBy'
+        ])
             ->orderBy('opened_at', 'desc')
             ->paginate(10);
+            
+        $currencies = \App\Models\Currency::all();
 
         return inertia('CashSessions/Index')->with([
             'cashSessions' => $cashSessions,
+            'currencies' => $currencies,
         ]);
     }
 
     public function show(CashSession $cashSession)
     {
+        $currencies = \App\Models\Currency::all();
+        
         return inertia('CashSessions/Show')->with([
-            'currency' => $cashSession->load(['openingBalances', 'cashBalances', 'transactions', 'openedBy', 'closedBy']),
+            'cashSession' => $cashSession->load([
+                'openingBalances', 
+                'cashBalances', 
+                'transactions.user', // ✅ Load transaction users
+                'transactions.fromCurrency',
+                'transactions.toCurrency',
+                'openedBy', 
+                'closedBy'
+            ]),
+            'currencies' => $currencies,
         ]);
     }
 
