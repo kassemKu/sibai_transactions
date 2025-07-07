@@ -31,12 +31,12 @@ class Transaction extends Model
 
     public function createdBy()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 
     public function assignedTo()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'assigned_to', 'id');
     }
 
     public function cashSession()
