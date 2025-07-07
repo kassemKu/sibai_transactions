@@ -2,116 +2,194 @@ import { Link, useForm, Head } from '@inertiajs/react';
 import classNames from 'classnames';
 import React from 'react';
 import useRoute from '@/Hooks/useRoute';
-import AuthenticationCard from '@/Components/AuthenticationCard';
+// import AuthenticationCard from '@/Components/AuthenticationCard';
 import Checkbox from '@/Components/Checkbox';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
+import Logo from '@/Components/Logo';
 
 interface Props {
   canResetPassword: boolean;
   status: string;
+  loginImage: string;
 }
 
-export default function Login({ canResetPassword, status }: Props) {
+export default function Login({ canResetPassword, status, loginImage }: Props) {
   const route = useRoute();
   const form = useForm({
     email: '',
     password: '',
-    remember: '',
+    remember: false,
   });
 
-  function onSubmit(e: React.FormEvent) {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     form.post(route('login'), {
       onFinish: () => form.reset('password'),
     });
-  }
+  };
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    form.setData('email', e.target.value);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    form.setData('password', e.target.value);
+  };
+
+  const handleRememberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    form.setData('remember', e.target.checked);
+  };
   return (
-    <AuthenticationCard>
-      <Head title="Login" />
-
-      {status && (
-        <div className="mb-4 font-medium text-sm text-green-600">
-          {status}
-        </div>
-      )}
-
-      <form onSubmit={onSubmit}>
-        <div>
-          <InputLabel htmlFor="email">Email</InputLabel>
-          <TextInput
-            id="email"
-            type="email"
-            className="mt-1 block w-full"
-            value={form.data.email}
-            onChange={e => form.setData('email', e.currentTarget.value)}
-            required
-            autoFocus
-          />
-          <InputError className="mt-2" message={form.errors.email} />
-        </div>
-
-        <div className="mt-4">
-          <InputLabel htmlFor="password">Password</InputLabel>
-          <TextInput
-            id="password"
-            type="password"
-            className="mt-1 block w-full"
-            value={form.data.password}
-            onChange={e => form.setData('password', e.currentTarget.value)}
-            required
-            autoComplete="current-password"
-          />
-          <InputError className="mt-2" message={form.errors.password} />
-        </div>
-
-        <div className="mt-4">
-          <label className="flex items-center">
-            <Checkbox
-              name="remember"
-              checked={form.data.remember === 'on'}
-              onChange={e =>
-                form.setData('remember', e.currentTarget.checked ? 'on' : '')
-              }
-            />
-            <span className="ml-2 text-sm text-gray-600">
-              Remember me
-            </span>
-          </label>
-        </div>
-
-        <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0 mt-4">
-          {canResetPassword && (
-            <div>
-              <Link
-                href={route('password.request')}
-                className="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                Forgot your password?
-              </Link>
+    <>
+      <Head title="Sign In" />
+      <section className="flex h-screen">
+        <div className="w-1/2 flex flex-col  px-10 py-20">
+          <Logo />
+          <div className='space-y-10 flex flex-col h-full justify-center'>
+            {status && (
+              <div className="mb-4 font-medium text-sm text-green-600 bg-green-50 p-3 rounded-md border border-green-200">
+                {status}
+              </div>
+            )}
+            <div className="mb-6 flex flex-col justify-center items-center w-full">
+              <h1 className="text-bold-x24 text-text-black mb-2">
+                تسجيل الدخول
+              </h1>
+              <p className="text-med-x16 text-text-grey">
+                مرحبا مجددا ، ادخل بياناتك للمواصلة
+              </p>
             </div>
-          )}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <InputLabel
+                  htmlFor="email"
+                  className=""
+                >
+                  البريد الألكتروني
+                </InputLabel>
+                <TextInput
+                  id="email"
+                  type="email"
+                  className="mt-1 block w-full"
+                  value={form.data.email}
+                  onChange={handleEmailChange}
+                  required
+                  autoFocus
+                  autoComplete="email"
+                  placeholder="أدخل البريد الألكتروني"
+                  aria-describedby={form.errors.email ? 'email-error' : undefined}
+                />
+                <InputError
+                  id="email-error"
+                  className="mt-2"
+                  message={form.errors.email}
+                />
+              </div>
 
-          <div className="flex items-center justify-end">
-            <Link
-              href={route('register')}
-              className="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Need an account?
-            </Link>
+              <div>
+                <InputLabel
+                  htmlFor="password"
+                  className=""
+                >
+                  كلمة المرور
+                </InputLabel>
+                <TextInput
+                  id="password"
+                  type="password"
+                  className="mt-1 block w-full"
+                  value={form.data.password}
+                  onChange={handlePasswordChange}
+                  required
+                  autoComplete="current-password"
+                  placeholder="أدخل كلمة المرور"
+                  aria-describedby={
+                    form.errors.password ? 'password-error' : undefined
+                  }
+                />
+                <InputError
+                  id="password-error"
+                  className="mt-2"
+                  message={form.errors.password}
+                />
+              </div>
 
-            <PrimaryButton
-              className={classNames('ml-4', { 'opacity-25': form.processing })}
-              disabled={form.processing}
-            >
-              Log in
-            </PrimaryButton>
+              <div className="flex items-center justify-between">
+                <label className="flex items-center">
+                  <Checkbox
+                    name="remember"
+                    checked={form.data.remember}
+                    onChange={handleRememberChange}
+                  />
+                  <span className="ms-2 text-sm text-gray-600">تذكرني</span>
+                </label>
+
+                {canResetPassword && (
+                  <Link
+                    href={route('password.request')}
+                    className="text-sm text-primaryBlue hover:text-primaryBlue font-medium transition-colors duration-200"
+                  >
+                    هل نسيت كلمة المرور؟
+                  </Link>
+                )}
+              </div>
+
+              <div>
+                <PrimaryButton
+                  type="submit"
+                  className={classNames(
+                    'w-full justify-center py-2.5 px-4 text-sm font-medium transition-all duration-200',
+                    {
+                      'opacity-75 cursor-not-allowed': form.processing,
+                      'hover:bg-primaryBlue  focus:ring-2 focus:ring-offset-2 focus:ring-primaryBlue':
+                        !form.processing,
+                    },
+                  )}
+                  disabled={form.processing}
+                >
+                  {form.processing ? (
+                    <div className="flex items-center">
+                      <svg
+                        className="animate-spin -ms-1 me-3 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      جاري تسجيل الدخول...
+                    </div>
+                  ) : (
+                    'تسجيل الدخول'
+                  )}
+                </PrimaryButton>
+              </div>
+            </form>
           </div>
+
         </div>
-      </form>
-    </AuthenticationCard>
+        <div className="w-1/2">
+          <img
+            src={loginImage}
+            alt="login"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </section>
+    </>
   );
 }

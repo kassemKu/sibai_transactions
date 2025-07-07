@@ -21,6 +21,8 @@ export default function Modal({
     lg: 'sm:max-w-lg',
     xl: 'sm:max-w-xl',
     '2xl': 'sm:max-w-2xl',
+    '4xl': 'sm:max-w-4xl',
+    '6xl': 'sm:max-w-6xl',
   }[maxWidth];
 
   if (typeof window === 'undefined') {
@@ -32,7 +34,7 @@ export default function Modal({
       <Dialog
         as="div"
         static
-        className="fixed z-10 inset-0 overflow-y-auto"
+        className="fixed z-50 inset-0 overflow-y-auto"
         open={isOpen}
         onClose={onClose}
       >
@@ -67,9 +69,10 @@ export default function Modal({
           >
             <div
               className={classNames(
-                'inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:w-full',
+                'inline-block align-bottom bg-white rounded-lg text-right overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:w-full',
                 maxWidthClass,
               )}
+              dir="rtl"
             >
               {children}
             </div>

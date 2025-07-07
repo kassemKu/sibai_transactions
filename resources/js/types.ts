@@ -94,3 +94,30 @@ export interface TeamInvitation {
   created_at: DateTime;
   updated_at: DateTime;
 }
+
+
+export interface Currency {
+  rate_to_usd: string;
+  id: number;
+  name: string;
+  code: string;
+  profit_margin_percent: string;
+  is_crypto: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CurrenciesResponse = Currency[];
+
+export interface CashSession {
+  id: number;
+  opened_at: string;
+  closed_at: Nullable<string>;
+  opened_by: number;
+  closed_by: Nullable<number>;
+  open_exchange_rates: any;
+  close_exchange_rates: Nullable<any>;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
