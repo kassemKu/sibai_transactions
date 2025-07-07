@@ -25,7 +25,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::group(['middleware' => ['role:super_admin'], 'prefix' => 'admin'], function () {
         Route::get('/', [DashboardController::class, 'AdminDashboard'])->name('admin.dashboard');
 
-        Route::Resource('/currencies', CurrencyController::class)->except(['destroy']);
+        Route::Resource('/currencies', CurrencyController::class)->except(['destroy', 'store']);
+        Route::post('/currencies', [CurrencyController::class, 'store'])->middleware(EnsureActiveCashSession::class);
 
         Route::post('/transactions', [TransactionController::class, 'store']);
         Route::get('/pending-transactions', [TransactionController::class, 'pendingTransactions'])->middleware(EnsureActiveCashSession::class);

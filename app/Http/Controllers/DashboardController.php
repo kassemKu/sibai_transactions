@@ -50,17 +50,12 @@ class DashboardController extends Controller
                 $query->whereIn('status', ['active', 'pending']);
             });
 
-        if (Auth::user()->hasRole(['super_admin', 'admin'])) {
-            $transactionsQuery->where(function ($query) {
-                $query->where('assigned_to', Auth::id())
-                    ->orWhereNull('assigned_to');
-            });
-        } else {
+        if (! Auth::user()->hasRole(['super_admin', 'admin'])) {
             $transactionsQuery->where('assigned_to', Auth::id());
         }
 
         $transactions = $transactionsQuery
-            ->with(['fromCurrency', 'toCurrency'])
+            ->with(['fromCurrency', 'toCurrency', 'user', 'assignedTo'])
             ->orderBy('created_at', 'desc')
             ->get();
 
