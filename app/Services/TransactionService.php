@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\Enums\CashMovementType;
+use App\Models\CashBalance;
 use App\Models\CashMovement;
 use App\Models\CashSession;
 use App\Models\Currency;
-use App\Models\SessionOpeningBalance;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -81,7 +81,7 @@ class TransactionService
             throw new \Exception('No open cash session found.');
         }
 
-        $opening = SessionOpeningBalance::where('cash_session_id', $session->id)
+        $opening = CashBalance::where('cash_session_id', $session->id)
             ->where('currency_id', $currencyId)
             ->first()
             ->opening_balance ?? 0;

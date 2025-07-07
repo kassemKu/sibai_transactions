@@ -47,7 +47,6 @@ class CurrencySeeder extends Seeder
                 ['code' => $currency['code']],
                 [
                     'name' => $currency['name'],
-                    'is_crypto' => false,
                     'rate_to_usd' => $rates[$currency['code']],
                 ]
             );

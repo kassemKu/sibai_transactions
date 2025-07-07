@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CloseCashSessionRequest;
 use App\Models\CashSession;
+use App\Models\Currency;
 use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -20,18 +21,18 @@ class CashSessionController extends Controller
     public function index()
     {
         $cashSessions = CashSession::with([
-            'openingBalances', 
-            'cashBalances', 
-            'transactions.user', // ✅ Load transaction users
+            'cashBalances',
+            'transactions.createdBy',
+            'transactions.assignedTo',
             'transactions.fromCurrency',
-            'transactions.toCurrency', 
-            'openedBy', 
-            'closedBy'
+            'transactions.toCurrency',
+            'openedBy',
+            'closedBy',
         ])
             ->orderBy('opened_at', 'desc')
             ->paginate(10);
-            
-        $currencies = \App\Models\Currency::all();
+
+        $currencies = Currency::all();
 
         return inertia('CashSessions/Index')->with([
             'cashSessions' => $cashSessions,
@@ -41,17 +42,17 @@ class CashSessionController extends Controller
 
     public function show(CashSession $cashSession)
     {
-        $currencies = \App\Models\Currency::all();
-        
+        $currencies = Currency::all();
+
         return inertia('CashSessions/Show')->with([
             'cashSession' => $cashSession->load([
-                'openingBalances', 
-                'cashBalances', 
-                'transactions.user', // ✅ Load transaction users
+                'cashBalances',
+                'transactions.createdBy',
+                'transactions.assignedTo',
                 'transactions.fromCurrency',
                 'transactions.toCurrency',
-                'openedBy', 
-                'closedBy'
+                'openedBy',
+                'closedBy',
             ]),
             'currencies' => $currencies,
         ]);
