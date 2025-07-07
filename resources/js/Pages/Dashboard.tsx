@@ -3,9 +3,10 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
-import { CurrenciesResponse, CashSession } from '@/types';
+import { CurrenciesResponse, CashSession, InertiaSharedProps } from '@/types';
 import { usePage, router } from '@inertiajs/react';
 import useRoute from '@/Hooks/useRoute';
+import { useStatusPolling } from '@/Hooks/useStatusPolling';
 
 // Import dashboard components
 import WelcomeSection from '@/Components/Dashboard/WelcomeSection';
@@ -16,28 +17,35 @@ import RecentTransactionsList from '@/Components/Dashboard/RecentTransactionsLis
 import QuickActions from '@/Components/Dashboard/QuickActions';
 import DangerButton from '@/Components/DangerButton';
 import CloseSessionModal from '@/Components/CloseSessionModal';
+import SecondaryButton from '@/Components/SecondaryButton';
 
 interface DashboardProps {
   currencies: CurrenciesResponse;
   cashSessions: any;
+  user_roles: string[];
 }
 
-export default function Dashboard({
-  currencies,
-  cashSessions,
-}: DashboardProps) {
-  const { auth, cash_session } = usePage().props;
+export default function Dashboard({ currencies, user_roles }: DashboardProps) {
+  const { auth, cash_session, roles } = usePage().props;
   const route = useRoute();
-
-  const [currentCashSession, setCurrentCashSession] =
-    useState<CashSession | null>(cash_session as CashSession | null);
+  const isAdmin =
+    roles &&
+    Array.isArray(roles) &&
+    (roles as string[]).includes('super_admin');
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
 
-  // Sync with global cash_session state when it changes
-  useEffect(() => {
-    setCurrentCashSession(cash_session as CashSession | null);
-  }, [cash_session]);
+  // Use unified status polling hook
+  const {
+    currentSession: currentCashSession,
+    currencies: currenciesState,
+    transactions,
+    isLoading: isInitialSessionLoading,
+    isPolling,
+    lastUpdated,
+    error,
+    refetch,
+  } = useStatusPolling(3000, true);
 
   // Handle opening a cash session
   const handleOpenSession = async () => {
@@ -47,12 +55,9 @@ export default function Dashboard({
       const response = await axios.post('/admin/cash-sessions/open');
 
       if (response.data.success) {
-        // Update local state immediately
-        setCurrentCashSession(response.data.cash_session);
+        // Refetch status to update local state
+        await refetch();
         toast.success('تم فتح الجلسة النقدية بنجاح');
-
-        // Refresh the shared state to sync with server
-        router.reload({ only: ['cash_session'] });
       }
     } catch (error) {
       console.error('Error opening cash session:', error);
@@ -66,44 +71,105 @@ export default function Dashboard({
     }
   };
 
-  // Handle opening close modal
+  // Handle opening close session modal
   const handleCloseSession = () => {
     setShowCloseModal(true);
   };
 
   // Handle successful session close
   const handleSessionCloseSuccess = () => {
-    setCurrentCashSession(null);
-    // Refresh the shared state to sync with server
-    router.reload({ only: ['cash_session'] });
+    // Close modal first
+    setShowCloseModal(false);
+
+    // Refetch status to update local state
+    refetch();
   };
 
-  const isSessionOpen =
-    currentCashSession && currentCashSession.status === 'active';
+  // Handle modal close
+  const handleModalClose = () => {
+    setShowCloseModal(false);
+  };
 
-  const headerActions = (
+  // Handle session becoming pending
+  const handleSessionPending = () => {
+    // Refetch status to update local state
+    refetch();
+
+    // Optionally reload the page state to sync with server
+    setTimeout(() => {
+      router.reload({ only: ['cash_session'] });
+    }, 100);
+  };
+
+  const isSessionOpen = !!(
+    currentCashSession && currentCashSession.status === 'active'
+  );
+  const isSessionPending = !!(
+    currentCashSession && currentCashSession.status === 'pending'
+  );
+
+  const headerActions: React.ReactNode = (
     <div className="flex items-center space-x-3 space-x-reverse">
-      {/* New Transaction Button - only show if session is open */}
+      {/* Session Status Indicator */}
+      {isSessionPending && (
+        <div className="flex items-center space-x-2 space-x-reverse">
+          <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+          <span className="text-sm text-yellow-600 font-medium">
+            جلسة معلقة
+          </span>
+        </div>
+      )}
+
       {isSessionOpen && (
         <PrimaryButton className="text-sm">معاملة جديدة</PrimaryButton>
       )}
 
-      {/* Session Management Button */}
-      {isSessionOpen ? (
-        <DangerButton className="text-sm" onClick={handleCloseSession}>
-          إغلاق الجلسة
-        </DangerButton>
-      ) : (
-        <PrimaryButton
-          className="text-sm"
-          onClick={handleOpenSession}
-          disabled={isSessionLoading}
-        >
-          {isSessionLoading ? 'جاري الفتح...' : 'بدء جلسة جديدة'}
-        </PrimaryButton>
+      {/* Session Management Buttons - ADMIN ONLY */}
+      {isAdmin && (
+        <>
+          {isInitialSessionLoading ? (
+            <div className="text-sm text-gray-500 px-4 py-2">
+              جاري التحقق...
+            </div>
+          ) : isSessionOpen ? (
+            <DangerButton className="text-sm" onClick={handleCloseSession}>
+              إغلاق الجلسة
+            </DangerButton>
+          ) : isSessionPending ? (
+            <DangerButton className="text-sm" onClick={handleCloseSession}>
+              إنهاء الإغلاق
+            </DangerButton>
+          ) : (
+            <PrimaryButton
+              className="text-sm"
+              onClick={handleOpenSession}
+              disabled={isSessionLoading}
+            >
+              {isSessionLoading ? 'جاري الفتح...' : 'بدء جلسة جديدة'}
+            </PrimaryButton>
+          )}
+        </>
       )}
     </div>
   );
+
+  // Show loading state while fetching initial session - only for the main content
+  if (isInitialSessionLoading) {
+    return (
+      <RootLayout
+        title="لوحة التحكم"
+        breadcrumbs={[{ label: 'لوحة التحكم' }]}
+        headerActions={headerActions}
+      >
+        <div className="flex items-center justify-center min-h-[200px]">
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+            <span className="text-gray-600">جاري تحميل بيانات الجلسة...</span>
+          </div>
+        </div>
+      </RootLayout>
+    );
+  }
 
   return (
     <RootLayout
@@ -112,16 +178,25 @@ export default function Dashboard({
       headerActions={headerActions}
     >
       <WelcomeSection />
-      <CurrencyCardsSlider currencies={currencies} />
+      <CurrencyCardsSlider currencies={currenciesState} />
 
-      {/* Always show TransactionForm with overlay when session is closed */}
+      {/* Always show TransactionForm with overlay when session is not active */}
       <TransactionForm
-        currencies={currencies}
+        currencies={currenciesState}
         isSessionOpen={!!isSessionOpen}
-        onStartSession={handleOpenSession}
+        isSessionPending={!!isSessionPending}
+        onStartSession={isAdmin ? handleOpenSession : undefined}
       />
 
-      <RecentTransactionsTable />
+      <RecentTransactionsTable
+        transactions={transactions}
+        isSessionActive={!!isSessionOpen}
+        isSessionPending={!!isSessionPending}
+        isLoading={isInitialSessionLoading}
+        isPolling={isPolling}
+        lastUpdated={lastUpdated}
+        onRefetch={refetch}
+      />
 
       {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <RecentTransactionsList />
@@ -131,8 +206,10 @@ export default function Dashboard({
       {/* Close Session Modal */}
       <CloseSessionModal
         isOpen={showCloseModal}
-        onClose={() => setShowCloseModal(false)}
+        onClose={handleModalClose}
         onSuccess={handleSessionCloseSuccess}
+        isSessionPending={!!isSessionPending}
+        onSessionPending={handleSessionPending}
       />
     </RootLayout>
   );

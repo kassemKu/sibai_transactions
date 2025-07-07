@@ -9,14 +9,21 @@ class CurrencyController extends Controller
 {
     public function index()
     {
-        return $this->success('Currencies retrieved successfully.', [
+        return inertia('Currencies/Index')->with([
             'currencies' => Currency::all(),
         ]);
     }
 
     public function show(Currency $currency)
     {
-        return $this->success('Currency retrieved successfully.', [
+        return inertia('Currencies/Show')->with([
+            'currency' => $currency,
+        ]);
+    }
+
+    public function edit(Currency $currency)
+    {
+        return inertia('Currencies/Edit')->with([
             'currency' => $currency,
         ]);
     }
@@ -41,10 +48,25 @@ class CurrencyController extends Controller
             'rate_to_usd' => 'required|numeric|gt:0',
         ]);
 
+        // Set is_crypto to false by default for new currencies
+        $data['is_crypto'] = false;
+
         $currency = Currency::create($data);
 
         return $this->success('Currency created successfully.', [
             'currency' => $currency,
         ]);
+    }
+
+    public function getCurrencies()
+    {
+        return $this->success('Currencies retrieved successfully.', [
+            'currencies' => Currency::all(),
+        ]);
+    }
+
+    public function create()
+    {
+        return inertia('Currencies/Create');
     }
 }

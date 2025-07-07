@@ -36,9 +36,9 @@ class TransactionController extends Controller
         $transactions = Transaction::where('status', 'pending')
             ->where('assigned_to', Auth::id())
             ->whereHas('cashSession', function ($query) {
-                $query->whereIn('status', ['active', 'pending'])->exists();
+                $query->whereIn('status', ['active', 'pending']);
             })
-            ->with(['fromCurrency', 'toCurrency'])
+            ->with(['fromCurrency', 'toCurrency', 'user', 'customer'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -47,7 +47,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function completeStatus($id)
+    public function confirmStatus($id)
     {
         $transaction = Transaction::findOrFail($id);
         $this->authorize('complete', $transaction);

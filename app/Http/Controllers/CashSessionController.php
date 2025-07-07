@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CloseCashSessionRequest;
 use App\Models\CashSession;
+use App\Models\Currency;
 use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -17,14 +18,37 @@ class CashSessionController extends Controller
         $this->service = $service;
     }
 
-    public function index(): JsonResponse
+    public function index()
     {
-        $cashSessions = CashSession::with(['openingBalances', 'cashBalances', 'transactions', 'openedBy', 'closedBy'])
+        $cashSessions = CashSession::with([
+            'cashBalances.currency',
+            'transactions.createdBy',
+            'transactions.assignedTo',
+            'transactions.fromCurrency',
+            'transactions.toCurrency',
+            'openedBy',
+            'closedBy',
+        ])
             ->orderBy('opened_at', 'desc')
             ->paginate(10);
 
-        return $this->success('Cash sessions retrieved successfully.', [
+        return inertia('CashSessions/Index')->with([
             'cashSessions' => $cashSessions,
+        ]);
+    }
+
+    public function show(CashSession $cashSession)
+    {
+        return inertia('CashSessions/Show')->with([
+            'cashSession' => $cashSession->load([
+                'cashBalances.currency',
+                'transactions.createdBy',
+                'transactions.assignedTo',
+                'transactions.fromCurrency',
+                'transactions.toCurrency',
+                'openedBy',
+                'closedBy',
+            ]),
         ]);
     }
 
@@ -36,14 +60,18 @@ class CashSessionController extends Controller
 
         $cashSession = $this->service->openCashSession(Auth::user());
 
-        return response()->json(['success' => true, 'cash_session' => $cashSession]);
+        return $this->success('Cash session opened successfully.', [
+            'cash_session' => $cashSession,
+        ]);
     }
 
     public function getClosingBalances(): JsonResponse
     {
         $balances = $this->service->getClosingBalances();
 
-        return response()->json(['success' => true, 'balances' => $balances]);
+        return $this->success('Closing balances retrieved successfully.', [
+            'balances' => $balances,
+        ]);
     }
 
     public function pending(): JsonResponse

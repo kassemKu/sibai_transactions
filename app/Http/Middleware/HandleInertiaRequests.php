@@ -36,6 +36,7 @@ class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
+            'roles' => fn () => $request->user() ? $request->user()->roles->pluck('name') : [],
         ];
     }
 }

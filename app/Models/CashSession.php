@@ -24,11 +24,6 @@ class CashSession extends Model
         return $this->hasMany(Transaction::class);
     }
 
-    public function openingBalances()
-    {
-        return $this->hasMany(SessionOpeningBalance::class);
-    }
-
     public function cashBalances()
     {
         return $this->hasMany(CashBalance::class);

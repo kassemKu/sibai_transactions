@@ -100,19 +100,28 @@ export default function RootLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const logoutForm = useForm({});
 
-  // Navigation items
-  const navigation: NavItem[] = [
+  // Get user roles from page props
+  const { roles } = page.props;
+  const isCasher =
+    roles && Array.isArray(roles) && (roles as string[]).includes('casher');
+  const isAdmin =
+    roles &&
+    Array.isArray(roles) &&
+    (roles as string[]).includes('super_admin');
+
+  // All navigation items
+  const allNavigation: NavItem[] = [
     {
       name: 'الرئيسية',
-      href: route('dashboard'),
+      href: route('home'),
       icon: <FaChartLine className="h-5 w-5" />,
-      current: route().current('dashboard'),
+      current: route().current('admin.*') || route().current('casher.*'),
     },
     {
       name: 'الجلسات',
-      href: '#', // Replace with actual route
+      href: route('cash_sessions.index'),
       icon: <FaExchangeAlt className="h-5 w-5" />,
-      current: false,
+      current: route().current('cash_sessions.*'),
     },
     {
       name: 'الصندوق',
@@ -128,11 +137,16 @@ export default function RootLayout({
     },
     {
       name: 'العملات',
-      href: '#', // Replace with actual route
+      href: route('currencies.index'),
       icon: <FaCoins className="h-5 w-5" />,
-      current: false,
+      current: route().current('currencies.*'),
     },
   ];
+
+  // Filter navigation based on user role
+  const navigation = isCasher
+    ? allNavigation.filter(item => item.name === 'الرئيسية') // Cashers only see الرئيسية
+    : allNavigation; // Admins see all navigation items
 
   const handleLogout = (e: React.FormEvent) => {
     e.preventDefault();
@@ -353,7 +367,7 @@ export default function RootLayout({
                       {page.props.jetstream.managesProfilePhotos ? (
                         <img
                           className="h-8 w-8 rounded-full object-cover"
-                          src={page.props.auth.user?.profile_photo_url}
+                          src={page.props.auth.user?.profile_photo_url || ''}
                           alt={page.props.auth.user?.name}
                         />
                       ) : (

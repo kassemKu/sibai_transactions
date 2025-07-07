@@ -23,8 +23,8 @@ class TransactionController extends Controller
         $currentSession = CashSession::whereIn('status', ['active'])->first();
 
         $calc = $request->getCalc();
-
-        $transaction = $this->transactionService->createTransaction($calc, $currentSession);
+        $result = array_merge($calc, ['assigned_to' => $request->assigned_to]);
+        $transaction = $this->transactionService->createTransaction($result, $currentSession);
 
         return $this->success('Transaction created successfully.', [
             'transaction' => $transaction,
@@ -34,19 +34,19 @@ class TransactionController extends Controller
     public function pendingTransactions()
     {
         $transactions = Transaction::where('status', 'pending')
-            ->where(function ($query) {
-                $query->whereNot('user_id', Auth::id())
-                    ->orWhere('assigned_to', Auth::id());
-            })
             ->whereHas('cashSession', function ($query) {
-                $query->whereIn('status', ['active', 'pending'])->exists();
+                $query->whereIn('status', ['active', 'pending']);
+            })
+            ->where(function ($query) {
+                $query->where('assigned_to', Auth::id())
+                    ->orWhereNull('assigned_to');
             })
             ->with(['fromCurrency', 'toCurrency'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         return $this->success('Pending transactions', [
-            'transaction' => $transactions,
+            'transactions' => $transactions,
         ]);
     }
 

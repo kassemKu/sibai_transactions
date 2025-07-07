@@ -51,7 +51,7 @@ interface Transaction {
   updated_at: string;
   from_currency: Currency;
   to_currency: Currency;
-  created_by: User;
+  user: User;
   customer: Customer;
 }
 
@@ -63,7 +63,7 @@ interface PendingTransactionsResponse {
   };
 }
 
-interface RecentTransactionsTableProps {
+interface PendingTransactionsTableProps {
   transactions: Transaction[];
   isSessionActive?: boolean;
   isSessionPending?: boolean;
@@ -73,7 +73,7 @@ interface RecentTransactionsTableProps {
   onRefetch?: () => void;
 }
 
-export default function RecentTransactionsTable({
+export default function PendingTransactionsTable({
   transactions,
   isSessionActive = false,
   isSessionPending = false,
@@ -81,7 +81,7 @@ export default function RecentTransactionsTable({
   isPolling = false,
   lastUpdated = null,
   onRefetch,
-}: RecentTransactionsTableProps) {
+}: PendingTransactionsTableProps) {
   const [updatingTransactions, setUpdatingTransactions] = useState<Set<number>>(
     new Set(),
   );
@@ -153,7 +153,7 @@ export default function RecentTransactionsTable({
   // Update transaction status
   const updateTransactionStatus = async (
     transactionId: number,
-    status: 'pending' | 'complete' | 'cancel',
+    status: 'confirm',
   ) => {
     // Don't update if session is not active or is pending
     if (!isSessionActive || isSessionPending) {
@@ -168,13 +168,11 @@ export default function RecentTransactionsTable({
     setUpdatingTransactions(prev => new Set(prev).add(transactionId));
 
     try {
-      const endpoint = `/admin/transactions/${transactionId}/${status}`;
+      const endpoint = `/casher/transactions/${transactionId}/${status}`;
       const response = await axios.put(endpoint);
 
       if (response.data.status) {
-        toast.success(
-          `تم تحديث حالة المعاملة إلى ${getStatusLabel(status === 'complete' ? 'completed' : status === 'cancel' ? 'canceled' : 'pending')}`,
-        );
+        toast.success('تم تأكيد المعاملة بنجاح');
         // Refresh the data immediately
         if (onRefetch) {
           await onRefetch();
@@ -197,10 +195,11 @@ export default function RecentTransactionsTable({
   };
 
   // No need for polling logic since parent handles unified status polling
+
   return (
     <div className="w-full mb-8">
       <Table
-        aria-label="Recent pending transactions table"
+        aria-label="Casher pending transactions table"
         topContent={
           <div className="mb-1 text-bold-x14 text-[#1F2937] flex flex-col gap-2">
             <div className="flex items-center justify-between">
@@ -211,7 +210,8 @@ export default function RecentTransactionsTable({
                     'الجلسة في حالة جرد حاليًا، لا يمكن تنفيذ عمليات جديدة'
                   ) : isSessionActive ? (
                     <>
-                      المعاملات التي تحتاج إلى مراجعة ({transactions.length})
+                      المعاملات المعينة لك والتي تحتاج إلى تأكيد (
+                      {transactions.length})
                       {lastUpdated && (
                         <span className="text-xs ml-2">
                           • آخر تحديث:{' '}
@@ -246,7 +246,6 @@ export default function RecentTransactionsTable({
           <TableColumn>إلى</TableColumn>
           <TableColumn>المبلغ الأصلي</TableColumn>
           <TableColumn>المبلغ المحول</TableColumn>
-          <TableColumn>الصراف</TableColumn>
           <TableColumn>الحالة</TableColumn>
           <TableColumn>الإجراءات</TableColumn>
         </TableHeader>
@@ -258,7 +257,7 @@ export default function RecentTransactionsTable({
                 ? 'الجلسة في حالة جرد - تم إيقاف المعاملات المعلقة'
                 : !isSessionActive
                   ? 'لا توجد جلسة نشطة - لا يمكن عرض المعاملات المعلقة'
-                  : 'لا توجد معاملات معلقة'
+                  : 'لا توجد معاملات معلقة مُعينة لك'
           }
         >
           {transactions
@@ -329,59 +328,27 @@ export default function RecentTransactionsTable({
                           }).format(transaction.converted_amount || 0)}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {transaction.created_by?.name || 'غير محدد'}
-                    </div>
-                  </TableCell>
                   <TableCell>{getStatusChip(transaction.status)}</TableCell>
                   <TableCell>
-                    <Dropdown>
-                      <DropdownTrigger>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          isLoading={isUpdating}
-                          isDisabled={
-                            isUpdating || !isSessionActive || isSessionPending
-                          }
-                        >
-                          {isUpdating
-                            ? 'جاري التحديث...'
-                            : isSessionPending
-                              ? 'جلسة معلقة'
-                              : !isSessionActive
-                                ? 'غير متاح'
-                                : 'الإجراءات'}
-                        </Button>
-                      </DropdownTrigger>
-                      <DropdownMenu
-                        aria-label="Transaction actions"
-                        onAction={key => {
-                          if (key === 'complete' || key === 'cancel') {
-                            updateTransactionStatus(
-                              transaction.id,
-                              key as 'complete' | 'cancel',
-                            );
-                          }
-                        }}
-                      >
-                        <DropdownItem
-                          key="complete"
-                          color="success"
-                          description="تأكيد إكمال المعاملة"
-                        >
-                          تأكيد إكمال
-                        </DropdownItem>
-                        <DropdownItem
-                          key="cancel"
-                          color="danger"
-                          description="إلغاء المعاملة"
-                        >
-                          إلغاء المعاملة
-                        </DropdownItem>
-                      </DropdownMenu>
-                    </Dropdown>
+                    <Button
+                      color="success"
+                      size="sm"
+                      isLoading={isUpdating}
+                      isDisabled={
+                        isUpdating || !isSessionActive || isSessionPending
+                      }
+                      onClick={() =>
+                        updateTransactionStatus(transaction.id, 'confirm')
+                      }
+                    >
+                      {isUpdating
+                        ? 'جاري التأكيد...'
+                        : isSessionPending
+                          ? 'جلسة معلقة'
+                          : !isSessionActive
+                            ? 'غير متاح'
+                            : 'تأكيد'}
+                    </Button>
                   </TableCell>
                 </TableRow>
               );

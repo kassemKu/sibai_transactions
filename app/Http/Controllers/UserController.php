@@ -9,14 +9,14 @@ class UserController extends Controller
 {
     public function index()
     {
-        return $this->success('Currencies retrieved successfully.', [
-            'currencies' => User::all(),
+        return $this->success('Users retrieved successfully.', [
+            'users' => User::all(),
         ]);
     }
 
-    public function show(User $currency) {}
+    public function show(User $user) {}
 
-    public function update(Request $request, User $currency) {}
+    public function update(Request $request, User $user) {}
 
     public function store(Request $request) {}
 }
