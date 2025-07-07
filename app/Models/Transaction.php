@@ -11,7 +11,7 @@ class Transaction extends Model
 
     protected $fillable = [
         'customer_id',
-        'user_id',
+        'created_by',
         'cash_session_id',
         'from_currency_id',
         'to_currency_id',
@@ -20,7 +20,8 @@ class Transaction extends Model
         'to_rate_to_usd',
         'converted_amount',
         'assigned_to',
-        'status', // 'pending', 'completed', 'cancelled', etc.
+        'status', // 'pending', 'completed', 'cancelled'.
+        'notes',
     ];
 
     public function cashMovements()
@@ -28,7 +29,7 @@ class Transaction extends Model
         return $this->hasMany(CashMovement::class);
     }
 
-    public function user()
+    public function createdBy()
     {
         return $this->belongsTo(User::class);
     }

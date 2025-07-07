@@ -46,8 +46,6 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
     error,
     refetch,
   } = useStatusPolling(3000, true);
-  const response = axios.get('/cash-sessions');
-  console.log('response', response);
 
   // Handle opening a cash session
   const handleOpenSession = async () => {

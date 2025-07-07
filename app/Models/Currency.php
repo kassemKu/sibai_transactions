@@ -9,7 +9,7 @@ class Currency extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'code', 'is_crypto', 'rate_to_usd'];
+    protected $fillable = ['name', 'code', 'rate_to_usd'];
 
     public function cashMovements()
     {
@@ -24,11 +24,6 @@ class Currency extends Model
     public function toTransactions()
     {
         return $this->hasMany(Transaction::class, 'to_currency_id');
-    }
-
-    public function sessionOpeningBalances()
-    {
-        return $this->hasMany(SessionOpeningBalance::class);
     }
 
     public function cashBalances()

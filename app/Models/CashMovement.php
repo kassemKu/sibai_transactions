@@ -15,7 +15,6 @@ class CashMovement extends Model
         'type',
         'amount',
         'exchange_rate',
-        'notes',
     ];
 
     public function transaction()

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('cash_session_id')->nullable()->constrained('cash_sessions')->onUpdate('cascade')->onDelete('set null');
-            $table->foreignId('user_id')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
+            $table->foreignId('created_by')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
             $table->foreignId('assigned_to')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
 
             $table->foreignId('customer_id')->nullable()->constrained('customers')->onUpdate('cascade')->onDelete('set null');
@@ -28,6 +28,8 @@ return new class extends Migration
             $table->decimal('to_rate_to_usd', 18, 8);
 
             $table->string('status')->default('pending'); // pending, completed, cancelled
+
+            $table->string('notes')->nullable();
 
             $table->timestamps();
         });

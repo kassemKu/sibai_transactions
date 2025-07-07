@@ -7,7 +7,6 @@ use App\Models\CashBalance;
 use App\Models\CashMovement;
 use App\Models\CashSession;
 use App\Models\Currency;
-use App\Models\SessionOpeningBalance;
 use Illuminate\Support\Facades\DB;
 
 class CashSessionService
@@ -33,12 +32,6 @@ class CashSessionService
                     ? $lastBalance->actual_closing_balance
                     : 0;
 
-                SessionOpeningBalance::create([
-                    'cash_session_id' => $session->id,
-                    'currency_id' => $currency->id,
-                    'opening_balance' => $openingAmount,
-                ]);
-
                 CashBalance::create([
                     'cash_session_id' => $session->id,
                     'currency_id' => $currency->id,
@@ -62,7 +55,7 @@ class CashSessionService
         $balances = [];
 
         foreach ($currencies as $currency) {
-            $opening = SessionOpeningBalance::where('cash_session_id', $session->id)
+            $opening = CashBalance::where('cash_session_id', $session->id)
                 ->where('currency_id', $currency->id)
                 ->first()
                 ->opening_balance ?? 0;
@@ -123,10 +116,11 @@ class CashSessionService
                 $currencyId = $item['currency_id'];
                 $actualClosing = $item['amount'];
 
-                $opening = SessionOpeningBalance::where('cash_session_id', $session->id)
+                $cashBalance = CashBalance::where('cash_session_id', $session->id)
                     ->where('currency_id', $currencyId)
-                    ->first()
-                    ->opening_balance ?? 0;
+                    ->first();
+
+                $opening = $cashBalance->opening_balance;
 
                 $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id))
                     ->where('currency_id', $currencyId)

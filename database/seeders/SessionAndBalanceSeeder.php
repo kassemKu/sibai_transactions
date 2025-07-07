@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\CashBalance;
 use App\Models\CashSession;
 use App\Models\Currency;
-use App\Models\SessionOpeningBalance;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +13,18 @@ class SessionAndBalanceSeeder extends Seeder
 {
     public function run()
     {
-        DB::transaction(function () {
+        $openingBalances = [
+            'USD' => 5000,
+            'SYP' => 10000000,
+            'TRY' => 20000,
+            'EUR' => 3000,
+            'JOD' => 1000,
+            'SAR' => 15000,
+            'AED' => 12000,
+            'GBP' => 2500,
+        ];
+
+        DB::transaction(function () use ($openingBalances) {
             $adminId = 1;
 
             $currencies = Currency::all();
@@ -34,34 +44,6 @@ class SessionAndBalanceSeeder extends Seeder
                 'status' => 'active',
             ]);
 
-            $openingBalances = [
-                'USD' => 5000,
-                'SYP' => 10000000,
-                'TRY' => 20000,
-                'EUR' => 3000,
-                'JOD' => 1000,
-                'SAR' => 15000,
-                'AED' => 12000,
-                'GBP' => 2500,
-            ];
-
-            foreach ($currencies as $currency) {
-                $amount = $openingBalances[$currency->code] ?? 0;
-
-                SessionOpeningBalance::create([
-                    'cash_session_id' => $firstSession->id,
-                    'currency_id' => $currency->id,
-                    'opening_balance' => $amount,
-                ]);
-            }
-
-            $firstSession->update([
-                'closed_at' => Carbon::now()->addHours(8),
-                'closed_by' => $adminId,
-                'status' => 'closed',
-                'close_exchange_rates' => json_encode($exchangeRates),
-            ]);
-
             foreach ($currencies as $currency) {
                 $amount = $openingBalances[$currency->code] ?? 0;
 
@@ -76,6 +58,13 @@ class SessionAndBalanceSeeder extends Seeder
                     'difference' => 0,
                 ]);
             }
+
+            $firstSession->update([
+                'closed_at' => Carbon::now()->addHours(8),
+                'closed_by' => $adminId,
+                'status' => 'closed',
+                'close_exchange_rates' => json_encode($exchangeRates),
+            ]);
         });
     }
 }
