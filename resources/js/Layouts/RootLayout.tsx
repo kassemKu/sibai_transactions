@@ -113,9 +113,9 @@ export default function RootLayout({
   const allNavigation: NavItem[] = [
     {
       name: 'الرئيسية',
-      href: route('dashboard'),
+      href: route('home'),
       icon: <FaChartLine className="h-5 w-5" />,
-      current: route().current('admin') || route().current('casher'),
+      current: route().current('admin.*') || route().current('casher.*'),
     },
     {
       name: 'الجلسات',

@@ -51,7 +51,7 @@ interface Transaction {
   updated_at: string;
   from_currency: Currency;
   to_currency: Currency;
-  user: User;
+  created_by: User;
   customer: Customer;
 }
 
@@ -331,7 +331,7 @@ export default function RecentTransactionsTable({
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {transaction.user?.name || 'غير محدد'}
+                      {transaction.created_by?.name || 'غير محدد'}
                     </div>
                   </TableCell>
                   <TableCell>{getStatusChip(transaction.status)}</TableCell>

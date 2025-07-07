@@ -26,21 +26,11 @@ import { route } from 'ziggy-js';
 
 interface CashSessionsIndexProps {
   cashSessions: CashSessionsResponse;
-  currencies: Currency[];
 }
 
 export default function CashSessionsIndex({
   cashSessions,
-  currencies,
 }: CashSessionsIndexProps) {
-  // Helper function to get currency by ID
-  const getCurrencyById = (currencyId: number): Currency | undefined => {
-    if (!currencies || !Array.isArray(currencies)) {
-      return undefined;
-    }
-    return currencies.find(currency => currency.id === currencyId);
-  };
-
   // Format date and time
   const formatDateTime = (dateString: string) => {
     try {
@@ -270,7 +260,7 @@ export default function CashSessionsIndex({
                         <Table aria-label={`معاملات الجلسة ${session.id}`}>
                           <TableHeader>
                             <TableColumn>التاريخ والوقت</TableColumn>
-                            <TableColumn>المستخدم</TableColumn>
+                            <TableColumn>أنشأت بواسطة</TableColumn>
                             <TableColumn>من</TableColumn>
                             <TableColumn>إلى</TableColumn>
                             <TableColumn>المبلغ الأصلي</TableColumn>
@@ -296,10 +286,12 @@ export default function CashSessionsIndex({
                                   <TableCell>
                                     <div className="text-sm">
                                       <div className="font-medium">
-                                        {transaction.user?.name || 'غير متاح'}
+                                        {transaction.created_by?.name ||
+                                          'غير متاح'}
                                       </div>
                                       <div className="text-gray-500">
-                                        {transaction.user?.email || 'غير متاح'}
+                                        {transaction.created_by?.email ||
+                                          'غير متاح'}
                                       </div>
                                     </div>
                                   </TableCell>

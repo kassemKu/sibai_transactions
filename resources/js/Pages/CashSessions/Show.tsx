@@ -32,20 +32,10 @@ import { route } from 'ziggy-js';
 
 interface CashSessionShowProps {
   cashSession: CashSession;
-  currencies: Currency[];
 }
 
-export default function CashSessionShow({
-  cashSession,
-  currencies,
-}: CashSessionShowProps) {
-  // Helper function to get currency by ID
-  const getCurrencyById = (currencyId: number): Currency | undefined => {
-    if (!currencies || !Array.isArray(currencies)) {
-      return undefined;
-    }
-    return currencies.find(currency => currency.id === currencyId);
-  };
+export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
+  console.log(cashSession);
 
   // Format date and time
   const formatDateTime = (dateString: string) => {
@@ -277,41 +267,6 @@ export default function CashSessionShow({
         </Card>
       </div>
 
-      {/* Opening Balances */}
-      {cashSession.opening_balances &&
-        cashSession.opening_balances.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              الأرصدة الافتتاحية
-            </h2>
-            <Card>
-              <CardBody>
-                <Table aria-label="الأرصدة الافتتاحية">
-                  <TableHeader>
-                    <TableColumn>العملة</TableColumn>
-                    <TableColumn>الرمز</TableColumn>
-                    <TableColumn>الرصيد الافتتاحي</TableColumn>
-                  </TableHeader>
-                  <TableBody>
-                    {cashSession.opening_balances.map(balance => {
-                      const currency = getCurrencyById(balance.currency_id);
-                      return (
-                        <TableRow key={balance.id}>
-                          <TableCell>{currency?.name || 'غير متاح'}</TableCell>
-                          <TableCell>{currency?.code || 'N/A'}</TableCell>
-                          <TableCell>
-                            {formatAmount(balance.opening_balance, currency)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardBody>
-            </Card>
-          </div>
-        )}
-
       {/* Transactions */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
@@ -324,7 +279,8 @@ export default function CashSessionShow({
                 <TableHeader>
                   <TableColumn>رقم المعاملة</TableColumn>
                   <TableColumn>التاريخ والوقت</TableColumn>
-                  <TableColumn>المستخدم</TableColumn>
+                  <TableColumn>أنشأت بواسطه</TableColumn>
+                  <TableColumn>الصراف</TableColumn>
                   <TableColumn>من</TableColumn>
                   <TableColumn>إلى</TableColumn>
                   <TableColumn>المبلغ الأصلي</TableColumn>
@@ -354,10 +310,17 @@ export default function CashSessionShow({
                         <TableCell>
                           <div className="text-sm">
                             <div className="font-medium">
-                              {transaction.user?.name || 'غير متاح'}
+                              {transaction.created_by?.name || 'غير متاح'}
                             </div>
                             <div className="text-gray-500">
-                              {transaction.user?.email || 'غير متاح'}
+                              {transaction.created_by?.email || 'غير متاح'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">
+                              {transaction.assigned_to?.name || 'غير مخصص'}
                             </div>
                           </div>
                         </TableCell>
@@ -441,27 +404,36 @@ export default function CashSessionShow({
                   </TableHeader>
                   <TableBody>
                     {cashSession.cash_balances.map(balance => {
-                      const currency = getCurrencyById(balance.currency_id);
                       return (
                         <TableRow key={balance.id}>
-                          <TableCell>{currency?.name || 'غير متاح'}</TableCell>
-                          <TableCell>{currency?.code || 'N/A'}</TableCell>
                           <TableCell>
-                            {formatAmount(balance.opening_balance, currency)}
+                            {balance.currency?.name || 'غير متاح'}
                           </TableCell>
                           <TableCell>
-                            {formatAmount(balance.total_in, currency)}
+                            {balance.currency?.code || 'N/A'}
                           </TableCell>
                           <TableCell>
-                            {formatAmount(balance.total_out, currency)}
+                            {formatAmount(
+                              balance.opening_balance,
+                              balance.currency,
+                            )}
                           </TableCell>
                           <TableCell>
-                            {formatAmount(balance.closing_balance, currency)}
+                            {formatAmount(balance.total_in, balance.currency)}
+                          </TableCell>
+                          <TableCell>
+                            {formatAmount(balance.total_out, balance.currency)}
+                          </TableCell>
+                          <TableCell>
+                            {formatAmount(
+                              balance.closing_balance,
+                              balance.currency,
+                            )}
                           </TableCell>
                           <TableCell>
                             {formatAmount(
                               balance.actual_closing_balance,
-                              currency,
+                              balance.currency,
                             )}
                           </TableCell>
                           <TableCell>
@@ -472,7 +444,10 @@ export default function CashSessionShow({
                                   : 'text-red-600'
                               }`}
                             >
-                              {formatAmount(balance.difference, currency)}
+                              {formatAmount(
+                                balance.difference,
+                                balance.currency,
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>

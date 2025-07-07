@@ -132,7 +132,7 @@ export interface Transaction {
   id: number;
   cash_session_id: number;
   user_id: number;
-  assigned_to: number | null;
+  assigned_to: User | null;
   customer_id: number | null;
   from_currency_id: number;
   to_currency_id: number;
@@ -143,10 +143,10 @@ export interface Transaction {
   status: 'pending' | 'completed' | 'canceled';
   created_at: string;
   updated_at: string;
-  from_currency: Currency; // ✅ Now loaded from backend
-  to_currency: Currency; // ✅ Now loaded from backend
-  user: User; // ✅ Now loaded from backend
-  customer?: Customer; // Optional - not always needed
+  from_currency: Currency;
+  to_currency: Currency;
+  created_by: User;
+  customer?: Customer;
 }
 
 export interface SessionOpeningBalance {
@@ -170,6 +170,7 @@ export interface CashBalance {
   currency_id: number;
   created_at: string;
   updated_at: string;
+  currency: Currency; // ✅ Now loaded from backend
 }
 
 export interface CashSession {

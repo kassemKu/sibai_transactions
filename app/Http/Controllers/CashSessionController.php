@@ -21,7 +21,7 @@ class CashSessionController extends Controller
     public function index()
     {
         $cashSessions = CashSession::with([
-            'cashBalances',
+            'cashBalances.currency',
             'transactions.createdBy',
             'transactions.assignedTo',
             'transactions.fromCurrency',
@@ -32,21 +32,16 @@ class CashSessionController extends Controller
             ->orderBy('opened_at', 'desc')
             ->paginate(10);
 
-        $currencies = Currency::all();
-
         return inertia('CashSessions/Index')->with([
             'cashSessions' => $cashSessions,
-            'currencies' => $currencies,
         ]);
     }
 
     public function show(CashSession $cashSession)
     {
-        $currencies = Currency::all();
-
         return inertia('CashSessions/Show')->with([
             'cashSession' => $cashSession->load([
-                'cashBalances',
+                'cashBalances.currency',
                 'transactions.createdBy',
                 'transactions.assignedTo',
                 'transactions.fromCurrency',
@@ -54,7 +49,6 @@ class CashSessionController extends Controller
                 'openedBy',
                 'closedBy',
             ]),
-            'currencies' => $currencies,
         ]);
     }
 
