@@ -8,6 +8,7 @@ import { useStatusPolling } from '@/Hooks/useStatusPolling';
 // Import casher-specific components
 import TransactionForm from '@/Components/Casher/TransactionForm';
 import PendingTransactionsTable from '@/Components/Casher/PendingTransactionsTable';
+import CurrencyCardsSlider from '@/Components/Dashboard/CurrencyCardsSlider';
 
 interface CasherDashboardProps {
   currencies: CurrenciesResponse;
@@ -50,7 +51,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
 
   return (
     <CasherLayout title="لوحة الصراف">
-      <div className="container mx-auto px-4 py-8">
+      <div className=" mx-auto px-10 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">لوحة الصراف</h1>
@@ -84,6 +85,9 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
             )}
           </div>
         </div>
+
+        {/* Currency Cards Slider */}
+        <CurrencyCardsSlider currencies={currenciesState} />
 
         {/* Transaction Form */}
         <TransactionForm

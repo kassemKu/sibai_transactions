@@ -28,22 +28,7 @@ export default function CurrencyCard({ currency }: CurrencyCardProps) {
               </span>
             </div>
           </div>
-          {/* Currency movement arrow - alternating for demo */}
-          <div className="flex items-center gap-1">
-            {currency.id % 2 === 0 ? (
-              <>
-                <FiArrowUp className="w-4 h-4 text-green-500" />
-                <span className="text-xs text-green-500 font-medium">
-                  +2.5%
-                </span>
-              </>
-            ) : (
-              <>
-                <FiArrowDown className="w-4 h-4 text-red" />
-                <span className="text-xs text-red font-medium">-1.2%</span>
-              </>
-            )}
-          </div>
+  
         </div>
 
         <div className="space-y-2">
