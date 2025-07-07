@@ -176,12 +176,14 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* Opening Details */}
         <Card>
-          <CardBody className="p-6">
+          <CardBody className="p-6 dir-rtl">
             <div className="flex items-center space-x-2 space-x-reverse mb-3">
               <FiCalendar className="w-5 h-5 text-green-600" />
-              <h3 className="font-semibold text-gray-900">تفاصيل الفتح</h3>
+              <h3 className="font-semibold text-gray-900 text-right">
+                تفاصيل الفتح
+              </h3>
             </div>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-sm text-right">
               <div>
                 <span className="text-gray-500">التاريخ:</span>
                 <div className="font-medium">{openedDateTime.date}</div>
@@ -205,12 +207,14 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
         {/* Closing Details */}
         {closedDateTime && (
           <Card>
-            <CardBody className="p-6">
+            <CardBody className="p-6 dir-rtl">
               <div className="flex items-center space-x-2 space-x-reverse mb-3">
                 <FiCalendar className="w-5 h-5 text-red-600" />
-                <h3 className="font-semibold text-gray-900">تفاصيل الإغلاق</h3>
+                <h3 className="font-semibold text-gray-900 text-right">
+                  تفاصيل الإغلاق
+                </h3>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-sm text-right">
                 <div>
                   <span className="text-gray-500">التاريخ:</span>
                   <div className="font-medium">{closedDateTime.date}</div>
@@ -234,12 +238,14 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
 
         {/* Statistics */}
         <Card>
-          <CardBody className="p-6">
+          <CardBody className="p-6 dir-rtl">
             <div className="flex items-center space-x-2 space-x-reverse mb-3">
               <FiDollarSign className="w-5 h-5 text-blue-600" />
-              <h3 className="font-semibold text-gray-900">إحصائيات</h3>
+              <h3 className="font-semibold text-gray-900 text-right">
+                إحصائيات
+              </h3>
             </div>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-sm text-right">
               <div>
                 <span className="text-gray-500">عدد المعاملات:</span>
                 <div className="font-medium">

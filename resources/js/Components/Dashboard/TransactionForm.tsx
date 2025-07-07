@@ -215,7 +215,7 @@ export default function TransactionForm({
                     تعيين المسؤول
                   </div>
                   <div className="grid grid-cols-1 gap-3">
-                    <div>
+                    <div className='space-y-2'>
                       <InputLabel
                         htmlFor="assigned_to"
                         className="mb-2 text-blue-800"
