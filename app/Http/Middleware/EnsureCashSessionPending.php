@@ -6,15 +6,15 @@ use App\Models\CashSession;
 use Closure;
 use Illuminate\Http\Request;
 
-class EnsureCashSessionOpen
+class EnsureCashSessionPending
 {
     public function handle(Request $request, Closure $next)
     {
-        $session = CashSession::whereIn('status', ['active', 'pending'])->first();
+        $session = CashSession::whereIn('status', ['pending'])->first();
 
         if (! $session) {
             return response()->json([
-                'error' => 'No open cash session found. Please ask admin to open a session.',
+                'error' => 'No pending cash session found. Please ask admin to open a session.',
             ], 403);
         }
 

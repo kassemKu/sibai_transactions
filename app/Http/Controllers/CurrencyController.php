@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreCurrencyRequest;
+use App\Http\Requests\UpdateCurrencyRequest;
 use App\Models\Currency;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CurrencyController extends Controller
 {
@@ -28,34 +30,46 @@ class CurrencyController extends Controller
         ]);
     }
 
-    public function update(Request $request, Currency $currency)
+    public function update(UpdateCurrencyRequest $request, Currency $currency)
     {
-        $currency->update($request->validate([
-            'name' => 'required|string|max:30',
-            'rate_to_usd' => 'required|numeric|gt:0',
-        ]));
+        try {
+            $currency->update($request->validated());
 
-        return $this->success('Currency updated successfully.', [
-            'currency' => $currency,
-        ]);
+            return $this->success('Currency updated successfully.', [
+                'currency' => $currency,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'CurrencyController@update');
+
+            return $this->failed('Failed to update currency');
+        }
     }
 
-    public function store(Request $request)
+    public function store(StoreCurrencyRequest $request)
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:30',
-            'code' => 'required|string|max:3|unique:currencies,code',
-            'rate_to_usd' => 'required|numeric|gt:0',
-        ]);
+        try {
+            DB::beginTransaction();
 
-        // Set is_crypto to false by default for new currencies
-        $data['is_crypto'] = false;
+            $data = $request->validated();
+            $currency = Currency::create($data);
 
-        $currency = Currency::create($data);
+            $currency->cashBalances()->create([
+                'opening_balance' => $request->amount ?? 0,
+                'cash_session_id' => $request->session->id,
+            ]);
 
-        return $this->success('Currency created successfully.', [
-            'currency' => $currency,
-        ]);
+            DB::commit();
+
+            return $this->success('Currency created successfully.', [
+                'currency' => $currency,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            $this->errorLog($e, 'CurrencyController@store');
+
+            return $this->failed('Failed to create currency');
+        }
     }
 
     public function getCurrencies()

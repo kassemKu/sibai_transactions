@@ -90,7 +90,7 @@ return [
         ],
         'user' => [
             'profile' => 'r,u',
-        ]
+        ],
     ],
 
     'permissions_map' => [

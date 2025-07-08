@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CloseCashSessionRequest;
 use App\Models\CashSession;
-use App\Models\Currency;
 use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -54,10 +53,6 @@ class CashSessionController extends Controller
 
     public function open(): JsonResponse
     {
-        if (CashSession::whereIn('status', ['active', 'pending'])->exists()) {
-            throw new \Exception('close the opened session first open.');
-        }
-
         $cashSession = $this->service->openCashSession(Auth::user());
 
         return $this->success('Cash session opened successfully.', [
@@ -89,12 +84,7 @@ class CashSessionController extends Controller
 
     public function close(CloseCashSessionRequest $request): JsonResponse
     {
-        $session = CashSession::whereIn('status', ['pending'])->first();
-
-        if (! $session) {
-            throw new \Exception('No pending cash session to close.');
-        }
-        $result = $this->service->closeCashSession(Auth::user(), $request->validated(), $session);
+        $result = $this->service->closeCashSession(Auth::user(), $request->validated(), $request->cash_session);
 
         return $this->success('Cash session closed successfully.', [
             'report' => $result,
