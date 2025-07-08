@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\CashMovementType;
+use App\Enums\CashSessionEnum;
+use App\Enums\TransactionStatus;
 use App\Models\CashBalance;
 use App\Models\CashMovement;
 use App\Models\CashSession;
@@ -47,7 +49,7 @@ class TransactionService
             'assigned_to' => $assignedTo,
             'from_rate_to_usd' => $data['from_rate_to_usd'],
             'to_rate_to_usd' => $data['to_rate_to_usd'],
-            'status' => 'pending',
+            'status' => TransactionStatus::PENDING->value,
         ]);
 
         return $transaction;
@@ -76,7 +78,7 @@ class TransactionService
 
     public function getCurrencyAvailableBalance($currencyId)
     {
-        $session = CashSession::whereIn('status', ['active', 'pending'])->first();
+        $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])->first();
         if (! $session) {
             throw new \Exception('No open cash session found.');
         }
@@ -86,12 +88,12 @@ class TransactionService
             ->first()
             ->opening_balance ?? 0;
 
-        $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
+        $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatus::COMPLETED->value))
             ->where('currency_id', $currencyId)
             ->where('type', CashMovementType::IN->value)
             ->sum('amount');
 
-        $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
+        $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatus::COMPLETED->value))
             ->where('currency_id', $currencyId)
             ->where('type', CashMovementType::OUT->value)
             ->sum('amount');

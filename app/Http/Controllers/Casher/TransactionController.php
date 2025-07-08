@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Casher;
 
+use App\Enums\TransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Casher\TransactionRequest;
-use App\Models\CashSession;
 use App\Models\Transaction;
 use App\Services\TransactionService;
-use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
 {
@@ -20,30 +19,12 @@ class TransactionController extends Controller
 
     public function store(TransactionRequest $request)
     {
-        $currentSession = CashSession::whereIn('status', ['active'])->first();
-
         $calc = $request->getCalc();
 
-        $transaction = $this->transactionService->createTransaction($calc, $currentSession);
+        $transaction = $this->transactionService->createTransaction($calc, $request->session);
 
         return $this->success('Transaction created successfully.', [
             'transaction' => $transaction,
-        ]);
-    }
-
-    public function pendingTransactions()
-    {
-        $transactions = Transaction::where('status', 'pending')
-            ->where('assigned_to', Auth::id())
-            ->whereHas('cashSession', function ($query) {
-                $query->whereIn('status', ['active', 'pending']);
-            })
-            ->with(['fromCurrency', 'toCurrency', 'user', 'customer'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return $this->success('Pending transactions retrieved successfully.', [
-            'transactions' => $transactions,
         ]);
     }
 
@@ -54,7 +35,7 @@ class TransactionController extends Controller
 
         $this->transactionService->confirmCashMovement($transaction);
 
-        $transaction->update(['status' => 'completed']);
+        $transaction->update(['status' => TransactionStatus::COMPLETED->value]);
 
         return $this->success('Transaction status changed to completed.', [
             'transaction' => $transaction,

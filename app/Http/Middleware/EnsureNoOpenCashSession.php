@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\CashSessionEnum;
 use App\Models\CashSession;
 use Closure;
 use Illuminate\Http\Request;
@@ -10,7 +11,7 @@ class EnsureNoOpenCashSession
 {
     public function handle(Request $request, Closure $next)
     {
-        $session = CashSession::whereIn('status', ['active', 'pending'])->exists();
+        $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])->exists();
 
         if ($session) {
             return response()->json([
