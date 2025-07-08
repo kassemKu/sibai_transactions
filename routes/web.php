@@ -26,9 +26,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::get('/', [DashboardController::class, 'AdminDashboard'])->name('admin.dashboard');
 
         Route::Resource('/currencies', CurrencyController::class)->except(['destroy', 'store']);
-        Route::post('/currencies', [CurrencyController::class, 'store'])->middleware(EnsureActiveCashSession::class);
+        Route::post('/currencies', [CurrencyController::class, 'store'])->middleware(EnsureCashSessionOpen::class);
 
-        Route::post('/transactions', [TransactionController::class, 'store']);
+        Route::post('/transactions', [TransactionController::class, 'store'])->middleware(EnsureActiveCashSession::class);
         Route::get('/pending-transactions', [TransactionController::class, 'pendingTransactions'])->middleware(EnsureActiveCashSession::class);
         Route::put('/transactions/{id}/complete', [TransactionController::class, 'completeStatus'])->middleware(EnsureActiveCashSession::class);
         Route::put('/transactions/{id}/cancel', [TransactionController::class, 'cancelStatus'])->middleware(EnsureActiveCashSession::class);
@@ -45,8 +45,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
 
     Route::group(['middleware' => ['role:casher'], 'prefix' => 'casher'], function () {
         Route::get('/', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
-        Route::post('/transactions', [CasherTransactionController::class, 'store']);
-        Route::get('/transactions/pending', [CasherTransactionController::class, 'pendingTransactions'])->name('casher.transactions.pending');
+        Route::post('/transactions', [CasherTransactionController::class, 'store'])->middleware(EnsureActiveCashSession::class);
+        Route::get('/transactions/pending', [CasherTransactionController::class, 'pendingTransactions'])->middleware(EnsureActiveCashSession::class)->name('casher.transactions.pending');
         Route::put('/transactions/{id}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware(EnsureActiveCashSession::class);
     });
 });

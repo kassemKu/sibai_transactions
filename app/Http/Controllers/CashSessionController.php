@@ -60,10 +60,6 @@ class CashSessionController extends Controller
 
     public function open(): JsonResponse
     {
-        if (CashSession::whereIn('status', ['active', 'pending'])->exists()) {
-            throw new \Exception('close the opened session first open.');
-        }
-
         $cashSession = $this->service->openCashSession(Auth::user());
 
         return $this->success('Cash session opened successfully.', [
@@ -95,11 +91,6 @@ class CashSessionController extends Controller
 
     public function close(CloseCashSessionRequest $request): JsonResponse
     {
-        $session = CashSession::whereIn('status', ['pending'])->first();
-
-        if (! $session) {
-            throw new \Exception('No pending cash session to close.');
-        }
         $result = $this->service->closeCashSession(Auth::user(), $request->validated(), $session);
 
         return $this->success('Cash session closed successfully.', [

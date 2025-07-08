@@ -19,7 +19,7 @@ class EnsureActiveCashSession
         }
 
         // Inject the session into request if you want
-        $request->merge(['cash_session_id' => $session->id]);
+        $request->merge(['cash_session' => $session]);
 
         return $next($request);
     }
