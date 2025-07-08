@@ -8,6 +8,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureActiveCashSession;
 use App\Http\Middleware\EnsureCashSessionOpen;
+use App\Http\Middleware\EnsureCashSessionPending;
 use App\Http\Middleware\EnsureNoOpenCashSession;
 use Illuminate\Support\Facades\Route;
 
@@ -38,7 +39,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::get('/cash-sessions/{cashSession}', [CashSessionController::class, 'show'])->name('cash_sessions.show');
         Route::post('/cash-sessions/open', [CashSessionController::class, 'open'])->middleware(EnsureNoOpenCashSession::class);
         Route::post('/cash-sessions/pending', [CashSessionController::class, 'pending'])->middleware(EnsureActiveCashSession::class);
-        Route::post('/cash-sessions/close', [CashSessionController::class, 'close'])->middleware(EnsureCashSessionOpen::class);
+        Route::post('/cash-sessions/close', [CashSessionController::class, 'close'])->middleware(EnsureCashSessionPending::class);
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
     });

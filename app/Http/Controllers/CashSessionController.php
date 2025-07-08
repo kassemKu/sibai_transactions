@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CloseCashSessionRequest;
 use App\Models\CashSession;
-use App\Models\Currency;
 use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -85,7 +84,7 @@ class CashSessionController extends Controller
 
     public function close(CloseCashSessionRequest $request): JsonResponse
     {
-        $result = $this->service->closeCashSession(Auth::user(), $request->validated(), $session);
+        $result = $this->service->closeCashSession(Auth::user(), $request->validated(), $request->cash_session);
 
         return $this->success('Cash session closed successfully.', [
             'report' => $result,
