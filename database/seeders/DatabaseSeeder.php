@@ -13,7 +13,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            RolePermissionSeeder::class,
+            // RolePermissionSeeder::class,
+            // seed rules first of all
+            LaratrustSeeder::class,
             UserSeeder::class,
             CurrencySeeder::class,
             SessionAndBalanceSeeder::class,
