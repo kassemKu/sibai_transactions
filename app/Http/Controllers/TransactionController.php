@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TransactionStatus;
 use App\Http\Requests\TransactionCalculateRequest;
 use App\Http\Requests\TransactionRequest;
-use App\Models\CashSession;
 use App\Models\Transaction;
 use App\Services\TransactionService;
-use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
 {
@@ -20,33 +19,12 @@ class TransactionController extends Controller
 
     public function store(TransactionRequest $request)
     {
-        $currentSession = CashSession::whereIn('status', ['active'])->first();
-
         $calc = $request->getCalc();
         $result = array_merge($calc, ['assigned_to' => $request->assigned_to]);
-        $transaction = $this->transactionService->createTransaction($result, $currentSession);
+        $transaction = $this->transactionService->createTransaction($result, $request->session);
 
         return $this->success('Transaction created successfully.', [
             'transaction' => $transaction,
-        ]);
-    }
-
-    public function pendingTransactions()
-    {
-        $transactions = Transaction::where('status', 'pending')
-            ->whereHas('cashSession', function ($query) {
-                $query->whereIn('status', ['active', 'pending']);
-            })
-            ->where(function ($query) {
-                $query->where('assigned_to', Auth::id())
-                    ->orWhereNull('assigned_to');
-            })
-            ->with(['fromCurrency', 'toCurrency'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return $this->success('Pending transactions', [
-            'transactions' => $transactions,
         ]);
     }
 
@@ -56,7 +34,7 @@ class TransactionController extends Controller
 
         $this->transactionService->confirmCashMovement($transaction);
 
-        $transaction->update(['status' => 'completed']);
+        $transaction->update(['status' => TransactionStatus::COMPLETED->value]);
 
         return $this->success('Transaction status changed to completed.', [
             'transaction' => $transaction,
@@ -67,7 +45,7 @@ class TransactionController extends Controller
     {
         $transaction = Transaction::findOrFail($id);
 
-        $transaction->update(['status' => 'canceled']);
+        $transaction->update(['status' => TransactionStatus::CANCELED->value]);
 
         return $this->success('Transaction status changed to canceled.', [
             'transaction' => $transaction,

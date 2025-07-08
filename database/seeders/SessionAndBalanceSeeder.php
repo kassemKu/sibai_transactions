@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\CashSessionEnum;
 use App\Models\CashBalance;
 use App\Models\CashSession;
 use App\Models\Currency;
@@ -41,7 +42,7 @@ class SessionAndBalanceSeeder extends Seeder
                 'closed_by' => null,
                 'open_exchange_rates' => json_encode($exchangeRates),
                 'close_exchange_rates' => null,
-                'status' => 'active',
+                'status' => CashSessionEnum::ACTIVE->value,
             ]);
 
             foreach ($currencies as $currency) {
@@ -62,7 +63,7 @@ class SessionAndBalanceSeeder extends Seeder
             $firstSession->update([
                 'closed_at' => Carbon::now()->addHours(8),
                 'closed_by' => $adminId,
-                'status' => 'closed',
+                'status' => CashSessionEnum::CLOSED->value,
                 'close_exchange_rates' => json_encode($exchangeRates),
             ]);
         });

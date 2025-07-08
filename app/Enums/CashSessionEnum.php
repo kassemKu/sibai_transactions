@@ -2,11 +2,11 @@
 
 namespace App\Enums;
 
-enum TransactionStatus: string
+enum CashSessionEnum: string
 {
+    case ACTIVE = 'active';
+    case CLOSED = 'closed';
     case PENDING = 'pending';
-    case COMPLETED = 'completed';
-    case CANCELED = 'canceled';
 
     public static function values(): array
     {

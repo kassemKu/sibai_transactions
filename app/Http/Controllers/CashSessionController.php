@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CashSessionEnum;
 use App\Http\Requests\CloseCashSessionRequest;
 use App\Models\CashSession;
 use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CashSessionController extends Controller
@@ -60,34 +62,51 @@ class CashSessionController extends Controller
         ]);
     }
 
-    public function getClosingBalances(): JsonResponse
+    public function getClosingBalances(Request $request): JsonResponse
     {
-        $balances = $this->service->getClosingBalances();
+        $balances = $this->service->getClosingBalances($request->session);
 
         return $this->success('Closing balances retrieved successfully.', [
             'balances' => $balances,
         ]);
     }
 
-    public function pending(): JsonResponse
+    public function pending(Request $request): JsonResponse
     {
-        $session = CashSession::whereIn('status', ['active'])->first();
-
-        $session->update([
-            'status' => 'pending',
+        $request->session->update([
+            'status' => CashSessionEnum::PENDING->value,
         ]);
 
         return $this->success('Cash session status updated to pending.', [
-            'session' => $session->refresh(),
+            'session' => $request->session->refresh(),
         ]);
     }
 
     public function close(CloseCashSessionRequest $request): JsonResponse
     {
-        $result = $this->service->closeCashSession(Auth::user(), $request->validated(), $request->cash_session);
+        $result = $this->service->closeCashSession(Auth::user(), $request->validated(), $request->session);
 
         return $this->success('Cash session closed successfully.', [
             'report' => $result,
+        ]);
+    }
+
+    public function latest(): JsonResponse
+    {
+        $cashSession = CashSession::where('status', CashSessionEnum::CLOSED->value)
+            ->latest()
+            ->first();
+
+        return $this->success('Cash session closed successfully.', [
+            'report' => $cashSession->load([
+                'cashBalances.currency',
+                'transactions.createdBy',
+                'transactions.assignedTo',
+                'transactions.fromCurrency',
+                'transactions.toCurrency',
+                'openedBy',
+                'closedBy',
+            ])->toArray(),
         ]);
     }
 }

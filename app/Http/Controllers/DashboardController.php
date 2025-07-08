@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CashSessionEnum;
+use App\Enums\TransactionStatus;
 use App\Models\CashSession;
 use App\Models\Currency;
 use App\Models\Transaction;
@@ -28,26 +30,13 @@ class DashboardController extends Controller
         return inertia('CasherDashboard');
     }
 
-    public function currentSession()
-    {
-        $session = CashSession::whereIn('status', ['active', 'pending'])->first();
-
-        if (! $session) {
-            return $this->failed('No active or pending cash session found.');
-        }
-
-        return $this->success('Current cash session retrieved successfully.', [
-            'session' => $session,
-        ]);
-    }
-
     public function getStatus()
     {
-        $session = CashSession::whereIn('status', ['active', 'pending'])->first();
+        $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])->first();
 
-        $transactionsQuery = Transaction::where('status', 'pending')
+        $transactionsQuery = Transaction::where('status', TransactionStatus::PENDING->value)
             ->whereHas('cashSession', function ($query) {
-                $query->whereIn('status', ['active', 'pending']);
+                $query->whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value]);
             });
 
         if (! Auth::user()->hasRole(['super_admin', 'admin'])) {
