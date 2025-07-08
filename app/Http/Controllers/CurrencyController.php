@@ -55,7 +55,7 @@ class CurrencyController extends Controller
 
             $currency->cashBalances()->create([
                 'opening_balance' => $request->amount ?? 0,
-                'cash_session_id' => $request->session->id,
+                'cash_session_id' => $request->cash_session->id,
             ]);
 
             DB::commit();
