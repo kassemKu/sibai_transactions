@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TransactionStatusEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -27,7 +28,7 @@ return new class extends Migration
             $table->decimal('from_rate_to_usd', 18, 8);
             $table->decimal('to_rate_to_usd', 18, 8);
 
-            $table->string('status')->default('pending'); // pending, completed, cancelled
+            $table->string('status')->default(TransactionStatusEnum::PENDING->value); // pending, completed, cancelled
 
             $table->string('notes')->nullable();
 

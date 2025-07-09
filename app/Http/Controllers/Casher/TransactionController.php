@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Casher;
 
-use App\Enums\TransactionStatus;
+use App\Enums\TransactionStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Casher\TransactionRequest;
 use App\Models\Transaction;
@@ -35,7 +35,7 @@ class TransactionController extends Controller
 
         $this->transactionService->confirmCashMovement($transaction);
 
-        $transaction->update(['status' => TransactionStatus::COMPLETED->value]);
+        $transaction->update(['status' => TransactionStatusEnum::COMPLETED->value]);
 
         return $this->success('Transaction status changed to completed.', [
             'transaction' => $transaction,
