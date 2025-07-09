@@ -21,7 +21,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::get('/transactions/calc', [TransactionController::class, 'calc'])->name('transactions.calc')->middleware(EnsureOpenCashSession::class);
     Route::get('/status', [DashboardController::class, 'getStatus'])->name('status');
 
-    Route::group(['middleware' => ['role:super_admin'], 'prefix' => 'admin'], function () {
+    Route::group(['middleware' => ['role:super_admin|superadministrator|administrator'], 'prefix' => 'admin'], function () {
         Route::get('/', [DashboardController::class, 'AdminDashboard'])->name('admin.dashboard');
 
         Route::Resource('/currencies', CurrencyController::class)->except(['destroy', 'store']);
@@ -40,6 +40,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::post('/cash-sessions/close', [CashSessionController::class, 'close'])->middleware(EnsurePendingCashSession::class);
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
+
+        Route::resource('/employees', EmployeeController::class, [
+            'parameters' => ['' => 'employee'],
+        ]);
     });
 
     Route::group(['middleware' => ['role:casher'], 'prefix' => 'casher'], function () {
