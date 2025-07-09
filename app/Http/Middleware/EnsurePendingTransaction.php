@@ -13,9 +13,14 @@ class EnsurePendingTransaction
         $transaction = $request->route('transaction');
 
         if ($transaction->status !== TransactionStatusEnum::PENDING->value) {
-            return response()->json([
-                'error' => 'This transaction is not in the pending status.',
-            ], 403);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'هذه المعاملة ليست في حالة معلقة.',
+                    'data' => [],
+                ], 403);
+            }
+            abort(403, 'هذه المعاملة ليست في حالة معلقة.');
         }
 
         return $next($request);

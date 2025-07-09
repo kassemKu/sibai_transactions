@@ -18,4 +18,16 @@ class UpdateCurrencyRequest extends FormRequest
             'rate_to_usd' => 'required|numeric|gt:0',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'يرجى إدخال اسم العملة.',
+            'name.string' => 'اسم العملة يجب أن يكون نصاً.',
+            'name.max' => 'اسم العملة يجب ألا يتجاوز 30 حرفاً.',
+            'rate_to_usd.required' => 'يرجى إدخال سعر الصرف مقابل الدولار.',
+            'rate_to_usd.numeric' => 'سعر الصرف يجب أن يكون رقماً.',
+            'rate_to_usd.gt' => 'سعر الصرف يجب أن يكون أكبر من صفر.',
+        ];
+    }
 }
