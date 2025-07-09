@@ -28,24 +28,26 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function completeStatus($id)
+    public function completeStatus(Transaction $transaction)
     {
-        $transaction = Transaction::findOrFail($id);
-
         $this->transactionService->confirmCashMovement($transaction);
 
-        $transaction->update(['status' => TransactionStatusEnum::COMPLETED->value]);
+        $transaction->update([
+            'status' => TransactionStatusEnum::COMPLETED->value,
+            'closed_by' => auth()->id(),
+        ]);
 
         return $this->success('Transaction status changed to completed.', [
-            'transaction' => $transaction,
+            'transaction' => $transaction->refresh(),
         ]);
     }
 
-    public function cancelStatus($id)
+    public function cancelStatus(Transaction $transaction)
     {
-        $transaction = Transaction::findOrFail($id);
-
-        $transaction->update(['status' => TransactionStatusEnum::CANCELED->value]);
+        $transaction->update([
+            'status' => TransactionStatusEnum::CANCELED->value,
+            'closed_by' => auth()->id(),
+        ]);
 
         return $this->success('Transaction status changed to canceled.', [
             'transaction' => $transaction,
