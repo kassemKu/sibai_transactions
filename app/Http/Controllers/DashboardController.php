@@ -44,7 +44,7 @@ class DashboardController extends Controller
         }
 
         $transactions = $transactionsQuery
-            ->with(['fromCurrency', 'toCurrency', 'createdBy', 'assignedTo'])
+            ->with(['fromCurrency', 'toCurrency', 'createdBy', 'closedBy', 'assignedTo'])
             ->orderBy('created_at', 'desc')
             ->get();
 

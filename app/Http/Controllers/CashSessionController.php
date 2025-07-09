@@ -24,6 +24,7 @@ class CashSessionController extends Controller
         $cashSessions = CashSession::with([
             'cashBalances.currency',
             'transactions.createdBy',
+            'transactions.closedBy',
             'transactions.assignedTo',
             'transactions.fromCurrency',
             'transactions.toCurrency',
@@ -44,6 +45,7 @@ class CashSessionController extends Controller
             'cashSession' => $cashSession->load([
                 'cashBalances.currency',
                 'transactions.createdBy',
+                'transactions.closedBy',
                 'transactions.assignedTo',
                 'transactions.fromCurrency',
                 'transactions.toCurrency',
@@ -101,6 +103,7 @@ class CashSessionController extends Controller
             'report' => $cashSession->load([
                 'cashBalances.currency',
                 'transactions.createdBy',
+                'transactions.closedBy',
                 'transactions.assignedTo',
                 'transactions.fromCurrency',
                 'transactions.toCurrency',
