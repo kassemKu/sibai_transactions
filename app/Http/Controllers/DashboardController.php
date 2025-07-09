@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CashSessionEnum;
-use App\Enums\TransactionStatus;
+use App\Enums\TransactionStatusEnum;
 use App\Models\CashSession;
 use App\Models\Currency;
 use App\Models\Transaction;
@@ -34,7 +34,7 @@ class DashboardController extends Controller
     {
         $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])->first();
 
-        $transactionsQuery = Transaction::where('status', TransactionStatus::PENDING->value)
+        $transactionsQuery = Transaction::where('status', TransactionStatusEnum::PENDING->value)
             ->whereHas('cashSession', function ($query) {
                 $query->whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value]);
             });

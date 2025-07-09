@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\TransactionStatus;
+use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\TransactionCalculateRequest;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
@@ -34,7 +34,7 @@ class TransactionController extends Controller
 
         $this->transactionService->confirmCashMovement($transaction);
 
-        $transaction->update(['status' => TransactionStatus::COMPLETED->value]);
+        $transaction->update(['status' => TransactionStatusEnum::COMPLETED->value]);
 
         return $this->success('Transaction status changed to completed.', [
             'transaction' => $transaction,
@@ -45,7 +45,7 @@ class TransactionController extends Controller
     {
         $transaction = Transaction::findOrFail($id);
 
-        $transaction->update(['status' => TransactionStatus::CANCELED->value]);
+        $transaction->update(['status' => TransactionStatusEnum::CANCELED->value]);
 
         return $this->success('Transaction status changed to canceled.', [
             'transaction' => $transaction,

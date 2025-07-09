@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Enums\CashMovementType;
+use App\Enums\CashMovementTypeEnum;
 use App\Enums\CashSessionEnum;
-use App\Enums\TransactionStatus;
+use App\Enums\TransactionStatusEnum;
 use App\Models\CashBalance;
 use App\Models\CashMovement;
 use App\Models\CashSession;
@@ -49,7 +49,7 @@ class TransactionService
             'assigned_to' => $assignedTo,
             'from_rate_to_usd' => $data['from_rate_to_usd'],
             'to_rate_to_usd' => $data['to_rate_to_usd'],
-            'status' => TransactionStatus::PENDING->value,
+            'status' => TransactionStatusEnum::PENDING->value,
         ]);
 
         return $transaction;
@@ -61,7 +61,7 @@ class TransactionService
             CashMovement::create([
                 'transaction_id' => $transaction->id,
                 'currency_id' => $transaction->from_currency_id,
-                'type' => CashMovementType::IN->value,
+                'type' => CashMovementTypeEnum::IN->value,
                 'amount' => $transaction->original_amount,
                 'cash_session_id' => $transaction->cash_session_id,
             ]);
@@ -69,7 +69,7 @@ class TransactionService
             CashMovement::create([
                 'transaction_id' => $transaction->id,
                 'currency_id' => $transaction->to_currency_id,
-                'type' => CashMovementType::OUT->value,
+                'type' => CashMovementTypeEnum::OUT->value,
                 'amount' => $transaction->converted_amount,
                 'cash_session_id' => $transaction->cash_session_id,
             ]);
@@ -88,14 +88,14 @@ class TransactionService
             ->first()
             ->opening_balance ?? 0;
 
-        $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatus::COMPLETED->value))
+        $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
             ->where('currency_id', $currencyId)
-            ->where('type', CashMovementType::IN->value)
+            ->where('type', CashMovementTypeEnum::IN->value)
             ->sum('amount');
 
-        $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatus::COMPLETED->value))
+        $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
             ->where('currency_id', $currencyId)
-            ->where('type', CashMovementType::OUT->value)
+            ->where('type', CashMovementTypeEnum::OUT->value)
             ->sum('amount');
 
         return $opening + $totalIn - $totalOut;

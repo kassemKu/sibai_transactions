@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Enums\CashMovementType;
+use App\Enums\CashMovementTypeEnum;
 use App\Enums\CashSessionEnum;
-use App\Enums\TransactionStatus;
+use App\Enums\TransactionStatusEnum;
 use App\Models\CashBalance;
 use App\Models\CashMovement;
 use App\Models\CashSession;
@@ -56,14 +56,14 @@ class CashSessionService
                 ->first()
                 ->opening_balance ?? 0;
 
-            $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatus::COMPLETED->value))
+            $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->where('currency_id', $currency->id)
-                ->where('type', CashMovementType::IN->value)
+                ->where('type', CashMovementTypeEnum::IN->value)
                 ->sum('amount');
 
-            $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatus::COMPLETED->value))
+            $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->where('currency_id', $currency->id)
-                ->where('type', CashMovementType::OUT->value)
+                ->where('type', CashMovementTypeEnum::OUT->value)
                 ->sum('amount');
 
             $systemClosing = $opening + $totalIn - $totalOut;
@@ -120,12 +120,12 @@ class CashSessionService
 
                 $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id))
                     ->where('currency_id', $currencyId)
-                    ->where('type', CashMovementType::IN->value)
+                    ->where('type', CashMovementTypeEnum::IN->value)
                     ->sum('amount');
 
                 $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id))
                     ->where('currency_id', $currencyId)
-                    ->where('type', CashMovementType::OUT->value)
+                    ->where('type', CashMovementTypeEnum::OUT->value)
                     ->sum('amount');
 
                 $systemClosing = $opening + $totalIn - $totalOut;
