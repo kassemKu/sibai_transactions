@@ -9,7 +9,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        return $this->success('Users retrieved successfully.', [
+        return $this->success('تم جلب المستخدمين بنجاح.', [
             'users' => User::all(),
         ]);
     }

@@ -20,6 +20,7 @@ class Transaction extends Model
         'to_rate_to_usd',
         'converted_amount',
         'assigned_to',
+        'closed_by', // Nullable, used for completed transactions.
         'status', // 'pending', 'completed', 'cancelled'.
         'notes',
     ];
@@ -37,6 +38,11 @@ class Transaction extends Model
     public function assignedTo()
     {
         return $this->belongsTo(User::class, 'assigned_to', 'id');
+    }
+
+    public function closedBy()
+    {
+        return $this->belongsTo(User::class, 'closed_by', 'id');
     }
 
     public function cashSession()

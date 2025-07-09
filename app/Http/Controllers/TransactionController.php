@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\TransactionStatus;
+use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\TransactionCalculateRequest;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
@@ -19,37 +19,57 @@ class TransactionController extends Controller
 
     public function store(TransactionRequest $request)
     {
-        $calc = $request->getCalc();
-        $result = array_merge($calc, ['assigned_to' => $request->assigned_to]);
-        $transaction = $this->transactionService->createTransaction($result, $request->session);
+        try {
+            $calc = $request->getCalc();
+            $result = array_merge($calc, ['assigned_to' => $request->assigned_to]);
+            $transaction = $this->transactionService->createTransaction($result, $request->session);
 
-        return $this->success('Transaction created successfully.', [
-            'transaction' => $transaction,
-        ]);
+            return $this->success('تم إنشاء المعاملة بنجاح.', [
+                'transaction' => $transaction,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransactionController@store');
+
+            return $this->failed('حدث خطأ أثناء إنشاء المعاملة');
+        }
     }
 
-    public function completeStatus($id)
+    public function completeStatus(Transaction $transaction)
     {
-        $transaction = Transaction::findOrFail($id);
+        try {
+            $this->transactionService->confirmCashMovement($transaction);
 
-        $this->transactionService->confirmCashMovement($transaction);
+            $transaction->update([
+                'status' => TransactionStatusEnum::COMPLETED->value,
+                'closed_by' => auth()->id(),
+            ]);
 
-        $transaction->update(['status' => TransactionStatus::COMPLETED->value]);
+            return $this->success('تم تغيير حالة المعاملة إلى مكتملة.', [
+                'transaction' => $transaction->refresh(),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransactionController@completeStatus');
 
-        return $this->success('Transaction status changed to completed.', [
-            'transaction' => $transaction,
-        ]);
+            return $this->failed('حدث خطأ أثناء إكمال المعاملة');
+        }
     }
 
-    public function cancelStatus($id)
+    public function cancelStatus(Transaction $transaction)
     {
-        $transaction = Transaction::findOrFail($id);
+        try {
+            $transaction->update([
+                'status' => TransactionStatusEnum::CANCELED->value,
+                'closed_by' => auth()->id(),
+            ]);
 
-        $transaction->update(['status' => TransactionStatus::CANCELED->value]);
+            return $this->success('تم إلغاء المعاملة بنجاح.', [
+                'transaction' => $transaction->refresh(),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransactionController@cancelStatus');
 
-        return $this->success('Transaction status changed to canceled.', [
-            'transaction' => $transaction,
-        ]);
+            return $this->failed('حدث خطأ أثناء إلغاء المعاملة');
+        }
     }
 
     public function calc(TransactionCalculateRequest $request, TransactionService $service)
@@ -60,7 +80,7 @@ class TransactionController extends Controller
             $request->original_amount
         );
 
-        return $this->success('Calculation result', [
+        return $this->success('نتيجة الحساب', [
             'calculation_result' => $result,
         ]);
     }

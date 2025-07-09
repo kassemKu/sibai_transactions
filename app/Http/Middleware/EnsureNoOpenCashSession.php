@@ -14,9 +14,14 @@ class EnsureNoOpenCashSession
         $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])->exists();
 
         if ($session) {
-            return response()->json([
-                'error' => 'A cash session is already open. Close it before opening a new one.',
-            ], 403);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'هناك جلسة نقدية مفتوحة بالفعل. يرجى إغلاقها قبل فتح جلسة جديدة.',
+                    'data' => [],
+                ], 403);
+            }
+            abort(403, 'هناك جلسة نقدية مفتوحة بالفعل. يرجى إغلاقها قبل فتح جلسة جديدة.');
         }
 
         return $next($request);

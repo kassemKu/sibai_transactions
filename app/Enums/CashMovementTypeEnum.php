@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum CashMovementType: string
+enum CashMovementTypeEnum: string
 {
     case IN = 'in';
     case OUT = 'out';

@@ -14,7 +14,15 @@ class ChangeTransactionStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'required|in:pending,completed,cancelled',
+            'status' => 'required|in:completed,cancelled',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'status.required' => 'يرجى تحديد حالة المعاملة.',
+            'status.in' => 'الحالة المختارة غير صحيحة. يجب أن تكون:  مكتملة أو ملغاة.',
         ];
     }
 }

@@ -35,13 +35,13 @@ class CurrencyController extends Controller
         try {
             $currency->update($request->validated());
 
-            return $this->success('Currency updated successfully.', [
-                'currency' => $currency,
+            return $this->success('تم تحديث بيانات العملة بنجاح.', [
+                'currency' => $currency->refresh(),
             ]);
         } catch (\Exception $e) {
             $this->errorLog($e, 'CurrencyController@update');
 
-            return $this->failed('Failed to update currency');
+            return $this->failed('حدث خطأ أثناء تحديث بيانات العملة');
         }
     }
 
@@ -50,8 +50,7 @@ class CurrencyController extends Controller
         try {
             DB::beginTransaction();
 
-            $data = $request->validated();
-            $currency = Currency::create($data);
+            $currency = Currency::create($request->validated());
 
             $currency->cashBalances()->create([
                 'opening_balance' => $request->amount ?? 0,
@@ -60,7 +59,7 @@ class CurrencyController extends Controller
 
             DB::commit();
 
-            return $this->success('Currency created successfully.', [
+            return $this->success('تم إضافة العملة الجديدة بنجاح.', [
                 'currency' => $currency,
             ]);
         } catch (\Exception $e) {
@@ -68,7 +67,7 @@ class CurrencyController extends Controller
 
             $this->errorLog($e, 'CurrencyController@store');
 
-            return $this->failed('Failed to create currency');
+            return $this->failed('حدث خطأ أثناء إضافة العملة الجديدة');
         }
     }
 

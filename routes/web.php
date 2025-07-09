@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsureActiveCashSession;
 use App\Http\Middleware\EnsureNoOpenCashSession;
 use App\Http\Middleware\EnsureOpenCashSession;
 use App\Http\Middleware\EnsurePendingCashSession;
+use App\Http\Middleware\EnsurePendingTransaction;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -21,15 +22,15 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::get('/transactions/calc', [TransactionController::class, 'calc'])->name('transactions.calc')->middleware(EnsureOpenCashSession::class);
     Route::get('/status', [DashboardController::class, 'getStatus'])->name('status');
 
-    Route::group(['middleware' => ['role:super_admin'], 'prefix' => 'admin'], function () {
+    Route::group(['middleware' => ['role:super_admin|superadministrator|administrator'], 'prefix' => 'admin'], function () {
         Route::get('/', [DashboardController::class, 'AdminDashboard'])->name('admin.dashboard');
 
         Route::Resource('/currencies', CurrencyController::class)->except(['destroy', 'store']);
         Route::post('/currencies', [CurrencyController::class, 'store'])->middleware(EnsureOpenCashSession::class);
 
         Route::post('/transactions', [TransactionController::class, 'store'])->middleware(EnsureActiveCashSession::class);
-        Route::put('/transactions/{id}/complete', [TransactionController::class, 'completeStatus'])->middleware(EnsureActiveCashSession::class);
-        Route::put('/transactions/{id}/cancel', [TransactionController::class, 'cancelStatus'])->middleware(EnsureActiveCashSession::class);
+        Route::put('/transactions/{transaction}/complete', [TransactionController::class, 'completeStatus'])->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
+        Route::put('/transactions/{transaction}/cancel', [TransactionController::class, 'cancelStatus'])->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
 
         Route::get('/cash-sessions', [CashSessionController::class, 'index'])->name('cash_sessions.index');
         Route::post('/cash-sessions/latest', [CashSessionController::class, 'latest']);
@@ -42,11 +43,15 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::get('/cash-balances', [CashSessionController::class, 'balances'])->name('cash_balances.index');
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
+
+        Route::resource('/employees', EmployeeController::class, [
+            'parameters' => ['' => 'employee'],
+        ]);
     });
 
     Route::group(['middleware' => ['role:casher'], 'prefix' => 'casher'], function () {
         Route::get('/', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
         Route::post('/transactions', [CasherTransactionController::class, 'store'])->middleware(EnsureActiveCashSession::class);
-        Route::put('/transactions/{id}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware(EnsureActiveCashSession::class);
+        Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
     });
 });

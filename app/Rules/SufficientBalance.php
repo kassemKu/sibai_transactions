@@ -20,10 +20,10 @@ class SufficientBalance implements ValidationRule
         try {
             $service = app(TransactionService::class);
             if (! $service->hasSufficientBalance($this->calc['to_currency_id'], $this->calc['converted_amount'])) {
-                $fail('Insufficient balance for the transaction.');
+                $fail('الرصيد غير كافٍ لإتمام العملية.');
             }
         } catch (\Exception $e) {
-            $fail($e->getMessage() ?: 'Unable to validate balance.');
+            $fail($e->getMessage() ?: 'تعذر التحقق من الرصيد.');
         }
     }
 }
