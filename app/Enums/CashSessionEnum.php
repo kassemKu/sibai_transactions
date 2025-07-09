@@ -2,10 +2,11 @@
 
 namespace App\Enums;
 
-enum CashMovementType: string
+enum CashSessionEnum: string
 {
-    case IN = 'in';
-    case OUT = 'out';
+    case ACTIVE = 'active';
+    case CLOSED = 'closed';
+    case PENDING = 'pending';
 
     public static function values(): array
     {

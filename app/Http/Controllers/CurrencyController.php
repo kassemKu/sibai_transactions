@@ -55,7 +55,7 @@ class CurrencyController extends Controller
 
             $currency->cashBalances()->create([
                 'opening_balance' => $request->amount ?? 0,
-                'cash_session_id' => $request->cash_session->id,
+                'cash_session_id' => $request->session->id,
             ]);
 
             DB::commit();
@@ -70,13 +70,6 @@ class CurrencyController extends Controller
 
             return $this->failed('Failed to create currency');
         }
-    }
-
-    public function getCurrencies()
-    {
-        return $this->success('Currencies retrieved successfully.', [
-            'currencies' => Currency::all(),
-        ]);
     }
 
     public function create()

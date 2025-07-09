@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
-use App\Enums\CashMovementType;
+use App\Enums\CashMovementTypeEnum;
+use App\Enums\CashSessionEnum;
+use App\Enums\TransactionStatusEnum;
 use App\Models\CashBalance;
 use App\Models\CashMovement;
 use App\Models\CashSession;
@@ -18,7 +20,7 @@ class CashSessionService
                 'opened_at' => now(),
                 'opened_by' => $adminUser->id,
                 'open_exchange_rates' => json_encode($this->getCurrentExchangeRates()),
-                'status' => 'active',
+                'status' => CashSessionEnum::ACTIVE->value,
             ]);
 
             $currencies = Currency::all();
@@ -43,14 +45,8 @@ class CashSessionService
         });
     }
 
-    public function getClosingBalances()
+    public function getClosingBalances($session)
     {
-        $session = CashSession::whereIn('status', ['active', 'pending'])->first();
-
-        if (! $session) {
-            throw new \Exception('No open cash session found.');
-        }
-
         $currencies = Currency::all();
         $balances = [];
 
@@ -60,14 +56,14 @@ class CashSessionService
                 ->first()
                 ->opening_balance ?? 0;
 
-            $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
+            $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->where('currency_id', $currency->id)
-                ->where('type', CashMovementType::IN->value)
+                ->where('type', CashMovementTypeEnum::IN->value)
                 ->sum('amount');
 
-            $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', 'completed'))
+            $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->where('currency_id', $currency->id)
-                ->where('type', CashMovementType::OUT->value)
+                ->where('type', CashMovementTypeEnum::OUT->value)
                 ->sum('amount');
 
             $systemClosing = $opening + $totalIn - $totalOut;
@@ -106,7 +102,7 @@ class CashSessionService
             $session->update([
                 'closed_at' => now(),
                 'closed_by' => $adminUser->id,
-                'status' => 'closed',
+                'status' => CashSessionEnum::CLOSED->value,
                 'close_exchange_rates' => json_encode($this->getCurrentExchangeRates()),
             ]);
 
@@ -124,12 +120,12 @@ class CashSessionService
 
                 $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id))
                     ->where('currency_id', $currencyId)
-                    ->where('type', CashMovementType::IN->value)
+                    ->where('type', CashMovementTypeEnum::IN->value)
                     ->sum('amount');
 
                 $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id))
                     ->where('currency_id', $currencyId)
-                    ->where('type', CashMovementType::OUT->value)
+                    ->where('type', CashMovementTypeEnum::OUT->value)
                     ->sum('amount');
 
                 $systemClosing = $opening + $totalIn - $totalOut;
