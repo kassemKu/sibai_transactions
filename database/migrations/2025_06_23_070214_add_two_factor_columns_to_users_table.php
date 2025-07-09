@@ -23,6 +23,14 @@ return new class extends Migration
             $table->timestamp('two_factor_confirmed_at')
                 ->after('two_factor_recovery_codes')
                 ->nullable();
+            $table->boolean('isActive')
+                ->default(false)
+                ->after('two_factor_confirmed_at')
+                ->nullable();
+            $table->boolean('isBlocked')
+                ->default(false)
+                ->after('isActive')
+                ->nullable();
         });
     }
 
@@ -36,6 +44,8 @@ return new class extends Migration
                 'two_factor_secret',
                 'two_factor_recovery_codes',
                 'two_factor_confirmed_at',
+                'isActive',
+                'isBlocked'
             ]);
         });
     }
