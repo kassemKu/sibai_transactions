@@ -14,9 +14,14 @@ class EnsureOpenCashSession
         $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])->first();
 
         if (! $session) {
-            return response()->json([
-                'error' => 'No open cash session found. Please ask admin to open a session.',
-            ], 403);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'لا توجد جلسة نقدية مفتوحة. يرجى التواصل مع المدير لفتح جلسة.',
+                    'data' => [],
+                ], 403);
+            }
+            abort(403, 'لا توجد جلسة نقدية مفتوحة. يرجى التواصل مع المدير لفتح جلسة.');
         }
 
         // Inject the session into request if you want

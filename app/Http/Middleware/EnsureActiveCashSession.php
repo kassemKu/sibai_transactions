@@ -14,9 +14,14 @@ class EnsureActiveCashSession
         $session = CashSession::where('status', CashSessionEnum::ACTIVE->value)->first();
 
         if (! $session) {
-            return response()->json([
-                'error' => 'No active cash session found.',
-            ], 403);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'لا توجد جلسة نقدية نشطة.',
+                    'data' => [],
+                ], 403);
+            }
+            abort(403, 'لا توجد جلسة نقدية نشطة.');
         }
 
         // Inject the session into request if you want

@@ -48,7 +48,7 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return $this->success('Current cash session retrieved successfully.', [
+        return $this->success('تم جلب بيانات الجلسة النقدية الحالية بنجاح.', [
             'current_session' => $session,
             'currencies' => Currency::get(),
             'transactions' => $transactions,
