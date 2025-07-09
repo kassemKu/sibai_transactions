@@ -52,6 +52,7 @@ interface Transaction {
   from_currency: Currency;
   to_currency: Currency;
   created_by: User;
+  assigned_to: User;
   customer: Customer;
 }
 
@@ -241,12 +242,13 @@ export default function RecentTransactionsTable({
       >
         <TableHeader>
           <TableColumn>التاريخ والوقت</TableColumn>
-          <TableColumn>العميل</TableColumn>
+          {/* <TableColumn>العميل</TableColumn> */}
           <TableColumn>من</TableColumn>
           <TableColumn>إلى</TableColumn>
           <TableColumn>المبلغ الأصلي</TableColumn>
           <TableColumn>المبلغ المحول</TableColumn>
-          <TableColumn>الصراف</TableColumn>
+          <TableColumn>منشئ العملية</TableColumn>
+          <TableColumn>مُعين إلى</TableColumn>
           <TableColumn>الحالة</TableColumn>
           <TableColumn>الإجراءات</TableColumn>
         </TableHeader>
@@ -275,7 +277,7 @@ export default function RecentTransactionsTable({
                       <div className="text-gray-500">{dateTime.time}</div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <div className="text-sm">
                       <div>{transaction.customer?.name || 'غير محدد'}</div>
                       {transaction.customer?.phone && (
@@ -284,7 +286,7 @@ export default function RecentTransactionsTable({
                         </div>
                       )}
                     </div>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     <div className="text-sm">
                       <div>{transaction.from_currency?.name || 'غير محدد'}</div>
@@ -331,7 +333,18 @@ export default function RecentTransactionsTable({
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {transaction.created_by?.name || 'غير محدد'}
+                      <div>{transaction.created_by?.name || 'غير محدد'}</div>
+                      <div className="text-gray-500 text-xs">
+                        {transaction.created_by?.email || ''}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <div>{transaction.assigned_to?.name || 'غير محدد'}</div>
+                      <div className="text-gray-500 text-xs">
+                        {transaction.assigned_to?.email || ''}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{getStatusChip(transaction.status)}</TableCell>
@@ -347,7 +360,7 @@ export default function RecentTransactionsTable({
                           }
                         >
                           {isUpdating
-                            ? 'جاري التحديث...'
+                            ? ''
                             : isSessionPending
                               ? 'جلسة معلقة'
                               : !isSessionActive

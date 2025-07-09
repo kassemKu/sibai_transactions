@@ -9,7 +9,7 @@ import useRoute from '@/Hooks/useRoute';
 import { useStatusPolling } from '@/Hooks/useStatusPolling';
 
 // Import dashboard components
-import WelcomeSection from '@/Components/Dashboard/WelcomeSection';
+
 import CurrencyCardsSlider from '@/Components/Dashboard/CurrencyCardsSlider';
 import TransactionForm from '@/Components/Dashboard/TransactionForm';
 import RecentTransactionsTable from '@/Components/Dashboard/RecentTransactionsTable';
@@ -26,7 +26,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ currencies, user_roles }: DashboardProps) {
-  const { auth, cash_session, roles } = usePage().props;
+  const { auth, cash_session, roles } = usePage().props as any;
   const route = useRoute();
   const isAdmin =
     roles &&
@@ -55,9 +55,18 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
       const response = await axios.post('/admin/cash-sessions/open');
 
       if (response.data.success) {
-        // Refetch status to update local state
-        await refetch();
         toast.success('تم فتح الجلسة النقدية بنجاح');
+
+        // Wait a bit before refetching to ensure backend state is consistent
+        setTimeout(async () => {
+          await refetch();
+          // Only end loading state after refetch is complete and state is updated
+          setTimeout(() => {
+            setIsSessionLoading(false);
+          }, 200);
+        }, 300);
+      } else {
+        setIsSessionLoading(false);
       }
     } catch (error) {
       console.error('Error opening cash session:', error);
@@ -66,7 +75,6 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
       } else {
         toast.error('حدث خطأ أثناء فتح الجلسة');
       }
-    } finally {
       setIsSessionLoading(false);
     }
   };
@@ -81,8 +89,10 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
     // Close modal first
     setShowCloseModal(false);
 
-    // Refetch status to update local state
-    refetch();
+    // Refetch status to update local state (with a slight delay to ensure modal is fully closed)
+    setTimeout(() => {
+      refetch();
+    }, 300);
   };
 
   // Handle modal close
@@ -92,8 +102,10 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
 
   // Handle session becoming pending
   const handleSessionPending = () => {
-    // Refetch status to update local state
-    refetch();
+    // Refetch status to update local state (with a slight delay to avoid race conditions)
+    setTimeout(() => {
+      refetch();
+    }, 500);
 
     // Optionally reload the page state to sync with server
     setTimeout(() => {
@@ -108,6 +120,9 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
     currentCashSession && currentCashSession.status === 'pending'
   );
 
+  // Create a stable session state that doesn't change during loading
+  const isSessionActiveOrLoading = isSessionOpen || isSessionLoading;
+
   const headerActions: React.ReactNode = (
     <div className="flex items-center space-x-3 space-x-reverse">
       {/* Session Status Indicator */}
@@ -120,8 +135,30 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
         </div>
       )}
 
-      {isSessionOpen && (
-        <PrimaryButton className="text-sm">معاملة جديدة</PrimaryButton>
+      {isSessionOpen && !isSessionLoading && (
+        <PrimaryButton
+          className="text-sm"
+          onClick={() => {
+            const transactionForm = document.getElementById('transaction-form');
+            if (transactionForm) {
+              transactionForm.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+                inline: 'nearest',
+              });
+              // Optional: Focus on the first input field
+              setTimeout(() => {
+                const firstInput =
+                  transactionForm.querySelector('input, select');
+                if (firstInput && firstInput instanceof HTMLElement) {
+                  firstInput.focus();
+                }
+              }, 500);
+            }
+          }}
+        >
+          معاملة جديدة
+        </PrimaryButton>
       )}
 
       {/* Session Management Buttons - ADMIN ONLY */}
@@ -131,6 +168,10 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
             <div className="text-sm text-gray-500 px-4 py-2">
               جاري التحقق...
             </div>
+          ) : isSessionLoading ? (
+            <PrimaryButton className="text-sm" disabled>
+              جاري الفتح...
+            </PrimaryButton>
           ) : isSessionOpen ? (
             <DangerButton className="text-sm" onClick={handleCloseSession}>
               إغلاق الجلسة
@@ -145,7 +186,7 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
               onClick={handleOpenSession}
               disabled={isSessionLoading}
             >
-              {isSessionLoading ? 'جاري الفتح...' : 'بدء جلسة جديدة'}
+              بدء جلسة جديدة
             </PrimaryButton>
           )}
         </>
@@ -160,6 +201,7 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
         title="لوحة التحكم"
         breadcrumbs={[{ label: 'لوحة التحكم' }]}
         headerActions={headerActions}
+        welcomeMessage={`أهلاً بك مرة أخرى ${auth?.user?.name || ''}! إليك ما يحدث مع معاملاتك اليوم.`}
       >
         <div className="flex items-center justify-center min-h-[200px]">
           <div className="flex items-center space-x-2 space-x-reverse">
@@ -176,20 +218,22 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
       title="لوحة التحكم"
       breadcrumbs={[{ label: 'لوحة التحكم' }]}
       headerActions={headerActions}
+      welcomeMessage={`أهلاً بك مرة أخرى ${auth?.user?.name || ''}! إليك ما يحدث مع معاملاتك اليوم.`}
     >
-      <WelcomeSection />
       <CurrencyCardsSlider currencies={currenciesState} />
 
       {/* Always show TransactionForm with overlay when session is not active */}
-      <TransactionForm
-        currencies={currenciesState}
-        isSessionOpen={!!isSessionOpen}
-        isSessionPending={!!isSessionPending}
-        onStartSession={isAdmin ? handleOpenSession : undefined}
-      />
+      <div id="transaction-form">
+        <TransactionForm
+          currencies={currenciesState}
+          isSessionOpen={!!isSessionOpen}
+          isSessionPending={!!isSessionPending}
+          onStartSession={isAdmin ? handleOpenSession : undefined}
+        />
+      </div>
 
       <RecentTransactionsTable
-        transactions={transactions}
+        transactions={transactions as any}
         isSessionActive={!!isSessionOpen}
         isSessionPending={!!isSessionPending}
         isLoading={isInitialSessionLoading}

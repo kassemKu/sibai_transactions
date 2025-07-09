@@ -51,7 +51,8 @@ interface Transaction {
   updated_at: string;
   from_currency: Currency;
   to_currency: Currency;
-  user: User;
+  created_by: User;
+  assigned_to: User;
   customer: Customer;
 }
 
@@ -246,6 +247,8 @@ export default function PendingTransactionsTable({
           <TableColumn>إلى</TableColumn>
           <TableColumn>المبلغ الأصلي</TableColumn>
           <TableColumn>المبلغ المحول</TableColumn>
+          <TableColumn>منشئ العملية</TableColumn>
+          <TableColumn>مُعين إلى</TableColumn>
           <TableColumn>الحالة</TableColumn>
           <TableColumn>الإجراءات</TableColumn>
         </TableHeader>
@@ -326,6 +329,22 @@ export default function PendingTransactionsTable({
                             maximumFractionDigits: 2,
                             useGrouping: true,
                           }).format(transaction.converted_amount || 0)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <div>{transaction.created_by?.name || 'غير محدد'}</div>
+                      <div className="text-gray-500 text-xs">
+                        {transaction.created_by?.email || ''}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <div>{transaction.assigned_to?.name || 'غير محدد'}</div>
+                      <div className="text-gray-500 text-xs">
+                        {transaction.assigned_to?.email || ''}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{getStatusChip(transaction.status)}</TableCell>

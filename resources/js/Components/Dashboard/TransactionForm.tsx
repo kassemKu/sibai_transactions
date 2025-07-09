@@ -157,7 +157,28 @@ export default function TransactionForm({
       }
     } catch (error) {
       console.error('Error executing transaction:', error);
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
+
+      // Handle validation errors (like insufficient balance)
+      if (axios.isAxiosError(error) && error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+
+        // Check for insufficient balance error specifically
+        if (
+          errors.original_amount &&
+          errors.original_amount.includes(
+            'Insufficient balance for the transaction.',
+          )
+        ) {
+          const fromCurrencyName =
+            currencies.find(c => c.id.toString() === fromCurrency)?.name ||
+            'العملة المحددة';
+          toast.error(`رصيد ${fromCurrencyName} غير كافي لتنفيذ هذه العملية`);
+        } else {
+          // Handle other validation errors
+          const errorMessages = Object.values(errors).flat();
+          toast.error(`خطأ في البيانات: ${errorMessages.join(', ')}`);
+        }
+      } else if (axios.isAxiosError(error) && error.response?.data?.error) {
         toast.error(error.response.data.error);
       } else if (axios.isAxiosError(error) && error.response?.data?.message) {
         toast.error(error.response.data.message);
@@ -177,6 +198,7 @@ export default function TransactionForm({
     isSessionOpen,
     isSessionPending,
     resetForm,
+    currencies,
   ]);
 
   // Helper function to format amount for display
@@ -215,7 +237,7 @@ export default function TransactionForm({
                     تعيين المسؤول
                   </div>
                   <div className="grid grid-cols-1 gap-3">
-                    <div className='space-y-2'>
+                    <div className="space-y-2">
                       <InputLabel
                         htmlFor="assigned_to"
                         className="mb-2 text-blue-800"

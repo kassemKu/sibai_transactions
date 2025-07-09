@@ -279,8 +279,8 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
           المعاملات ({cashSession.transactions?.length || 0})
         </h2>
         {cashSession.transactions && cashSession.transactions.length > 0 ? (
-          <Card>
-            <CardBody>
+
+
               <Table aria-label="معاملات الجلسة">
                 <TableHeader>
                   <TableColumn>رقم المعاملة</TableColumn>
@@ -374,8 +374,6 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
                   })}
                 </TableBody>
               </Table>
-            </CardBody>
-          </Card>
         ) : (
           <Card>
             <CardBody className="text-center py-12">
