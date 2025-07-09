@@ -6,6 +6,7 @@ use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Middleware\EnsureActiveCashSession;
 use App\Http\Middleware\EnsureNoOpenCashSession;
 use App\Http\Middleware\EnsureOpenCashSession;
@@ -43,6 +44,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
 
         Route::resource('/employees', EmployeeController::class, [
             'parameters' => ['' => 'employee'],
+            'name' => 'employees'
         ]);
     });
 

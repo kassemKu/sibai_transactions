@@ -11,6 +11,7 @@ import DropdownLink from '@/Components/DropdownLink';
 import Logo from '@/Components/Logo';
 import { FaChartLine, FaCoins, FaExchangeAlt, FaUsers } from 'react-icons/fa';
 import { BsSafeFill } from 'react-icons/bs';
+
 interface Props {
   title: string;
   breadcrumbs?: Array<{ label: string; href?: string }>;
@@ -107,7 +108,7 @@ export default function RootLayout({
   const isAdmin =
     roles &&
     Array.isArray(roles) &&
-    (roles as string[]).includes('super_admin');
+    (roles as string[]).includes('super_admin') || (roles as string[]).includes('superadministrator') || (roles as string[]).includes('administrator');
 
   // All navigation items
   const allNavigation: NavItem[] = [
@@ -131,9 +132,9 @@ export default function RootLayout({
     },
     {
       name: 'الموظفين',
-      href: '#', // Replace with actual route
+      href: route('employees.index'),
       icon: <FaUsers className="h-5 w-5" />,
-      current: false,
+      current: route().current('employees.*'),
     },
     {
       name: 'العملات',
