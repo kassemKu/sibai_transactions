@@ -1,6 +1,6 @@
 import { Link, Head, useForm } from '@inertiajs/react';
 import classNames from 'classnames';
-import React, { PropsWithChildren, useState } from 'react';
+import React, { PropsWithChildren, useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
@@ -101,7 +101,14 @@ export default function RootLayout({
   const page = useTypedPage();
   const route = useRoute();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Initialize from localStorage, default to false if not found
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebarCollapsed');
+      return saved === 'true';
+    }
+    return false;
+  });
   const logoutForm = useForm({});
 
   // Get user roles from page props
@@ -156,6 +163,27 @@ export default function RootLayout({
     e.preventDefault();
     logoutForm.post(route('logout'));
   };
+
+  // Function to toggle sidebar and persist state
+  const toggleSidebar = () => {
+    const newCollapsedState = !sidebarCollapsed;
+    setSidebarCollapsed(newCollapsedState);
+
+    // Persist to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarCollapsed', newCollapsedState.toString());
+    }
+  };
+
+  // Sync localStorage state with React state on hydration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedCollapsed = localStorage.getItem('sidebarCollapsed');
+      if (savedCollapsed !== null) {
+        setSidebarCollapsed(savedCollapsed === 'true');
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
@@ -249,15 +277,17 @@ export default function RootLayout({
         )}
       >
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-l border-gray-200 bg-white px-6 pb-4">
-          <div className={classNames(
-            "flex h-16 shrink-0 items-center",
-            sidebarCollapsed ? "justify-center" : "justify-between"
-          )}>
+          <div
+            className={classNames(
+              'flex h-16 shrink-0 items-center',
+              sidebarCollapsed ? 'justify-center' : 'justify-between',
+            )}
+          >
             <Logo showText={!sidebarCollapsed} />
             {!sidebarCollapsed && (
               <button
                 type="button"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                onClick={toggleSidebar}
                 className="p-2 rounded-lg text-gray-500 hover:text-primaryBlue hover:bg-blue-50 transition-all duration-200 group"
               >
                 <span className="sr-only">تقليص الشريط الجانبي</span>
@@ -341,13 +371,15 @@ export default function RootLayout({
           <button
             type="button"
             className={classNames(
-              "hidden lg:flex -m-2.5 p-2.5 text-gray-700 hover:text-primaryBlue hover:bg-blue-50 rounded-lg transition-all duration-200",
-              sidebarCollapsed ? "lg:flex" : "lg:hidden"
+              'hidden lg:flex -m-2.5 p-2.5 text-gray-700 hover:text-primaryBlue hover:bg-blue-50 rounded-lg transition-all duration-200',
+              sidebarCollapsed ? 'lg:flex' : 'lg:hidden',
             )}
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onClick={toggleSidebar}
           >
             <span className="sr-only">
-              {sidebarCollapsed ? 'توسيع الشريط الجانبي' : 'تقليص الشريط الجانبي'}
+              {sidebarCollapsed
+                ? 'توسيع الشريط الجانبي'
+                : 'تقليص الشريط الجانبي'}
             </span>
             {sidebarCollapsed ? (
               <FiChevronRight className="h-5 w-5" />
@@ -404,15 +436,15 @@ export default function RootLayout({
                 )}
                 {welcomeMessage && (
                   <div className="mt-1 hidden sm:block">
-                    <p className="text-sm text-gray-600 truncate max-w-md">{welcomeMessage}</p>
+                    <p className="text-sm text-gray-600 truncate max-w-md">
+                      {welcomeMessage}
+                    </p>
                   </div>
                 )}
                 {/* Mobile-only welcome message - shorter version */}
                 {welcomeMessage && (
                   <div className="mt-1 sm:hidden">
-                    <p className="text-xs text-gray-500">
-                      أهلاً بك مرة أخرى!
-                    </p>
+                    <p className="text-xs text-gray-500">أهلاً بك مرة أخرى!</p>
                   </div>
                 )}
               </div>

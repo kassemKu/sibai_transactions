@@ -3,7 +3,12 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
-import { CurrenciesResponse, CashSession, InertiaSharedProps } from '@/types';
+import {
+  CurrenciesResponse,
+  CashSession,
+  InertiaSharedProps,
+  Currency,
+} from '@/types';
 import { usePage, router } from '@inertiajs/react';
 import useRoute from '@/Hooks/useRoute';
 import { useStatusPolling } from '@/Hooks/useStatusPolling';
@@ -17,6 +22,7 @@ import RecentTransactionsList from '@/Components/Dashboard/RecentTransactionsLis
 import QuickActions from '@/Components/Dashboard/QuickActions';
 import DangerButton from '@/Components/DangerButton';
 import CloseSessionModal from '@/Components/CloseSessionModal';
+import CurrencyEditModal from '@/Components/Dashboard/CurrencyEditModal';
 import SecondaryButton from '@/Components/SecondaryButton';
 
 interface DashboardProps {
@@ -34,6 +40,10 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
     (roles as string[]).includes('super_admin');
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(
+    null,
+  );
 
   // Use unified status polling hook
   const {
@@ -98,6 +108,24 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
   // Handle modal close
   const handleModalClose = () => {
     setShowCloseModal(false);
+  };
+
+  // Handle currency edit
+  const handleEditCurrency = (currency: Currency) => {
+    setSelectedCurrency(currency);
+    setShowEditModal(true);
+  };
+
+  // Handle currency edit modal close
+  const handleEditModalClose = () => {
+    setShowEditModal(false);
+    setSelectedCurrency(null);
+  };
+
+  // Handle currency edit success
+  const handleEditSuccess = () => {
+    // Refetch currencies to update the display
+    refetch();
   };
 
   // Handle session becoming pending
@@ -220,7 +248,11 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
       headerActions={headerActions}
       welcomeMessage={`أهلاً بك مرة أخرى ${auth?.user?.name || ''}! إليك ما يحدث مع معاملاتك اليوم.`}
     >
-      <CurrencyCardsSlider currencies={currenciesState} />
+      <CurrencyCardsSlider
+        currencies={currenciesState}
+        onEditCurrency={isAdmin ? handleEditCurrency : undefined}
+        isEditable={isAdmin}
+      />
 
       {/* Always show TransactionForm with overlay when session is not active */}
       <div id="transaction-form">
@@ -254,6 +286,14 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
         onSuccess={handleSessionCloseSuccess}
         isSessionPending={!!isSessionPending}
         onSessionPending={handleSessionPending}
+      />
+
+      {/* Currency Edit Modal */}
+      <CurrencyEditModal
+        currency={selectedCurrency}
+        isOpen={showEditModal}
+        onClose={handleEditModalClose}
+        onSuccess={handleEditSuccess}
       />
     </RootLayout>
   );

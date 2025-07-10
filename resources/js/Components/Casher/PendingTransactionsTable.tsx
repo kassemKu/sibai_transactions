@@ -341,7 +341,7 @@ export default function PendingTransactionsTable({
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <div>{transaction.assigned_to?.name || 'غير محدد'}</div>
+                      <div>{transaction.assigned_to?.name || 'Admin'}</div>
                       <div className="text-gray-500 text-xs">
                         {transaction.assigned_to?.email || ''}
                       </div>

@@ -89,7 +89,25 @@ export default function TransactionForm({
     } catch (error) {
       console.error('Error calculating currency:', error);
       setCalculatedAmount('خطأ في الحساب');
-      if (axios.isAxiosError(error)) {
+      
+      // Handle validation errors from backend
+      if (axios.isAxiosError(error) && error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        
+        // Check for insufficient balance error specifically
+        if (errors.original_amount) {
+          const errorMessages = Array.isArray(errors.original_amount) 
+            ? errors.original_amount 
+            : [errors.original_amount];
+          toast.error(errorMessages[0]);
+        } else {
+          // Handle other validation errors
+          const errorMessages = Object.values(errors).flat();
+          toast.error(`خطأ في البيانات: ${errorMessages.join(', ')}`);
+        }
+      } else if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (axios.isAxiosError(error)) {
         toast.error('فشل في حساب التحويل - تحقق من الاتصال بالإنترنت');
       } else {
         toast.error('حدث خطأ أثناء حساب التحويل');

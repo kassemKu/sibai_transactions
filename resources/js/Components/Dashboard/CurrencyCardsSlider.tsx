@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Autoplay } from 'swiper/modules';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { CurrenciesResponse } from '@/types';
+import { CurrenciesResponse, Currency } from '@/types';
 import CurrencyCard from './CurrencyCard';
 
 // Import Swiper styles
@@ -12,10 +12,14 @@ import 'swiper/css/autoplay';
 
 interface CurrencyCardsSliderProps {
   currencies: CurrenciesResponse;
+  onEditCurrency?: (currency: Currency) => void;
+  isEditable?: boolean;
 }
 
 export default function CurrencyCardsSlider({
   currencies,
+  onEditCurrency,
+  isEditable = false,
 }: CurrencyCardsSliderProps) {
   const [isBeginning, setIsBeginning] = useState(true);
   const [isEnd, setIsEnd] = useState(false);
@@ -116,7 +120,11 @@ export default function CurrencyCardsSlider({
           {currencies &&
             currencies.map(currency => (
               <SwiperSlide key={currency.id}>
-                <CurrencyCard currency={currency} />
+                <CurrencyCard
+                  currency={currency}
+                  onEdit={onEditCurrency}
+                  isEditable={isEditable}
+                />
               </SwiperSlide>
             ))}
         </Swiper>
