@@ -40,6 +40,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::post('/cash-sessions/pending', [CashSessionController::class, 'pending'])->middleware(EnsureActiveCashSession::class);
         Route::post('/cash-sessions/close', [CashSessionController::class, 'close'])->middleware(EnsurePendingCashSession::class);
 
+        Route::get('/cash-balances', [CashSessionController::class, 'balances'])->name('cash_balances.index');
+
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
 
         Route::resource('/employees', EmployeeController::class, [

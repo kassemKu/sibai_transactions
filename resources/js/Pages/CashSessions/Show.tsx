@@ -111,7 +111,7 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
         maximumFractionDigits: 2,
         useGrouping: true,
       }).format(numAmount);
-      return `${formattedAmount} ${currency.code}`;
+      return `${formattedAmount}`;
     } catch (error) {
       return 'غير متاح';
     }
@@ -279,103 +279,112 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
           المعاملات ({cashSession.transactions?.length || 0})
         </h2>
         {cashSession.transactions && cashSession.transactions.length > 0 ? (
-          <Card>
-            <CardBody>
-              <Table aria-label="معاملات الجلسة">
-                <TableHeader>
-                  <TableColumn>رقم المعاملة</TableColumn>
-                  <TableColumn>التاريخ والوقت</TableColumn>
-                  <TableColumn>أنشأت بواسطه</TableColumn>
-                  <TableColumn>الصراف</TableColumn>
-                  <TableColumn>من</TableColumn>
-                  <TableColumn>إلى</TableColumn>
-                  <TableColumn>المبلغ الأصلي</TableColumn>
-                  <TableColumn>المبلغ المحول</TableColumn>
-                  <TableColumn>الحالة</TableColumn>
-                </TableHeader>
-                <TableBody>
-                  {cashSession.transactions.map(transaction => {
-                    const transactionDateTime = formatDateTime(
-                      transaction.created_at,
-                    );
-                    return (
-                      <TableRow key={transaction.id}>
-                        <TableCell>
-                          <span className="font-mono text-sm">
-                            #{transaction.id}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div>{transactionDateTime.date}</div>
-                            <div className="text-gray-500">
-                              {transactionDateTime.time}
-                            </div>
+          <Table aria-label="معاملات الجلسة">
+            <TableHeader>
+              <TableColumn>رقم المعاملة</TableColumn>
+              <TableColumn>التاريخ والوقت</TableColumn>
+              <TableColumn>منشئ العملية</TableColumn>
+              <TableColumn>مُعين إلى</TableColumn>
+              <TableColumn>من</TableColumn>
+              <TableColumn>إلى</TableColumn>
+              <TableColumn>المبلغ الأصلي</TableColumn>
+              <TableColumn>المبلغ المحول</TableColumn>
+              <TableColumn>الحالة</TableColumn>
+              <TableColumn>أُغلقت بواسطة</TableColumn>
+            </TableHeader>
+            <TableBody>
+              {cashSession.transactions.map(transaction => {
+                const transactionDateTime = formatDateTime(
+                  transaction.created_at,
+                );
+                return (
+                  <TableRow key={transaction.id}>
+                    <TableCell>
+                      <span className="font-mono text-sm">
+                        #{transaction.id}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{transactionDateTime.date}</div>
+                        <div className="text-gray-500">
+                          {transactionDateTime.time}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {transaction.created_by?.name || 'غير متاح'}
+                        </div>
+                        <div className="text-gray-500">
+                          {transaction.created_by?.email || 'غير متاح'}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {transaction.assigned_to?.name || 'Admin'}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {transaction.from_currency?.name || 'غير متاح'}
+                        </div>
+                        <div className="text-gray-500">
+                          {transaction.from_currency?.code || 'N/A'}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {transaction.to_currency?.name || 'غير متاح'}
+                        </div>
+                        <div className="text-gray-500">
+                          {transaction.to_currency?.code || 'N/A'}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">
+                        {formatAmount(
+                          transaction.original_amount.toString(),
+                          transaction.from_currency,
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">
+                        {formatAmount(
+                          transaction.converted_amount.toString(),
+                          transaction.to_currency,
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {getTransactionStatusChip(transaction.status)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {cashSession.closed_by?.name || 'غير متاح'}
+                        </div>
+                        {cashSession.closed_by?.email && (
+                          <div className="text-gray-500">
+                            {cashSession.closed_by.email}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">
-                              {transaction.created_by?.name || 'غير متاح'}
-                            </div>
-                            <div className="text-gray-500">
-                              {transaction.created_by?.email || 'غير متاح'}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">
-                              {transaction.assigned_to?.name || 'غير مخصص'}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">
-                              {transaction.from_currency?.name || 'غير متاح'}
-                            </div>
-                            <div className="text-gray-500">
-                              {transaction.from_currency?.code || 'N/A'}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">
-                              {transaction.to_currency?.name || 'غير متاح'}
-                            </div>
-                            <div className="text-gray-500">
-                              {transaction.to_currency?.code || 'N/A'}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            {formatAmount(
-                              transaction.original_amount.toString(),
-                              transaction.from_currency,
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            {formatAmount(
-                              transaction.converted_amount.toString(),
-                              transaction.to_currency,
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {getTransactionStatusChip(transaction.status)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardBody>
-          </Card>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         ) : (
           <Card>
             <CardBody className="text-center py-12">
@@ -395,74 +404,65 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               الأرصدة الختامية
             </h2>
-            <Card>
-              <CardBody>
-                <Table aria-label="الأرصدة الختامية">
-                  <TableHeader>
-                    <TableColumn>العملة</TableColumn>
-                    <TableColumn>الرمز</TableColumn>
-                    <TableColumn>الرصيد الافتتاحي</TableColumn>
-                    <TableColumn>إجمالي الداخل</TableColumn>
-                    <TableColumn>إجمالي الخارج</TableColumn>
-                    <TableColumn>الرصيد الختامي المحسوب</TableColumn>
-                    <TableColumn>الرصيد الختامي الفعلي</TableColumn>
-                    <TableColumn>الفرق</TableColumn>
-                  </TableHeader>
-                  <TableBody>
-                    {cashSession.cash_balances.map(balance => {
-                      return (
-                        <TableRow key={balance.id}>
-                          <TableCell>
-                            {balance.currency?.name || 'غير متاح'}
-                          </TableCell>
-                          <TableCell>
-                            {balance.currency?.code || 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            {formatAmount(
-                              balance.opening_balance,
-                              balance.currency,
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {formatAmount(balance.total_in, balance.currency)}
-                          </TableCell>
-                          <TableCell>
-                            {formatAmount(balance.total_out, balance.currency)}
-                          </TableCell>
-                          <TableCell>
-                            {formatAmount(
-                              balance.closing_balance,
-                              balance.currency,
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {formatAmount(
-                              balance.actual_closing_balance,
-                              balance.currency,
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div
-                              className={`font-medium ${
-                                parseFloat(balance.difference) === 0
-                                  ? 'text-green-600'
-                                  : 'text-red-600'
-                              }`}
-                            >
-                              {formatAmount(
-                                balance.difference,
-                                balance.currency,
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </CardBody>
-            </Card>
+            <Table aria-label="الأرصدة الختامية">
+              <TableHeader>
+                <TableColumn>العملة</TableColumn>
+                <TableColumn>الرمز</TableColumn>
+                <TableColumn>الرصيد الافتتاحي</TableColumn>
+                <TableColumn>إجمالي الداخل</TableColumn>
+                <TableColumn>إجمالي الخارج</TableColumn>
+                <TableColumn>الرصيد الختامي المحسوب</TableColumn>
+                <TableColumn>الرصيد الختامي الفعلي</TableColumn>
+                <TableColumn>الفرق</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {cashSession.cash_balances.map(balance => {
+                  return (
+                    <TableRow key={balance.id}>
+                      <TableCell>
+                        {balance.currency?.name || 'غير متاح'}
+                      </TableCell>
+                      <TableCell>{balance.currency?.code || 'N/A'}</TableCell>
+                      <TableCell>
+                        {formatAmount(
+                          balance.opening_balance,
+                          balance.currency,
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {formatAmount(balance.total_in, balance.currency)}
+                      </TableCell>
+                      <TableCell>
+                        {formatAmount(balance.total_out, balance.currency)}
+                      </TableCell>
+                      <TableCell>
+                        {formatAmount(
+                          balance.closing_balance,
+                          balance.currency,
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {formatAmount(
+                          balance.actual_closing_balance,
+                          balance.currency,
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div
+                          className={`font-medium ${
+                            parseFloat(balance.difference) === 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {formatAmount(balance.difference, balance.currency)}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
         )}
     </RootLayout>

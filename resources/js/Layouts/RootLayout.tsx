@@ -1,6 +1,6 @@
 import { Link, Head, useForm } from '@inertiajs/react';
 import classNames from 'classnames';
-import React, { PropsWithChildren, useState } from 'react';
+import React, { PropsWithChildren, useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import useRoute from '@/Hooks/useRoute';
 import useTypedPage from '@/Hooks/useTypedPage';
@@ -11,10 +11,12 @@ import DropdownLink from '@/Components/DropdownLink';
 import Logo from '@/Components/Logo';
 import { FaChartLine, FaCoins, FaExchangeAlt, FaUsers } from 'react-icons/fa';
 import { BsSafeFill } from 'react-icons/bs';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 interface Props {
   title: string;
   breadcrumbs?: Array<{ label: string; href?: string }>;
   headerActions?: React.ReactNode;
+  welcomeMessage?: string;
 }
 
 interface NavItem {
@@ -93,11 +95,20 @@ export default function RootLayout({
   title,
   breadcrumbs = [],
   headerActions,
+  welcomeMessage,
   children,
 }: PropsWithChildren<Props>) {
   const page = useTypedPage();
   const route = useRoute();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Initialize from localStorage, default to false if not found
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebarCollapsed');
+      return saved === 'true';
+    }
+    return false;
+  });
   const logoutForm = useForm({});
 
   // Get user roles from page props
@@ -125,9 +136,9 @@ export default function RootLayout({
     },
     {
       name: 'الصندوق',
-      href: '#', // Replace with actual route
+      href: route('cash_balances.index'),
       icon: <BsSafeFill className="h-5 w-5" />,
-      current: false,
+      current: route().current('cash_balances.*'),
     },
     {
       name: 'الموظفين',
@@ -152,6 +163,27 @@ export default function RootLayout({
     e.preventDefault();
     logoutForm.post(route('logout'));
   };
+
+  // Function to toggle sidebar and persist state
+  const toggleSidebar = () => {
+    const newCollapsedState = !sidebarCollapsed;
+    setSidebarCollapsed(newCollapsedState);
+
+    // Persist to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarCollapsed', newCollapsedState.toString());
+    }
+  };
+
+  // Sync localStorage state with React state on hydration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedCollapsed = localStorage.getItem('sidebarCollapsed');
+      if (savedCollapsed !== null) {
+        setSidebarCollapsed(savedCollapsed === 'true');
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
@@ -195,7 +227,7 @@ export default function RootLayout({
             </div>
             <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
               <div className="flex h-16 shrink-0 items-center">
-                <ApplicationMark className="h-8 w-auto" />
+                <Logo />
               </div>
               <nav className="flex flex-1 flex-col">
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -238,10 +270,30 @@ export default function RootLayout({
       </div>
 
       {/* Static sidebar for desktop */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+      <div
+        className={classNames(
+          'hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300',
+          sidebarCollapsed ? 'lg:w-16' : 'lg:w-72',
+        )}
+      >
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-l border-gray-200 bg-white px-6 pb-4">
-          <div className="flex h-16 shrink-0 items-center">
-            <Logo />
+          <div
+            className={classNames(
+              'flex h-16 shrink-0 items-center',
+              sidebarCollapsed ? 'justify-center' : 'justify-between',
+            )}
+          >
+            <Logo showText={!sidebarCollapsed} />
+            {!sidebarCollapsed && (
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="p-2 rounded-lg text-gray-500 hover:text-primaryBlue hover:bg-blue-50 transition-all duration-200 group"
+              >
+                <span className="sr-only">تقليص الشريط الجانبي</span>
+                <FiChevronLeft className="h-5 w-5" />
+              </button>
+            )}
           </div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -255,8 +307,10 @@ export default function RootLayout({
                           item.current
                             ? 'bg-[#EFF6FF] text-primaryBlue'
                             : 'text-gray-700 hover:text-primaryBlue hover:bg-gray-50',
-                          'group flex gap-x-3  items-center rounded-md p-2 text-sm leading-6 font-semibold transition-colors duration-200',
+                          'group flex items-center rounded-md p-2 text-sm leading-6 font-semibold transition-colors duration-200',
+                          sidebarCollapsed ? 'justify-center' : 'gap-x-3',
                         )}
+                        title={sidebarCollapsed ? item.name : undefined}
                       >
                         {typeof item.icon === 'function' ? (
                           <item.icon
@@ -270,7 +324,9 @@ export default function RootLayout({
                         ) : (
                           item.icon
                         )}
-                        {item.name}
+                        {!sidebarCollapsed && (
+                          <span className="truncate">{item.name}</span>
+                        )}
                       </Link>
                     </li>
                   ))}
@@ -282,7 +338,12 @@ export default function RootLayout({
       </div>
 
       {/* Main content */}
-      <div className="lg:pr-72">
+      <div
+        className={classNames(
+          'transition-all duration-300',
+          sidebarCollapsed ? 'lg:pr-16' : 'lg:pr-72',
+        )}
+      >
         {/* Top navigation */}
         <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
           <button
@@ -306,51 +367,87 @@ export default function RootLayout({
             </svg>
           </button>
 
+          {/* Desktop sidebar toggle - show in header when collapsed */}
+          <button
+            type="button"
+            className={classNames(
+              'hidden lg:flex -m-2.5 p-2.5 text-gray-700 hover:text-primaryBlue hover:bg-blue-50 rounded-lg transition-all duration-200',
+              sidebarCollapsed ? 'lg:flex' : 'lg:hidden',
+            )}
+            onClick={toggleSidebar}
+          >
+            <span className="sr-only">
+              {sidebarCollapsed
+                ? 'توسيع الشريط الجانبي'
+                : 'تقليص الشريط الجانبي'}
+            </span>
+            {sidebarCollapsed ? (
+              <FiChevronRight className="h-5 w-5" />
+            ) : (
+              <FiChevronLeft className="h-5 w-5" />
+            )}
+          </button>
+
           {/* Separator */}
           <div className="h-6 w-px bg-gray-200 lg:hidden" />
 
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1 items-center">
-              {breadcrumbs.length > 0 && (
-                <nav className="flex" aria-label="Breadcrumb">
-                  <ol
-                    role="list"
-                    className="flex items-center space-x-4 space-x-reverse"
-                  >
-                    {breadcrumbs.map((breadcrumb, index) => (
-                      <li key={index}>
-                        <div className="flex items-center">
-                          {index > 0 && (
-                            <svg
-                              className="h-5 w-5 flex-shrink-0 text-gray-400 ml-4 rotate-180"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                          {breadcrumb.href ? (
-                            <Link
-                              href={breadcrumb.href}
-                              className="text-sm font-medium text-gray-500 hover:text-gray-700"
-                            >
-                              {breadcrumb.label}
-                            </Link>
-                          ) : (
-                            <span className="text-sm font-medium text-gray-900">
-                              {breadcrumb.label}
-                            </span>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </nav>
-              )}
+              <div className="flex flex-col">
+                {breadcrumbs.length > 0 && (
+                  <nav className="flex" aria-label="Breadcrumb">
+                    <ol
+                      role="list"
+                      className="flex items-center space-x-4 space-x-reverse"
+                    >
+                      {breadcrumbs.map((breadcrumb, index) => (
+                        <li key={index}>
+                          <div className="flex items-center">
+                            {index > 0 && (
+                              <svg
+                                className="h-5 w-5 flex-shrink-0 text-gray-400 ml-4 rotate-180"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                            {breadcrumb.href ? (
+                              <Link
+                                href={breadcrumb.href}
+                                className="text-sm font-medium text-gray-500 hover:text-gray-700"
+                              >
+                                {breadcrumb.label}
+                              </Link>
+                            ) : (
+                              <span className="text-sm font-medium text-gray-900">
+                                {breadcrumb.label}
+                              </span>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  </nav>
+                )}
+                {welcomeMessage && (
+                  <div className="mt-1 hidden sm:block">
+                    <p className="text-sm text-gray-600 truncate max-w-md">
+                      {welcomeMessage}
+                    </p>
+                  </div>
+                )}
+                {/* Mobile-only welcome message - shorter version */}
+                {welcomeMessage && (
+                  <div className="mt-1 sm:hidden">
+                    <p className="text-xs text-gray-500">أهلاً بك مرة أخرى!</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-x-4 lg:gap-x-6">

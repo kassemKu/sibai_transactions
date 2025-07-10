@@ -136,4 +136,9 @@ class CashSessionController extends Controller
             ])->toArray(),
         ]);
     }
+
+    public function balances()
+    {
+        return inertia('CashBalances/Index');
+    }
 }
