@@ -44,11 +44,11 @@ class DashboardController extends Controller
         }
 
         $transactions = $transactionsQuery
-            ->with(['fromCurrency', 'toCurrency', 'createdBy', 'assignedTo'])
+            ->with(['fromCurrency', 'toCurrency', 'createdBy', 'closedBy', 'assignedTo'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return $this->success('Current cash session retrieved successfully.', [
+        return $this->success('تم جلب بيانات الجلسة النقدية الحالية بنجاح.', [
             'current_session' => $session,
             'currencies' => Currency::get(),
             'transactions' => $transactions,

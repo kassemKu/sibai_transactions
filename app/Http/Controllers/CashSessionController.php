@@ -24,6 +24,7 @@ class CashSessionController extends Controller
         $cashSessions = CashSession::with([
             'cashBalances.currency',
             'transactions.createdBy',
+            'transactions.closedBy',
             'transactions.assignedTo',
             'transactions.fromCurrency',
             'transactions.toCurrency',
@@ -44,6 +45,7 @@ class CashSessionController extends Controller
             'cashSession' => $cashSession->load([
                 'cashBalances.currency',
                 'transactions.createdBy',
+                'transactions.closedBy',
                 'transactions.assignedTo',
                 'transactions.fromCurrency',
                 'transactions.toCurrency',
@@ -55,40 +57,64 @@ class CashSessionController extends Controller
 
     public function open(): JsonResponse
     {
-        $cashSession = $this->service->openCashSession(Auth::user());
+        try {
+            $cashSession = $this->service->openCashSession(Auth::user());
 
-        return $this->success('Cash session opened successfully.', [
-            'cash_session' => $cashSession,
-        ]);
+            return $this->success('تم فتح الجلسة النقدية بنجاح.', [
+                'cash_session' => $cashSession,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'CashSessionController@open');
+
+            return $this->failed('حدث خطأ أثناء فتح الجلسة النقدية');
+        }
     }
 
     public function getClosingBalances(Request $request): JsonResponse
     {
-        $balances = $this->service->getClosingBalances($request->session);
+        try {
+            $balances = $this->service->getClosingBalances($request->session);
 
-        return $this->success('Closing balances retrieved successfully.', [
-            'balances' => $balances,
-        ]);
+            return $this->success('تم جلب أرصدة الإغلاق بنجاح.', [
+                'balances' => $balances,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'CashSessionController@getClosingBalances');
+
+            return $this->failed('حدث خطأ أثناء جلب أرصدة الإغلاق');
+        }
     }
 
     public function pending(Request $request): JsonResponse
     {
-        $request->session->update([
-            'status' => CashSessionEnum::PENDING->value,
-        ]);
+        try {
+            $request->session->update([
+                'status' => CashSessionEnum::PENDING->value,
+            ]);
 
-        return $this->success('Cash session status updated to pending.', [
-            'session' => $request->session->refresh(),
-        ]);
+            return $this->success('تم تحويل حالة الجلسة إلى قيد الإغلاق.', [
+                'session' => $request->session->refresh(),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'CashSessionController@pending');
+
+            return $this->failed('حدث خطأ أثناء تحويل حالة الجلسة إلى قيد الإغلاق');
+        }
     }
 
     public function close(CloseCashSessionRequest $request): JsonResponse
     {
-        $result = $this->service->closeCashSession(Auth::user(), $request->validated(), $request->session);
+        try {
+            $result = $this->service->closeCashSession(Auth::user(), $request->validated(), $request->session);
 
-        return $this->success('Cash session closed successfully.', [
-            'report' => $result,
-        ]);
+            return $this->success('تم إغلاق الجلسة النقدية بنجاح.', [
+                'report' => $result,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'CashSessionController@close');
+
+            return $this->failed('حدث خطأ أثناء إغلاق الجلسة النقدية');
+        }
     }
 
     public function latest(): JsonResponse
@@ -97,10 +123,11 @@ class CashSessionController extends Controller
             ->latest()
             ->first();
 
-        return $this->success('Cash session closed successfully.', [
+        return $this->success('تم جلب آخر جلسة مغلقة بنجاح.', [
             'report' => $cashSession->load([
                 'cashBalances.currency',
                 'transactions.createdBy',
+                'transactions.closedBy',
                 'transactions.assignedTo',
                 'transactions.fromCurrency',
                 'transactions.toCurrency',
@@ -108,5 +135,10 @@ class CashSessionController extends Controller
                 'closedBy',
             ])->toArray(),
         ]);
+    }
+
+    public function balances()
+    {
+        return inertia('CashBalances/Index');
     }
 }

@@ -31,16 +31,6 @@ class CurrencySeeder extends Seeder
             'GBP' => 0.79,
         ];
 
-        $profits = [
-            'USD' => 0.0,
-            'SYP' => 0.0,
-            'TRY' => 0.0,
-            'EUR' => 0.0,
-            'JOD' => 0.0,
-            'SAR' => 0.0,
-            'AED' => 0.0,
-            'GBP' => 0.0,
-        ];
 
         foreach ($currencies as $currency) {
             Currency::updateOrCreate(

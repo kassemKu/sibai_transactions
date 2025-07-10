@@ -53,7 +53,25 @@ export default function TransactionForm({
     } catch (error) {
       console.error('Error calculating currency:', error);
       setCalculatedAmount('خطأ في الحساب');
-      if (axios.isAxiosError(error)) {
+      
+      // Handle validation errors from backend
+      if (axios.isAxiosError(error) && error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        
+        // Check for insufficient balance error specifically
+        if (errors.original_amount) {
+          const errorMessages = Array.isArray(errors.original_amount) 
+            ? errors.original_amount 
+            : [errors.original_amount];
+          toast.error(errorMessages[0]);
+        } else {
+          // Handle other validation errors
+          const errorMessages = Object.values(errors).flat();
+          toast.error(`خطأ في البيانات: ${errorMessages.join(', ')}`);
+        }
+      } else if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (axios.isAxiosError(error)) {
         toast.error('فشل في حساب التحويل - تحقق من الاتصال بالإنترنت');
       } else {
         toast.error('حدث خطأ أثناء حساب التحويل');
@@ -73,18 +91,15 @@ export default function TransactionForm({
   }, [calculateCurrency]);
 
   // Reset form
-  const resetForm = useCallback(
-    (showToast = false) => {
-      setFromCurrency('');
-      setToCurrency('');
-      setAmount('');
-      setCalculatedAmount('');
-      if (showToast) {
-        toast.success('تم إعادة تعيين النموذج');
-      }
-    },
-    [],
-  );
+  const resetForm = useCallback((showToast = false) => {
+    setFromCurrency('');
+    setToCurrency('');
+    setAmount('');
+    setCalculatedAmount('');
+    if (showToast) {
+      toast.success('تم إعادة تعيين النموذج');
+    }
+  }, []);
 
   // Handle transaction execution
   const handleExecuteTransaction = useCallback(async () => {
@@ -111,7 +126,10 @@ export default function TransactionForm({
         customer_name: '', // You can add a customer name field later
       };
 
-      const response = await axios.post('/casher/transactions', transactionData);
+      const response = await axios.post(
+        '/casher/transactions',
+        transactionData,
+      );
 
       if (response.data) {
         toast.success('تم تنفيذ العملية بنجاح');
@@ -119,7 +137,28 @@ export default function TransactionForm({
       }
     } catch (error) {
       console.error('Error executing transaction:', error);
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
+
+      // Handle validation errors (like insufficient balance)
+      if (axios.isAxiosError(error) && error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+
+        // Check for insufficient balance error specifically
+        if (
+          errors.original_amount &&
+          errors.original_amount.includes(
+            'Insufficient balance for the transaction.',
+          )
+        ) {
+          const fromCurrencyName =
+            currencies.find(c => c.id.toString() === fromCurrency)?.name ||
+            'العملة المحددة';
+          toast.error(`رصيد ${fromCurrencyName} غير كافي لتنفيذ هذه العملية`);
+        } else {
+          // Handle other validation errors
+          const errorMessages = Object.values(errors).flat();
+          toast.error(`خطأ في البيانات: ${errorMessages.join(', ')}`);
+        }
+      } else if (axios.isAxiosError(error) && error.response?.data?.error) {
         toast.error(error.response.data.error);
       } else if (axios.isAxiosError(error) && error.response?.data?.message) {
         toast.error(error.response.data.message);
@@ -137,6 +176,7 @@ export default function TransactionForm({
     isSessionOpen,
     isSessionPending,
     resetForm,
+    currencies,
   ]);
 
   // Helper function to format amount for display

@@ -15,12 +15,14 @@ interface CurrencyFormData {
   name: string;
   code: string;
   rate_to_usd: string;
+  amount: string;
 }
 
 interface CurrencyFormErrors {
   name?: string;
   code?: string;
   rate_to_usd?: string;
+  amount?: string;
 }
 
 export default function CurrenciesCreate() {
@@ -28,6 +30,7 @@ export default function CurrenciesCreate() {
     name: '',
     code: '',
     rate_to_usd: '',
+    amount: '0',
   });
   const [errors, setErrors] = useState<CurrencyFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +77,15 @@ export default function CurrenciesCreate() {
       }
     }
 
+    // Validate amount (optional, defaults to 0)
+    const amountValue = formData.amount?.trim();
+    if (amountValue) {
+      const parsedAmount = parseFloat(amountValue);
+      if (isNaN(parsedAmount) || parsedAmount < 0) {
+        newErrors.amount = 'المبلغ يجب أن يكون رقم غير سالب';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -90,11 +102,15 @@ export default function CurrenciesCreate() {
 
     try {
       const rateValue = parseFloat(formData.rate_to_usd);
+      const amountValue = formData.amount?.trim()
+        ? parseFloat(formData.amount)
+        : 0;
 
       const payload = {
         name: formData.name.trim(),
         code: formData.code.trim().toUpperCase(),
         rate_to_usd: rateValue,
+        amount: amountValue,
       };
 
       await axios.post('/admin/currencies', payload);
@@ -208,6 +224,26 @@ export default function CurrenciesCreate() {
                 <InputError message={errors.rate_to_usd} className="mt-2" />
               )}
             </div>
+
+            <div>
+              <InputLabel htmlFor="amount">المبلغ الابتدائي</InputLabel>
+              <NumberInput
+                id="amount"
+                value={formData.amount}
+                onChange={value => handleInputChange('amount', value)}
+                placeholder="0"
+                decimalScale={2}
+                min={0}
+                className="mt-1 block w-full"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                المبلغ الابتدائي لهذه العملة (يبدأ من 0 افتراضياً)
+              </p>
+              {errors.amount && (
+                <InputError message={errors.amount} className="mt-2" />
+              )}
+            </div>
+
 
             {/* Form Actions */}
             <div className="flex items-center justify-end space-x-3 space-x-reverse pt-6 border-t border-gray-200">

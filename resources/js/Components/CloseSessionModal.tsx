@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import DialogModal from '@/Components/DialogModal';
@@ -44,9 +44,17 @@ export default function CloseSessionModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showActualInputs, setShowActualInputs] = useState(false);
 
+  // Track if we've already fetched balances to prevent unnecessary re-fetching
+  const hasFetchedBalances = useRef(false);
+  const previousSessionPending = useRef(isSessionPending);
+
   // Fetch closing balances when modal opens
   useEffect(() => {
     if (isOpen) {
+      // Reset the tracking flag when modal opens
+      hasFetchedBalances.current = false;
+      previousSessionPending.current = isSessionPending;
+
       fetchClosingBalances();
       // If session is already pending, skip preview and go directly to actual inputs
       if (isSessionPending) {
@@ -59,10 +67,31 @@ export default function CloseSessionModal({
       setIsLoading(false);
       setIsSubmitting(false);
       setShowActualInputs(false);
+      hasFetchedBalances.current = false;
+      previousSessionPending.current = false;
     }
-  }, [isOpen, isSessionPending]);
+  }, [isOpen]); // Remove isSessionPending from dependencies to prevent double loading
+
+  // Handle session status change from active to pending (without re-fetching)
+  useEffect(() => {
+    if (
+      isOpen &&
+      isSessionPending &&
+      !previousSessionPending.current &&
+      hasFetchedBalances.current
+    ) {
+      // Session just became pending, show actual inputs without re-fetching
+      setShowActualInputs(true);
+      previousSessionPending.current = true;
+    }
+  }, [isSessionPending, isOpen]);
 
   const fetchClosingBalances = async () => {
+    // Prevent multiple simultaneous fetches
+    if (hasFetchedBalances.current && balances.length > 0) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await axios.get('/admin/get-session-closing-balances');
@@ -77,6 +106,7 @@ export default function CloseSessionModal({
             balance.system_closing_balance.toString();
         });
         setActualAmounts(initialAmounts);
+        hasFetchedBalances.current = true;
       }
     } catch (error) {
       console.error('Error fetching closing balances:', error);
@@ -150,6 +180,11 @@ export default function CloseSessionModal({
   };
 
   const handleContinueToClose = async () => {
+    // Prevent multiple clicks during loading
+    if (isLoading || isSubmitting) {
+      return;
+    }
+
     // If session is already pending, just show the actual inputs
     if (isSessionPending) {
       setShowActualInputs(true);
@@ -180,7 +215,8 @@ export default function CloseSessionModal({
   };
 
   const handleSubmit = async () => {
-    if (!showActualInputs) return;
+    // Prevent submission if not ready or already submitting
+    if (!showActualInputs || isSubmitting || isLoading) return;
 
     setIsSubmitting(true);
     try {
@@ -199,7 +235,6 @@ export default function CloseSessionModal({
         // Clean up modal state first
         setBalances([]);
         setActualAmounts({});
-        setIsSubmitting(false);
 
         // Close modal immediately
         onClose();
@@ -214,20 +249,26 @@ export default function CloseSessionModal({
       } else {
         toast.error('حدث خطأ أثناء إغلاق الجلسة');
       }
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleClose = () => {
-    if (!isSubmitting) {
-      // Reset all state
-      setBalances([]);
-      setActualAmounts({});
-      setIsLoading(false);
-      setIsSubmitting(false);
-      setShowActualInputs(false);
-      onClose();
+    // Prevent closing during critical operations
+    if (isSubmitting) {
+      return;
     }
+
+    // Reset all state
+    setBalances([]);
+    setActualAmounts({});
+    setIsLoading(false);
+    setIsSubmitting(false);
+    setShowActualInputs(false);
+    hasFetchedBalances.current = false;
+    previousSessionPending.current = false;
+    onClose();
   };
 
   return (
@@ -343,7 +384,7 @@ export default function CloseSessionModal({
                                   difference > 0
                                     ? 'text-green-600'
                                     : difference < 0
-                                      ? 'text-red-600'
+                                      ? 'text-red'
                                       : 'text-gray-900'
                                 }`}
                               >
@@ -395,7 +436,7 @@ export default function CloseSessionModal({
                           getTotalDifference() > 0
                             ? 'text-green-600'
                             : getTotalDifference() < 0
-                              ? 'text-red-600'
+                              ? 'text-red'
                               : 'text-gray-900'
                         }`}
                       >
@@ -413,13 +454,24 @@ export default function CloseSessionModal({
 
       <DialogModal.Footer>
         <div className="flex justify-end space-x-3 space-x-reverse">
-          <SecondaryButton onClick={handleClose} disabled={isSubmitting}>
-            إلغاء
+          <SecondaryButton
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className={isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}
+          >
+            {isSubmitting ? 'جاري المعالجة...' : 'إلغاء'}
           </SecondaryButton>
 
           {!showActualInputs ? (
-            <PrimaryButton onClick={handleContinueToClose} disabled={isLoading}>
-              {isSessionPending ? 'إدخال الأرصدة الفعلية' : 'المتابعة للإغلاق'}
+            <PrimaryButton
+              onClick={handleContinueToClose}
+              disabled={isLoading || isSubmitting}
+            >
+              {isLoading
+                ? 'جاري التحميل...'
+                : isSessionPending
+                  ? 'إدخال الأرصدة الفعلية'
+                  : 'المتابعة للإغلاق'}
             </PrimaryButton>
           ) : (
             <PrimaryButton
