@@ -67,7 +67,29 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
 
       {/* New Transaction Button - only show if session is open */}
       {isSessionOpen && (
-        <PrimaryButton className="text-sm">معاملة جديدة</PrimaryButton>
+        <PrimaryButton
+          className="text-sm"
+          onClick={() => {
+            const transactionForm = document.getElementById('transaction-form');
+            if (transactionForm) {
+              transactionForm.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+                inline: 'nearest',
+              });
+              // Optional: Focus on the first input field
+              setTimeout(() => {
+                const firstInput =
+                  transactionForm.querySelector('input, select');
+                if (firstInput && firstInput instanceof HTMLElement) {
+                  firstInput.focus();
+                }
+              }, 500);
+            }
+          }}
+        >
+          معاملة جديدة
+        </PrimaryButton>
       )}
     </div>
   );
@@ -79,6 +101,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
         title="لوحة الصراف"
         breadcrumbs={[{ label: 'لوحة الصراف' }]}
         headerActions={headerActions}
+        welcomeMessage={`أهلاً بك مرة أخرى ${auth?.user?.name || ''}! إليك ما يحدث مع معاملاتك اليوم.`}
       >
         <div className="flex items-center justify-center min-h-[200px]">
           <div className="flex items-center space-x-2 space-x-reverse">
@@ -95,6 +118,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       title="لوحة الصراف"
       breadcrumbs={[{ label: 'لوحة الصراف' }]}
       headerActions={headerActions}
+      welcomeMessage={`أهلاً بك مرة أخرى ${auth?.user?.name || ''}! إليك ما يحدث مع معاملاتك اليوم.`}
     >
       {/* Header Content Section */}
       <div className="mb-8">
@@ -106,11 +130,13 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       <CurrencyCardsSlider currencies={currenciesState} />
 
       {/* Transaction Form */}
-      <TransactionForm
-        currencies={currenciesState}
-        isSessionOpen={!!isSessionOpen}
-        isSessionPending={!!isSessionPending}
-      />
+      <div id="transaction-form">
+        <TransactionForm
+          currencies={currenciesState}
+          isSessionOpen={!!isSessionOpen}
+          isSessionPending={!!isSessionPending}
+        />
+      </div>
 
       {/* Pending Transactions Table */}
       <PendingTransactionsTable

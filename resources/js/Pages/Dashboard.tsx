@@ -24,6 +24,7 @@ import DangerButton from '@/Components/DangerButton';
 import CloseSessionModal from '@/Components/CloseSessionModal';
 import CurrencyEditModal from '@/Components/Dashboard/CurrencyEditModal';
 import SecondaryButton from '@/Components/SecondaryButton';
+import PendingTransactionsConfirmModal from '@/Components/PendingTransactionsConfirmModal';
 
 interface DashboardProps {
   currencies: CurrenciesResponse;
@@ -41,6 +42,8 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPendingTransactionsModal, setShowPendingTransactionsModal] =
+    useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(
     null,
   );
@@ -60,21 +63,12 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
   // Handle opening a cash session
   const handleOpenSession = async () => {
     setIsSessionLoading(true);
-
     try {
       const response = await axios.post('/admin/cash-sessions/open');
-
-      if (response.data.success) {
+      if (response.status) {
         toast.success('تم فتح الجلسة النقدية بنجاح');
-
-        // Wait a bit before refetching to ensure backend state is consistent
-        setTimeout(async () => {
-          await refetch();
-          // Only end loading state after refetch is complete and state is updated
-          setTimeout(() => {
-            setIsSessionLoading(false);
-          }, 200);
-        }, 300);
+        await refetch();
+        setIsSessionLoading(false);
       } else {
         setIsSessionLoading(false);
       }
@@ -89,9 +83,73 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
     }
   };
 
-  // Handle opening close session modal
+  // Handle opening close session modal with pending transactions check
   const handleCloseSession = () => {
+    // Check if there are pending transactions
+    const pendingTransactions = transactions.filter(
+      transaction => transaction.status === 'pending',
+    );
+
+    if (pendingTransactions.length > 0) {
+      // Show confirmation modal if there are pending transactions
+      setShowPendingTransactionsModal(true);
+    } else {
+      // No pending transactions, proceed with normal close
+      setShowCloseModal(true);
+    }
+  };
+
+  // Handle continuing with session close despite pending transactions
+  const handleContinueWithClose = () => {
+    setShowPendingTransactionsModal(false);
     setShowCloseModal(true);
+  };
+
+  // Handle redirect to pending transactions
+  const handleGoToPendingTransactions = () => {
+    setShowPendingTransactionsModal(false);
+
+    // Scroll to the pending transactions table
+    setTimeout(() => {
+      // Try to find the specific table first
+      let pendingTransactionsTable = document.querySelector(
+        '[aria-label="Recent pending transactions table"]',
+      );
+
+      // Fallback to any transactions table
+      if (!pendingTransactionsTable) {
+        pendingTransactionsTable = document.querySelector(
+          '[aria-label*="transactions table"]',
+        );
+      }
+
+      // Last fallback - find the table container
+      if (!pendingTransactionsTable) {
+        pendingTransactionsTable = document.querySelector('table');
+      }
+
+      if (pendingTransactionsTable) {
+        pendingTransactionsTable.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest',
+        });
+
+        // Add a highlight effect
+        pendingTransactionsTable.classList.add(
+          'ring-2',
+          'ring-yellow-400',
+          'ring-opacity-75',
+        );
+        setTimeout(() => {
+          pendingTransactionsTable.classList.remove(
+            'ring-2',
+            'ring-yellow-400',
+            'ring-opacity-75',
+          );
+        }, 3000);
+      }
+    }, 100);
   };
 
   // Handle successful session close
@@ -108,6 +166,11 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
   // Handle modal close
   const handleModalClose = () => {
     setShowCloseModal(false);
+  };
+
+  // Handle pending transactions modal close
+  const handlePendingTransactionsModalClose = () => {
+    setShowPendingTransactionsModal(false);
   };
 
   // Handle currency edit
@@ -147,7 +210,7 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
   const isSessionPending = !!(
     currentCashSession && currentCashSession.status === 'pending'
   );
-
+  console.log(isSessionLoading);
   // Create a stable session state that doesn't change during loading
   const isSessionActiveOrLoading = isSessionOpen || isSessionLoading;
 
@@ -278,6 +341,15 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
         <RecentTransactionsList />
         <QuickActions />
       </div> */}
+
+      {/* Pending Transactions Confirmation Modal */}
+      <PendingTransactionsConfirmModal
+        isOpen={showPendingTransactionsModal}
+        onClose={handlePendingTransactionsModalClose}
+        onContinue={handleContinueWithClose}
+        onGoToPending={handleGoToPendingTransactions}
+        pendingCount={transactions.filter(t => t.status === 'pending').length}
+      />
 
       {/* Close Session Modal */}
       <CloseSessionModal
