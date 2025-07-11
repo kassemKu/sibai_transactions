@@ -131,11 +131,11 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
 
       {/* Transaction Form */}
       <div id="transaction-form">
-        <TransactionForm
-          currencies={currenciesState}
-          isSessionOpen={!!isSessionOpen}
-          isSessionPending={!!isSessionPending}
-        />
+      <TransactionForm
+        currencies={currenciesState}
+        isSessionOpen={!!isSessionOpen}
+        isSessionPending={!!isSessionPending}
+      />
       </div>
 
       {/* Pending Transactions Table */}
