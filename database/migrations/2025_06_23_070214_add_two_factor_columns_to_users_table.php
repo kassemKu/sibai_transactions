@@ -45,7 +45,7 @@ return new class extends Migration
                 'two_factor_recovery_codes',
                 'two_factor_confirmed_at',
                 'isActive',
-                'isBlocked'
+                'isBlocked',
             ]);
         });
     }

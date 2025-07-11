@@ -13,6 +13,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('code')->index()->unique();
             $table->decimal('rate_to_usd', 18, 6);
+            $table->decimal('sell_rate_to_usd', 18, 6);
+            $table->decimal('buy_rate_to_usd', 18, 6);
             $table->timestamps();
         });
     }

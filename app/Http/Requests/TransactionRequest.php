@@ -40,6 +40,7 @@ class TransactionRequest extends FormRequest
                 'min:0.01',
                 new SufficientBalance($calc),
             ],
+            'converted_amount' => 'required|numeric|min:0.01',
         ];
     }
 

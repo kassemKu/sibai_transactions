@@ -16,13 +16,17 @@ class Transaction extends Model
         'from_currency_id',
         'to_currency_id',
         'original_amount',
-        'from_rate_to_usd',
-        'to_rate_to_usd',
         'converted_amount',
         'assigned_to',
-        'closed_by', // Nullable, used for completed transactions.
+        'closed_by',
         'status', // 'pending', 'completed', 'cancelled'.
         'notes',
+        'profit_from_usd',
+        'profit_to_usd',
+        'total_profit_usd',
+        'usd_intermediate',
+        'from_currency_rates_snapshot',
+        'to_currency_rates_snapshot',
     ];
 
     public function cashMovements()
@@ -63,5 +67,26 @@ class Transaction extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function getFromCurrencyRatesSnapshotAttribute($value)
+    {
+        // dd(json_decode($value, true));
+        return json_decode($value, true);
+    }
+
+    public function getToCurrencyRatesSnapshotAttribute($value)
+    {
+        return json_decode($value, true);
+    }
+
+    public function setFromCurrencyRatesSnapshotAttribute($value)
+    {
+        $this->attributes['from_currency_rates_snapshot'] = is_array($value) ? json_encode($value) : $value;
+    }
+
+    public function setToCurrencyRatesSnapshotAttribute($value)
+    {
+        $this->attributes['to_currency_rates_snapshot'] = is_array($value) ? json_encode($value) : $value;
     }
 }

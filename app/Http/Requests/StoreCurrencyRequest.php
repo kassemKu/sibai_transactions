@@ -17,6 +17,8 @@ class StoreCurrencyRequest extends FormRequest
             'name' => 'required|string|max:30',
             'code' => 'required|string|max:3|unique:currencies,code',
             'rate_to_usd' => 'required|numeric|gt:0',
+            'buy_rate_to_usd' => 'required|numeric|gt:0',
+            'sell_rate_to_usd' => 'required|numeric|gt:0',
             'amount' => 'numeric|min:0',
         ];
     }

@@ -16,6 +16,8 @@ return new class extends Migration
 
             $table->foreignId('transaction_id')->nullable()->constrained('transactions')->onUpdate('cascade')->onDelete('set null');
             $table->foreignId('currency_id')->nullable()->constrained('currencies')->onUpdate('cascade')->onDelete('set null');
+            $table->foreignId('by')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
+            $table->foreignId('cash_session_id')->nullable()->constrained('cash_sessions')->onUpdate('cascade')->onDelete('set null');
 
             $table->timestamps();
         });

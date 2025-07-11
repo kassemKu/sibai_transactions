@@ -23,10 +23,14 @@ return new class extends Migration
 
             $table->decimal('original_amount', 18, 2);
             $table->decimal('converted_amount', 18, 2);
+            $table->decimal('profit_from_usd', 18, 2)->default(0);
+            $table->decimal('profit_to_usd', 18, 2)->default(0);
+            $table->decimal('total_profit_usd', 18, 2)->default(0);
+            $table->decimal('usd_intermediate', 18, 2)->default(0);
 
             // Snapshots
-            $table->decimal('from_rate_to_usd', 18, 8);
-            $table->decimal('to_rate_to_usd', 18, 8);
+            $table->json('from_currency_rates_snapshot');
+            $table->json('to_currency_rates_snapshot');
 
             $table->string('status')->default(TransactionStatusEnum::PENDING->value); // pending, completed, cancelled
 
