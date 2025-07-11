@@ -8,7 +8,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
-import Logo from '@/Components/Logo';
+import Logo from '../../../../public/storage/Frame1618871827.png';
 
 interface Props {
   canResetPassword: boolean;
