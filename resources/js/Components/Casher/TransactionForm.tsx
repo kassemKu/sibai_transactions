@@ -30,6 +30,37 @@ export default function TransactionForm({
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Set SYP as default and only option for "From" currency for cashiers
+  useEffect(() => {
+    if (currencies && currencies.length > 0) {
+      // Find SYP currency and lock it as "From" currency for cashiers
+      const sypCurrency = currencies.find(c => c.code === 'SYP');
+      if (sypCurrency && !fromCurrency) {
+        setFromCurrency(sypCurrency.id.toString());
+      }
+    }
+  }, [currencies, fromCurrency]);
+
+  // Get SYP currency for cashier restrictions
+  const sypCurrency = currencies.find(c => c.code === 'SYP');
+  const availableToCurrencies = currencies.filter(c => c.code !== 'SYP'); // Exclude SYP from "To" options
+
+  // Reset form
+  const resetForm = useCallback(
+    (showToast = false) => {
+      // For cashiers, always keep SYP as "From" currency
+      const sypCurrency = currencies.find(c => c.code === 'SYP');
+      setFromCurrency(sypCurrency ? sypCurrency.id.toString() : '');
+      setToCurrency('');
+      setAmount('');
+      setCalculatedAmount('');
+      if (showToast) {
+        toast.success('تم إعادة تعيين النموذج');
+      }
+    },
+    [currencies],
+  );
+
   // Calculate currency conversion
   const calculateCurrency = useCallback(async () => {
     if (!fromCurrency || !toCurrency || !amount || parseFloat(amount) <= 0) {
@@ -53,15 +84,15 @@ export default function TransactionForm({
     } catch (error) {
       console.error('Error calculating currency:', error);
       setCalculatedAmount('خطأ في الحساب');
-      
+
       // Handle validation errors from backend
       if (axios.isAxiosError(error) && error.response?.data?.errors) {
         const errors = error.response.data.errors;
-        
+
         // Check for insufficient balance error specifically
         if (errors.original_amount) {
-          const errorMessages = Array.isArray(errors.original_amount) 
-            ? errors.original_amount 
+          const errorMessages = Array.isArray(errors.original_amount)
+            ? errors.original_amount
             : [errors.original_amount];
           toast.error(errorMessages[0]);
         } else {
@@ -89,17 +120,6 @@ export default function TransactionForm({
 
     return () => clearTimeout(timeoutId);
   }, [calculateCurrency]);
-
-  // Reset form
-  const resetForm = useCallback((showToast = false) => {
-    setFromCurrency('');
-    setToCurrency('');
-    setAmount('');
-    setCalculatedAmount('');
-    if (showToast) {
-      toast.success('تم إعادة تعيين النموذج');
-    }
-  }, []);
 
   // Handle transaction execution
   const handleExecuteTransaction = useCallback(async () => {
@@ -211,25 +231,44 @@ export default function TransactionForm({
               <div className="space-y-4">
                 <div className="text-bold-x16 text-text-black">من</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <InputLabel htmlFor="from_currency" className="mb-2">
-                      اختر العملة
+                    أختر العمله
+
                     </InputLabel>
-                    <Select
-                      id="from_currency"
-                      aria-label="اختر العملة المصدر"
-                      placeholder="اختر العملة"
-                      value={fromCurrency}
-                      onChange={e => setFromCurrency(e.target.value)}
-                    >
-                      {currencies.map(currency => (
-                        <option key={currency.id} value={currency.id}>
-                          {currency.name} ({currency.code})
-                        </option>
-                      ))}
-                    </Select>
+                    <div className="relative">
+                      <Select
+                        id="from_currency"
+                        aria-label="اختر العملة"
+                        value={fromCurrency}
+                        disabled={true}
+                        className="bg-gray-100 text-gray-700 cursor-not-allowed"
+                      >
+                        {sypCurrency && (
+                          <option value={sypCurrency.id}>
+                            {sypCurrency.name} ({sypCurrency.code})
+                          </option>
+                        )}
+                      </Select>
+                      <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                        <svg
+                          className="h-4 w-4 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 0h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <InputLabel htmlFor="from_amount" className="mb-2">
                       المبلغ
                     </InputLabel>
@@ -252,25 +291,25 @@ export default function TransactionForm({
               <div className="space-y-4">
                 <div className="text-bold-x16 text-text-black">إلى</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <InputLabel htmlFor="to_currency" className="mb-2">
                       اختر العملة
                     </InputLabel>
                     <Select
                       id="to_currency"
-                      aria-label="اختر العملة الهدف"
+                      aria-label="اختر العملة"
                       placeholder="اختر العملة"
                       value={toCurrency}
                       onChange={e => setToCurrency(e.target.value)}
                     >
-                      {currencies.map(currency => (
+                      {availableToCurrencies.map(currency => (
                         <option key={currency.id} value={currency.id}>
                           {currency.name} ({currency.code})
                         </option>
                       ))}
                     </Select>
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <InputLabel htmlFor="to_amount" className="mb-2">
                       المبلغ المحسوب
                     </InputLabel>

@@ -64,6 +64,26 @@ export default function TransactionForm({
     }
   }, [isAdmin]);
 
+  // Set default currency values for admin
+  useEffect(() => {
+    if (isAdmin && currencies && currencies.length > 0) {
+      // Only set defaults if no currencies are currently selected
+      if (!fromCurrency && !toCurrency) {
+        // Find USD currency for "From" default
+        const usdCurrency = currencies.find(c => c.code === 'USD');
+        if (usdCurrency) {
+          setFromCurrency(usdCurrency.id.toString());
+        }
+
+        // Find SYP currency for "To" default
+        const sypCurrency = currencies.find(c => c.code === 'SYP');
+        if (sypCurrency) {
+          setToCurrency(sypCurrency.id.toString());
+        }
+      }
+    }
+  }, [isAdmin, currencies, fromCurrency, toCurrency]);
+
   // Calculate currency conversion
   const calculateCurrency = useCallback(async () => {
     if (!fromCurrency || !toCurrency || !amount || parseFloat(amount) <= 0) {
@@ -89,15 +109,15 @@ export default function TransactionForm({
     } catch (error) {
       console.error('Error calculating currency:', error);
       setCalculatedAmount('خطأ في الحساب');
-      
+
       // Handle validation errors from backend
       if (axios.isAxiosError(error) && error.response?.data?.errors) {
         const errors = error.response.data.errors;
-        
+
         // Check for insufficient balance error specifically
         if (errors.original_amount) {
-          const errorMessages = Array.isArray(errors.original_amount) 
-            ? errors.original_amount 
+          const errorMessages = Array.isArray(errors.original_amount)
+            ? errors.original_amount
             : [errors.original_amount];
           toast.error(errorMessages[0]);
         } else {
@@ -129,16 +149,28 @@ export default function TransactionForm({
   // Reset form
   const resetForm = useCallback(
     (showToast = false) => {
-      setFromCurrency('');
-      setToCurrency('');
+      if (isAdmin) {
+        // For admin, reset to default currencies
+        const usdCurrency = currencies.find(c => c.code === 'USD');
+        const sypCurrency = currencies.find(c => c.code === 'SYP');
+
+        setFromCurrency(usdCurrency ? usdCurrency.id.toString() : '');
+        setToCurrency(sypCurrency ? sypCurrency.id.toString() : '');
+      } else {
+        // For non-admin, clear all currencies
+        setFromCurrency('');
+        setToCurrency('');
+      }
+
       setAmount('');
       setCalculatedAmount('');
       setAssignedTo(auth?.user?.id?.toString() || '');
+
       if (showToast) {
         toast.success('تم إعادة تعيين النموذج');
       }
     },
-    [auth?.user?.id],
+    [auth?.user?.id, isAdmin, currencies],
   );
 
   // Handle transaction execution
@@ -297,7 +329,7 @@ export default function TransactionForm({
               <div className="space-y-4">
                 <div className="text-bold-x16 text-text-black">من</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <InputLabel htmlFor="from_currency" className="mb-2">
                       اختر العملة
                     </InputLabel>
@@ -307,6 +339,7 @@ export default function TransactionForm({
                       placeholder="اختر العملة"
                       value={fromCurrency}
                       onChange={e => setFromCurrency(e.target.value)}
+                      className="border-blue-200 focus:border-blue-500"
                     >
                       {currencies.map(currency => (
                         <option key={currency.id} value={currency.id}>
@@ -315,7 +348,7 @@ export default function TransactionForm({
                       ))}
                     </Select>
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <InputLabel htmlFor="from_amount" className="mb-2">
                       المبلغ
                     </InputLabel>
@@ -338,7 +371,7 @@ export default function TransactionForm({
               <div className="space-y-4">
                 <div className="text-bold-x16 text-text-black">إلى</div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <InputLabel htmlFor="to_currency" className="mb-2">
                       اختر العملة
                     </InputLabel>
@@ -348,6 +381,7 @@ export default function TransactionForm({
                       placeholder="اختر العملة"
                       value={toCurrency}
                       onChange={e => setToCurrency(e.target.value)}
+                      className="border-blue-200 focus:border-blue-500"
                     >
                       {currencies.map(currency => (
                         <option key={currency.id} value={currency.id}>
@@ -356,7 +390,7 @@ export default function TransactionForm({
                       ))}
                     </Select>
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <InputLabel htmlFor="to_amount" className="mb-2">
                       المبلغ المحسوب
                     </InputLabel>

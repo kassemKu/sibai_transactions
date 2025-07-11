@@ -8,7 +8,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import InputError from '@/Components/InputError';
-import Logo from '../../../../public/storage/Frame1618871827.png';
+import Logo from '@/Components/Logo';
 
 interface Props {
   canResetPassword: boolean;
@@ -47,14 +47,14 @@ export default function Login({ canResetPassword, status, loginImage }: Props) {
       <Head title="Sign In" />
       <section className="min-h-screen flex flex-col lg:flex-row">
         {/* Left side - Form */}
-        <div className="w-full lg:w-1/2 flex flex-col px-4 sm:px-6 md:px-8 lg:px-10 py-8 sm:py-12 lg:py-20">
+        <div className="w-full lg:space-y-5 lg:w-1/2 flex flex-col items-center  px-4 sm:px-6 md:px-8 lg:px-10 py-8 sm:py-12 lg:py-20">
           {/* Logo - responsive positioning */}
           <div className="flex justify-center lg:justify-start mb-8 lg:mb-0">
             <Logo />
           </div>
 
           {/* Form container with responsive spacing */}
-          <div className="space-y-6 sm:space-y-8 lg:space-y-10 flex flex-col h-full justify-center max-w-md mx-auto lg:mx-0 w-full">
+          <div className="space-y-6 sm:space-y-8 lg:space-y-10 flex flex-col h-full justify-center  mx-auto lg:mx-0 w-full">
             {status && (
               <div className="mb-4 font-medium text-sm text-green-600 bg-green-50 p-3 rounded-md border border-green-200">
                 {status}
@@ -62,7 +62,7 @@ export default function Login({ canResetPassword, status, loginImage }: Props) {
             )}
 
             {/* Header - responsive text sizes */}
-            <div className="mb-4 sm:mb-6 flex flex-col justify-center items-center lg:items-start w-full text-center lg:text-right">
+            <div className="mb-4 sm:mb-6 flex flex-col justify-center items-center  w-full text-center lg:text-right">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
                 تسجيل الدخول
               </h1>
