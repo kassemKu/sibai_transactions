@@ -28,7 +28,26 @@ class UserSeeder extends Seeder
             ]
         );
 
+        $casher1 = User::firstOrCreate(
+            ['email' => 'casher1@casher.com'],
+            [
+                'name' => 'arab',
+                'password' => Hash::make('12345678'),
+            ]
+        );
+
+        $casher2 = User::firstOrCreate(
+            ['email' => 'casher2@casher.com'],
+            [
+                'name' => 'soha',
+                'password' => Hash::make('12345678'),
+            ]
+        );
+
         $casher->addRole('casher');
+        $casher1->addRole('casher');
+        $casher2->addRole('casher');
+
         $user = User::firstOrCreate(
             ['email' => 'user@user.com'],
             [
