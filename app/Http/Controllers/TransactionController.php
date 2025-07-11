@@ -21,6 +21,7 @@ class TransactionController extends Controller
     {
         try {
             $calc = $request->getCalc();
+            $calc['converted_amount'] = $request->converted_amount;
             $result = array_merge($calc, ['assigned_to' => $request->assigned_to]);
             $transaction = $this->transactionService->createTransaction($result, $request->session);
 
@@ -82,6 +83,20 @@ class TransactionController extends Controller
 
         return $this->success('نتيجة الحساب', [
             'calculation_result' => $result,
+        ]);
+    }
+
+    public function show(Transaction $transaction)
+    {
+        return inertia('Transactions/Show')->with([
+            'transaction' => $transaction->load([
+                'fromCurrency',
+                'toCurrency',
+                'createdBy',
+                'closedBy',
+                'assignedTo',
+                'cashMovements',
+            ]),
         ]);
     }
 }

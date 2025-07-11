@@ -15,6 +15,8 @@ class CashMovement extends Model
         'type',
         'amount',
         'exchange_rate',
+        'cash_session_id',
+        'by',
     ];
 
     public function transaction()
@@ -25,5 +27,15 @@ class CashMovement extends Model
     public function currency()
     {
         return $this->belongsTo(Currency::class);
+    }
+
+    public function session()
+    {
+        return $this->belongsTo(CashSession::class, 'cash_session_id', 'id');
+    }
+
+    public function by()
+    {
+        return $this->belongsTo(User::class, 'by', 'id');
     }
 }

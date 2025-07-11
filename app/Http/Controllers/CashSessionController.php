@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CashSessionEnum;
+use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\CloseCashSessionRequest;
 use App\Models\CashSession;
 use App\Services\CashSessionService;
@@ -52,6 +53,9 @@ class CashSessionController extends Controller
                 'openedBy',
                 'closedBy',
             ]),
+            'totalUsdProfits' => $cashSession->transactions()
+                ->where('status', TransactionStatusEnum::COMPLETED->value)
+                ->sum('total_profit_usd'),
         ]);
     }
 
@@ -140,5 +144,16 @@ class CashSessionController extends Controller
     public function balances()
     {
         return inertia('CashBalances/Index');
+    }
+
+    public function getCashSessionTransactions(CashSession $cashSession): JsonResponse
+    {
+        $transactions = $cashSession->transactions()
+            ->with(['fromCurrency', 'toCurrency', 'createdBy', 'closedBy', 'assignedTo'])
+            ->paginate(10);
+
+        return $this->success('تم جلب معاملات الجلسة النقدية بنجاح.', [
+            'transactions' => $transactions,
+        ]);
     }
 }

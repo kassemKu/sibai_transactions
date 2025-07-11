@@ -9,35 +9,75 @@ class CurrencySeeder extends Seeder
 {
     public function run()
     {
-        $currencies = [
-            ['name' => 'دولار أمريكي',  'code' => 'USD'],
-            ['name' => 'ليرة سوري',    'code' => 'SYP'],
-            ['name' => 'ليرة تركية',     'code' => 'TRY'],
-            ['name' => 'يورو',         'code' => 'EUR'],
-            ['name' => 'دينار أردني',   'code' => 'JOD'],
-            ['name' => 'ريال سعودي',    'code' => 'SAR'],
-            ['name' => 'درهم إماراتي',  'code' => 'AED'],
-            ['name' => 'جنيه إسترليني', 'code' => 'GBP'],
+        // القيم المرجعية والأسعار مع الهوامش
+        $currencyData = [
+            [
+                'name' => 'دولار أمريكي',
+                'code' => 'USD',
+                'rate_to_usd' => 1.000000,
+                'buy_rate_to_usd' => 0.980000,
+                'sell_rate_to_usd' => 1.020000,
+            ],
+            [
+                'name' => 'ليرة سوري',
+                'code' => 'SYP',
+                'rate_to_usd' => 15000.000000,
+                'buy_rate_to_usd' => 14850.000000,
+                'sell_rate_to_usd' => 15150.000000,
+            ],
+            [
+                'name' => 'ليرة تركية',
+                'code' => 'TRY',
+                'rate_to_usd' => 32.500000,
+                'buy_rate_to_usd' => 32.20,
+                'sell_rate_to_usd' => 32.80,
+            ],
+            [
+                'name' => 'يورو',
+                'code' => 'EUR',
+                'rate_to_usd' => 0.930000,
+                'buy_rate_to_usd' => 0.925000,
+                'sell_rate_to_usd' => 0.935000,
+            ],
+            [
+                'name' => 'دينار أردني',
+                'code' => 'JOD',
+                'rate_to_usd' => 0.710000,
+                'buy_rate_to_usd' => 0.706000,
+                'sell_rate_to_usd' => 0.714000,
+            ],
+            [
+                'name' => 'ريال سعودي',
+                'code' => 'SAR',
+                'rate_to_usd' => 3.750000,
+                'buy_rate_to_usd' => 3.72,
+                'sell_rate_to_usd' => 3.78,
+            ],
+            [
+                'name' => 'درهم إماراتي',
+                'code' => 'AED',
+                'rate_to_usd' => 3.670000,
+                'buy_rate_to_usd' => 3.64,
+                'sell_rate_to_usd' => 3.70,
+            ],
+            [
+                'name' => 'جنيه إسترليني',
+                'code' => 'GBP',
+                'rate_to_usd' => 0.790000,
+                'buy_rate_to_usd' => 0.785000,
+                'sell_rate_to_usd' => 0.795000,
+            ],
         ];
 
-        $rates = [
-            'USD' => 1.0,
-            'SYP' => 14000.0,
-            'TRY' => 32.5,
-            'EUR' => 0.93,
-            'JOD' => 0.71,
-            'SAR' => 3.75,
-            'AED' => 3.67,
-            'GBP' => 0.79,
-        ];
-
-
-        foreach ($currencies as $currency) {
+        // Seed
+        foreach ($currencyData as $currency) {
             Currency::updateOrCreate(
                 ['code' => $currency['code']],
                 [
                     'name' => $currency['name'],
-                    'rate_to_usd' => $rates[$currency['code']],
+                    'rate_to_usd' => $currency['rate_to_usd'],
+                    'buy_rate_to_usd' => $currency['buy_rate_to_usd'],
+                    'sell_rate_to_usd' => $currency['sell_rate_to_usd'],
                 ]
             );
         }

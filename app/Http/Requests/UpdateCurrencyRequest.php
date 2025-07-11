@@ -16,6 +16,8 @@ class UpdateCurrencyRequest extends FormRequest
         return [
             'name' => 'required|string|max:30',
             'rate_to_usd' => 'required|numeric|gt:0',
+            'buy_rate_to_usd' => 'required|numeric|gt:0',
+            'sell_rate_to_usd' => 'required|numeric|gt:0',
         ];
     }
 
@@ -28,6 +30,12 @@ class UpdateCurrencyRequest extends FormRequest
             'rate_to_usd.required' => 'يرجى إدخال سعر الصرف مقابل الدولار.',
             'rate_to_usd.numeric' => 'سعر الصرف يجب أن يكون رقماً.',
             'rate_to_usd.gt' => 'سعر الصرف يجب أن يكون أكبر من صفر.',
+            'from_rate_to_usd.required' => 'يرجى إدخال سعر الصرف من الدولار.',
+            'from_rate_to_usd.numeric' => 'سعر الصرف من الدولار يجب أن يكون رقماً.',
+            'from_rate_to_usd.gt' => 'سعر الصرف من الدولار يجب أن يكون أكبر من صفر.',
+            'to_rate_to_usd.required' => 'يرجى إدخال سعر الصرف إلى الدولار.',
+            'to_rate_to_usd.numeric' => 'سعر الصرف إلى الدولار يجب أن يكون رقماً.',
+            'to_rate_to_usd.gt' => 'سعر الصرف إلى الدولار يجب أن يكون أكبر من صفر.',
         ];
     }
 }
