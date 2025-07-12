@@ -20,10 +20,24 @@ class TransactionService
         $fromCurrency = Currency::findOrFail($fromCurrencyId);
         $toCurrency = Currency::findOrFail($toCurrencyId);
 
+        // 1️⃣ Conversion to USD
         $usdAmount = $amount / $fromCurrency->buy_rate_to_usd;
+
+        // 2️⃣ Conversion to target currency
         $convertedAmount = $usdAmount * $toCurrency->sell_rate_to_usd;
-        $profitFromUSD = ($fromCurrency->rate_to_usd - $fromCurrency->buy_rate_to_usd) * $usdAmount / $fromCurrency->rate_to_usd;
-        $profitToUSD = ($toCurrency->sell_rate_to_usd - $toCurrency->rate_to_usd) * $usdAmount / $toCurrency->rate_to_usd;
+
+        // 3️⃣ Margins
+        $fromCurrencyMargin = $fromCurrency->rate_to_usd - $fromCurrency->buy_rate_to_usd;
+        $toCurrencyMargin = $toCurrency->sell_rate_to_usd - $toCurrency->rate_to_usd;
+
+        // 4️⃣ Raw profit before normalization
+        $rawProfitFrom = $fromCurrencyMargin * $usdAmount;
+        $rawProfitTo = $toCurrencyMargin * $usdAmount;
+
+        // 5️⃣ Normalized profit in USD
+        $profitFromUSD = $rawProfitFrom / $fromCurrency->rate_to_usd;
+        $profitToUSD = $rawProfitTo / $toCurrency->rate_to_usd;
+
         $totalProfitUSD = $profitFromUSD + $profitToUSD;
 
         return [
@@ -45,6 +59,37 @@ class TransactionService
                 'buy_rate_to_usd' => $toCurrency->buy_rate_to_usd,
                 'sell_rate_to_usd' => $toCurrency->sell_rate_to_usd,
             ],
+        ];
+    }
+
+    public function calculateProfitsFromConvertedAmount(
+        int $fromCurrencyId,
+        int $toCurrencyId,
+        float $convertedAmount
+    ): array {
+        $fromCurrency = Currency::findOrFail($fromCurrencyId);
+        $toCurrency = Currency::findOrFail($toCurrencyId);
+
+        // 1️⃣ Estimate USD amount from convertedAmount
+        $usdAmount = $convertedAmount / $toCurrency->sell_rate_to_usd;
+
+        // 2️⃣ Margins
+        $fromCurrencyMargin = $fromCurrency->rate_to_usd - $fromCurrency->buy_rate_to_usd;
+        $toCurrencyMargin = $toCurrency->sell_rate_to_usd - $toCurrency->rate_to_usd;
+
+        // 3️⃣ Raw profits
+        $rawProfitFrom = $fromCurrencyMargin * $usdAmount;
+        $rawProfitTo = $toCurrencyMargin * $usdAmount;
+
+        // 4️⃣ Normalized profits in USD
+        $profitFromUSD = $rawProfitFrom / $fromCurrency->rate_to_usd;
+        $profitToUSD = $rawProfitTo / $toCurrency->rate_to_usd;
+        $totalProfitUSD = $profitFromUSD + $profitToUSD;
+
+        return [
+            'profit_from_usd' => round($profitFromUSD, 2),
+            'profit_to_usd' => round($profitToUSD, 2),
+            'total_profit_usd' => round($totalProfitUSD, 2),
         ];
     }
 
