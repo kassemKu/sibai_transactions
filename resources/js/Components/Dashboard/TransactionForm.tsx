@@ -196,6 +196,7 @@ export default function TransactionForm({
         to_currency_id: parseInt(toCurrency),
         original_amount: parseFloat(amount),
         customer_name: '', // You can add a customer name field later
+        converted_amount: calculatedAmount, // to be fixed, the collection is wrong number
         ...(isAdmin && assignedTo ? { assigned_to: parseInt(assignedTo) } : {}),
       };
 
