@@ -273,6 +273,7 @@ export default function TransactionForm({
         original_amount: parseFloat(amount),
         converted_amount: parseFloat(finalAmount), // Send the final amount (manual or calculated)
         customer_name: '', // You can add a customer name field later
+        converted_amount: calculatedAmount, // to be fixed, the collection is wrong number
         ...(isAdmin && assignedTo ? { assigned_to: parseInt(assignedTo) } : {}),
       };
 
