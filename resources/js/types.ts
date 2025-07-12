@@ -21,7 +21,7 @@ export interface User {
   email_verified_at: Nullable<DateTime>;
   created_at: DateTime;
   updated_at: DateTime;
-  roles?: any
+  roles?: any;
 }
 
 export interface Auth {
@@ -111,10 +111,12 @@ export interface TeamInvitation {
 }
 
 export interface Currency {
-  rate_to_usd: string;
   id: number;
   name: string;
   code: string;
+  rate_to_usd: string;
+  buy_rate_to_usd: string;
+  sell_rate_to_usd: string;
   profit_margin_percent: string;
   is_crypto: number;
   created_at: string;
@@ -148,6 +150,23 @@ export interface Transaction {
   to_currency: Currency;
   created_by: User;
   customer?: Customer;
+  closed_by?: User;
+  // Profit fields
+  profit_from_usd?: number;
+  profit_to_usd?: number;
+  total_profit_usd?: number;
+  usd_intermediate?: number;
+  // Currency rates snapshot
+  from_currency_rates_snapshot?: {
+    rate_to_usd: number;
+    buy_rate_to_usd: number;
+    sell_rate_to_usd: number;
+  };
+  to_currency_rates_snapshot?: {
+    rate_to_usd: number;
+    buy_rate_to_usd: number;
+    sell_rate_to_usd: number;
+  };
 }
 
 export interface SessionOpeningBalance {

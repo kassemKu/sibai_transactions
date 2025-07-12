@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Card, CardContent } from '@/Components/UI/Card';
@@ -9,7 +9,15 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import Select from '@/Components/Select';
 import { CurrenciesResponse } from '@/types';
 import { usePage } from '@inertiajs/react';
-
+import {
+  FiEdit3,
+  FiCheck,
+  FiX,
+  FiInfo,
+  FiLock,
+  FiUnlock,
+} from 'react-icons/fi';
+import { IoCalculatorSharp } from 'react-icons/io5';
 interface User {
   id: number;
   name: string;
@@ -36,6 +44,8 @@ export default function TransactionForm({
   const [toCurrency, setToCurrency] = useState('');
   const [amount, setAmount] = useState('');
   const [calculatedAmount, setCalculatedAmount] = useState('');
+  const [manualAmount, setManualAmount] = useState('');
+  const [isManualAmountEnabled, setIsManualAmountEnabled] = useState(false);
   const [assignedTo, setAssignedTo] = useState(
     auth?.user?.id?.toString() || '',
   );
@@ -43,6 +53,46 @@ export default function TransactionForm({
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+  // Ref to track the last calculation parameters to prevent unnecessary API calls
+  const lastCalculationRef = useRef<{
+    fromCurrency: string;
+    toCurrency: string;
+    amount: string;
+  } | null>(null);
+
+  // Get the final amount to use (manual if enabled, otherwise calculated)
+  const getFinalAmount = useCallback(() => {
+    if (isAdmin && isManualAmountEnabled && manualAmount) {
+      return manualAmount;
+    }
+    return calculatedAmount;
+  }, [isAdmin, isManualAmountEnabled, manualAmount, calculatedAmount]);
+
+  // Reset form
+  const resetForm = useCallback(
+    (showToast = false, preserveHandler = true) => {
+      setFromCurrency('');
+      setToCurrency('');
+      setAmount('');
+      setCalculatedAmount('');
+      setManualAmount('');
+      setIsManualAmountEnabled(false);
+      
+      // Clear the last calculation reference
+      lastCalculationRef.current = null;
+
+      // Only reset assignedTo if preserveHandler is false
+      if (!preserveHandler) {
+        setAssignedTo(auth?.user?.id?.toString() || '');
+      }
+
+      if (showToast) {
+        toast.success('تم إعادة تعيين النموذج');
+      }
+    },
+    [auth?.user?.id],
+  );
 
   // Fetch users for admin dropdown
   useEffect(() => {
@@ -91,6 +141,18 @@ export default function TransactionForm({
       return;
     }
 
+    // Check if we're making the same calculation as before
+    const currentParams = { fromCurrency, toCurrency, amount };
+    if (
+      lastCalculationRef.current &&
+      lastCalculationRef.current.fromCurrency === fromCurrency &&
+      lastCalculationRef.current.toCurrency === toCurrency &&
+      lastCalculationRef.current.amount === amount
+    ) {
+      return; // Skip duplicate calculation
+    }
+
+    lastCalculationRef.current = currentParams;
     setIsCalculating(true);
     try {
       const response = await axios.get('/transactions/calc', {
@@ -101,11 +163,29 @@ export default function TransactionForm({
         },
       });
 
-      // console.log('Calculation response:', response.data.data.calculation_result);
+      const newCalculatedAmount =
+        response.data.data.calculation_result.converted_amount || '0';
 
-      setCalculatedAmount(
-        response.data.data.calculation_result.converted_amount || '0',
-      );
+      setCalculatedAmount(prevCalculated => {
+        // Update manual amount only if conditions are met
+        setManualAmount(prevManual => {
+          // Only update manual amount if:
+          // 1. Manual mode is not enabled, OR
+          // 2. Manual amount is empty (first time calculation), OR
+          // 3. Manual amount equals the previous calculated amount (not manually edited)
+          if (
+            !isManualAmountEnabled ||
+            !prevManual ||
+            prevManual === prevCalculated
+          ) {
+            return newCalculatedAmount;
+          }
+          // Keep the existing manual amount if it was manually edited
+          return prevManual;
+        });
+
+        return newCalculatedAmount;
+      });
     } catch (error) {
       console.error('Error calculating currency:', error);
       setCalculatedAmount('خطأ في الحساب');
@@ -135,7 +215,7 @@ export default function TransactionForm({
     } finally {
       setIsCalculating(false);
     }
-  }, [fromCurrency, toCurrency, amount]);
+  }, [fromCurrency, toCurrency, amount, isManualAmountEnabled]);
 
   // Debounced calculation effect
   useEffect(() => {
@@ -146,36 +226,32 @@ export default function TransactionForm({
     return () => clearTimeout(timeoutId);
   }, [calculateCurrency]);
 
-  // Reset form
-  const resetForm = useCallback(
-    (showToast = false) => {
-      if (isAdmin) {
-        // For admin, reset to default currencies
-        const usdCurrency = currencies.find(c => c.code === 'USD');
-        const sypCurrency = currencies.find(c => c.code === 'SYP');
-
-        setFromCurrency(usdCurrency ? usdCurrency.id.toString() : '');
-        setToCurrency(sypCurrency ? sypCurrency.id.toString() : '');
+  // Handle manual amount toggle
+  const handleManualAmountToggle = () => {
+    if (isManualAmountEnabled) {
+      // Disabling manual mode - reset to calculated amount
+      setManualAmount(calculatedAmount);
+      setIsManualAmountEnabled(false);
+      toast.success('تم التبديل إلى الحساب التلقائي');
+    } else {
+      // Enabling manual mode - preserve current calculated amount as starting point
+      if (calculatedAmount && calculatedAmount !== 'خطأ في الحساب') {
+        // Always set the manual amount to the calculated amount when enabling manual mode
+        // This ensures the input shows the current calculated value
+        setManualAmount(calculatedAmount);
+        setIsManualAmountEnabled(true);
+        toast.success('تم تفعيل التعديل اليدوي - يمكنك الآن تعديل المبلغ');
       } else {
-        // For non-admin, clear all currencies
-        setFromCurrency('');
-        setToCurrency('');
+        toast.error('يجب حساب المبلغ أولاً قبل التعديل اليدوي');
       }
-
-      setAmount('');
-      setCalculatedAmount('');
-      setAssignedTo(auth?.user?.id?.toString() || '');
-
-      if (showToast) {
-        toast.success('تم إعادة تعيين النموذج');
-      }
-    },
-    [auth?.user?.id, isAdmin, currencies],
-  );
+    }
+  };
 
   // Handle transaction execution
   const handleExecuteTransaction = useCallback(async () => {
-    if (!fromCurrency || !toCurrency || !amount || !calculatedAmount) {
+    const finalAmount = getFinalAmount();
+
+    if (!fromCurrency || !toCurrency || !amount || !finalAmount) {
       toast.error('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
@@ -195,6 +271,7 @@ export default function TransactionForm({
         from_currency_id: parseInt(fromCurrency),
         to_currency_id: parseInt(toCurrency),
         original_amount: parseFloat(amount),
+        converted_amount: parseFloat(finalAmount), // Send the final amount (manual or calculated)
         customer_name: '', // You can add a customer name field later
         ...(isAdmin && assignedTo ? { assigned_to: parseInt(assignedTo) } : {}),
       };
@@ -202,8 +279,14 @@ export default function TransactionForm({
       const response = await axios.post('/admin/transactions', transactionData);
 
       if (response.data) {
-        toast.success('تم تنفيذ العملية بنجاح');
-        resetForm(false);
+        const selectedUser = users.find(u => u.id.toString() === assignedTo);
+        const handlerName = selectedUser
+          ? selectedUser.name
+          : 'المستخدم المحدد';
+        toast.success(
+          `تم تنفيذ العملية بنجاح - سيتم الاحتفاظ بـ ${handlerName} للعملية التالية`,
+        );
+        resetForm(false, true); // Preserve the handler
       }
     } catch (error) {
       console.error('Error executing transaction:', error);
@@ -242,13 +325,14 @@ export default function TransactionForm({
     fromCurrency,
     toCurrency,
     amount,
-    calculatedAmount,
+    getFinalAmount,
     assignedTo,
     isAdmin,
     isSessionOpen,
     isSessionPending,
     resetForm,
     currencies,
+    users,
   ]);
 
   // Helper function to format amount for display
@@ -391,20 +475,63 @@ export default function TransactionForm({
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <InputLabel htmlFor="to_amount" className="mb-2">
-                      المبلغ المحسوب
-                    </InputLabel>
+                    <div className="flex items-center justify-between mb-2">
+                      <InputLabel htmlFor="to_amount">
+                        المبلغ المحسوب
+                      </InputLabel>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={handleManualAmountToggle}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                            isManualAmountEnabled
+                              ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          }`}
+                          disabled={isCalculating || !calculatedAmount}
+                        >
+                          {isManualAmountEnabled ? (
+                            <>
+                              <FiUnlock className="w-3 h-3" />
+                              تعديل يدوي
+                            </>
+                          ) : (
+                            <>
+                              <FiLock className="w-3 h-3" />
+                              حساب تلقائي
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                     <div className="relative">
                       <NumberInput
                         id="to_amount"
                         placeholder={
                           isCalculating
                             ? 'جاري الحساب...'
-                            : 'سيتم الحساب تلقائياً'
+                            : isManualAmountEnabled
+                              ? 'أدخل المبلغ يدوياً'
+                              : 'سيتم الحساب تلقائياً'
                         }
-                        className="w-full bg-gray-50 text-right"
-                        value={isCalculating ? '' : calculatedAmount}
-                        readOnly
+                        className={`w-full text-right ${
+                          isManualAmountEnabled
+                            ? 'bg-orange-50 border-orange-300 focus:border-orange-500 focus:ring-orange-500 ring-2 ring-orange-200 pr-12'
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
+                        value={
+                          isCalculating
+                            ? ''
+                            : isManualAmountEnabled
+                              ? manualAmount
+                              : calculatedAmount
+                        }
+                        onValueChange={
+                          isManualAmountEnabled
+                            ? values => setManualAmount(values.value)
+                            : undefined
+                        }
+                        readOnly={!isManualAmountEnabled}
                         thousandSeparator={true}
                         decimalScale={2}
                         dir="rtl"
@@ -415,29 +542,70 @@ export default function TransactionForm({
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primaryBlue"></div>
                         </div>
                       )}
+                      {isAdmin && isManualAmountEnabled && (
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+                          <FiEdit3 className="w-4 h-4 text-orange-500" />
+                        </div>
+                      )}
                     </div>
+                    {isAdmin && calculatedAmount && (
+                      <div className="text-xs text-gray-600 mt-1 flex items-center gap-1">
+                        <IoCalculatorSharp className="w-3 h-3" />
+                        <span>
+                          المبلغ المحسوب تلقائياً:{' '}
+                          {formatDisplayAmount(calculatedAmount)}{' '}
+                          {currencies.find(c => c.id.toString() === toCurrency)
+                            ?.code || ''}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Admin Manual Override Info */}
+            {isAdmin && isManualAmountEnabled && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <FiInfo className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-sm font-medium text-orange-900 mb-1">
+                      تم تفعيل التعديل اليدوي
+                    </div>
+                    <div className="text-xs text-orange-700">
+                      يمكنك الآن تعديل المبلغ المحسوب يدوياً. سيتم استخدام
+                      المبلغ المدخل بدلاً من المبلغ المحسوب تلقائياً.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl">
               <div className="text-med-x14 flex flex-col items-start gap-2">
                 <span className="text-[#6B7280] text-med-x14">
                   يتم تسليم العميل مبلغ
                 </span>
-                <span className="text-bold-x20 text-[#10B981] font-bold">
-                  {calculatedAmount
-                    ? `${formatDisplayAmount(calculatedAmount)} ${currencies.find(c => c.id.toString() === toCurrency)?.code || ''}`
-                    : '0.00'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-bold-x20 text-[#10B981] font-bold">
+                    {getFinalAmount()
+                      ? `${formatDisplayAmount(getFinalAmount())} ${currencies.find(c => c.id.toString() === toCurrency)?.code || ''}`
+                      : '0.00'}
+                  </span>
+                  {isAdmin && isManualAmountEnabled && (
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                      يدوي
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex gap-3">
-                <SecondaryButton onClick={() => resetForm(true)}>
+                <SecondaryButton onClick={() => resetForm(true, false)}>
                   اعاده التعيين
                 </SecondaryButton>
                 <PrimaryButton
-                  disabled={!calculatedAmount || isCalculating || isSubmitting}
+                  disabled={!getFinalAmount() || isCalculating || isSubmitting}
                   onClick={handleExecuteTransaction}
                 >
                   {isSubmitting ? 'جاري التنفيذ...' : 'تنفيذ العملية'}

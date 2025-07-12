@@ -57,6 +57,9 @@ class TransactionRequest extends FormRequest
             'original_amount.required' => 'المبلغ مطلوب.',
             'original_amount.numeric' => 'المبلغ يجب أن يكون رقمي.',
             'original_amount.min' => 'المبلغ يجب أن يكون أكبر من صفر.',
+            'converted_amount.required' => 'المبلغ المحول مطلوب.',
+            'converted_amount.numeric' => 'المبلغ المحول يجب أن يكون رقمي.',
+            'converted_amount.min' => 'المبلغ المحول يجب أن يكون أكبر من صفر.',
         ];
     }
 }

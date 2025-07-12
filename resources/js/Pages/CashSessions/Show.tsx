@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import RootLayout from '@/Layouts/RootLayout';
 import {
@@ -11,6 +11,7 @@ import {
   Chip,
   Card,
   CardBody,
+  Button,
 } from '@heroui/react';
 import {
   FiCalendar,
@@ -18,8 +19,11 @@ import {
   FiUser,
   FiArrowLeft,
   FiDollarSign,
+  //   FiEye,
 } from 'react-icons/fi';
 import SecondaryButton from '@/Components/SecondaryButton';
+import PrimaryButton from '@/Components/PrimaryButton';
+import TransactionDetailModal from '@/Components/TransactionDetailModal';
 import {
   Currency,
   CashSession,
@@ -36,6 +40,31 @@ interface CashSessionShowProps {
 
 export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
   console.log(cashSession);
+
+  // State for transaction modal
+  const [selectedTransactionId, setSelectedTransactionId] = useState<
+    number | null
+  >(null);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+
+  // Constants for transaction display
+  const MAX_TRANSACTIONS_DISPLAY = 10;
+  const totalTransactions = cashSession.transactions?.length || 0;
+  const displayedTransactions =
+    cashSession.transactions?.slice(0, MAX_TRANSACTIONS_DISPLAY) || [];
+  const hasMoreTransactions = totalTransactions > MAX_TRANSACTIONS_DISPLAY;
+
+  // Handle transaction row click
+  const handleTransactionClick = (transactionId: number) => {
+    router.get(route('transaction.show', { transaction: transactionId }));
+  };
+
+  // Handle show more transactions
+  const handleShowMoreTransactions = () => {
+    router.get(
+      route('cash_sessions.transactions', { cashSession: cashSession.id }),
+    );
+  };
 
   // Format date and time
   const formatDateTime = (dateString: string) => {
@@ -174,29 +203,41 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
 
       {/* Session Details Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {/* Opening Details */}
+        {/* Session Info */}
         <Card>
           <CardBody className="p-6 dir-rtl">
             <div className="flex items-center space-x-2 space-x-reverse mb-3">
-              <FiCalendar className="w-5 h-5 text-green-600" />
+              <FiCalendar className="w-5 h-5 text-blue-600" />
               <h3 className="font-semibold text-gray-900 text-right">
-                تفاصيل الفتح
+                معلومات الجلسة
               </h3>
             </div>
             <div className="space-y-2 text-sm text-right">
               <div>
-                <span className="text-gray-500">التاريخ:</span>
-                <div className="font-medium">{openedDateTime.date}</div>
+                <span className="text-gray-500">تاريخ الفتح:</span>
+                <div className="font-medium">
+                  {openedDateTime.date} - {openedDateTime.time}
+                </div>
               </div>
-              <div>
-                <span className="text-gray-500">الوقت:</span>
-                <div className="font-medium">{openedDateTime.time}</div>
-              </div>
-              {cashSession.opened_by && (
+              {closedDateTime && (
                 <div>
-                  <span className="text-gray-500">فتحت بواسطة:</span>
+                  <span className="text-gray-500">تاريخ الإغلاق:</span>
                   <div className="font-medium">
-                    {cashSession.opened_by.name}
+                    {closedDateTime.date} - {closedDateTime.time}
+                  </div>
+                </div>
+              )}
+              <div>
+                <span className="text-gray-500">مفتوحة بواسطة:</span>
+                <div className="font-medium">
+                  {cashSession.opened_by?.name || 'غير متاح'}
+                </div>
+              </div>
+              {cashSession.closed_by && (
+                <div>
+                  <span className="text-gray-500">مغلقة بواسطة:</span>
+                  <div className="font-medium">
+                    {cashSession.closed_by.name}
                   </div>
                 </div>
               )}
@@ -204,37 +245,37 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
           </CardBody>
         </Card>
 
-        {/* Closing Details */}
-        {closedDateTime && (
-          <Card>
-            <CardBody className="p-6 dir-rtl">
-              <div className="flex items-center space-x-2 space-x-reverse mb-3">
-                <FiCalendar className="w-5 h-5 text-red-600" />
-                <h3 className="font-semibold text-gray-900 text-right">
-                  تفاصيل الإغلاق
-                </h3>
-              </div>
-              <div className="space-y-2 text-sm text-right">
-                <div>
-                  <span className="text-gray-500">التاريخ:</span>
-                  <div className="font-medium">{closedDateTime.date}</div>
+        {/* User Info */}
+        <Card>
+          <CardBody className="p-6 dir-rtl">
+            <div className="flex items-center space-x-2 space-x-reverse mb-3">
+              <FiUser className="w-5 h-5 text-green-600" />
+              <h3 className="font-semibold text-gray-900 text-right">
+                مسؤول الجلسة
+              </h3>
+            </div>
+            <div className="space-y-2 text-sm text-right">
+              <div>
+                <span className="text-gray-500">الاسم:</span>
+                <div className="font-medium">
+                  {cashSession.opened_by?.name || 'غير متاح'}
                 </div>
-                <div>
-                  <span className="text-gray-500">الوقت:</span>
-                  <div className="font-medium">{closedDateTime.time}</div>
-                </div>
-                {cashSession.closed_by && (
-                  <div>
-                    <span className="text-gray-500">أغلقت بواسطة:</span>
-                    <div className="font-medium">
-                      {cashSession.closed_by.name}
-                    </div>
-                  </div>
-                )}
               </div>
-            </CardBody>
-          </Card>
-        )}
+              <div>
+                <span className="text-gray-500">البريد الإلكتروني:</span>
+                <div className="font-medium">
+                  {cashSession.opened_by?.email || 'غير متاح'}
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-500">الحالة:</span>
+                <div className="font-medium">
+                  {getStatusChip(cashSession.status)}
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
 
         {/* Statistics */}
         <Card>
@@ -248,9 +289,7 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
             <div className="space-y-2 text-sm text-right">
               <div>
                 <span className="text-gray-500">عدد المعاملات:</span>
-                <div className="font-medium">
-                  {cashSession.transactions?.length || 0}
-                </div>
+                <div className="font-medium">{totalTransactions}</div>
               </div>
               <div>
                 <span className="text-gray-500">المدة الإجمالية:</span>
@@ -275,116 +314,148 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
 
       {/* Transactions */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          المعاملات ({cashSession.transactions?.length || 0})
-        </h2>
-        {cashSession.transactions && cashSession.transactions.length > 0 ? (
-          <Table aria-label="معاملات الجلسة">
-            <TableHeader>
-              <TableColumn>رقم المعاملة</TableColumn>
-              <TableColumn>التاريخ والوقت</TableColumn>
-              <TableColumn>منشئ العملية</TableColumn>
-              <TableColumn>مُعين إلى</TableColumn>
-              <TableColumn>من</TableColumn>
-              <TableColumn>إلى</TableColumn>
-              <TableColumn>المبلغ الأصلي</TableColumn>
-              <TableColumn>المبلغ المحول</TableColumn>
-              <TableColumn>الحالة</TableColumn>
-              <TableColumn>أُغلقت بواسطة</TableColumn>
-            </TableHeader>
-            <TableBody>
-              {cashSession.transactions.map(transaction => {
-                const transactionDateTime = formatDateTime(
-                  transaction.created_at,
-                );
-                return (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
-                      <span className="font-mono text-sm">
-                        #{transaction.id}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>{transactionDateTime.date}</div>
-                        <div className="text-gray-500">
-                          {transactionDateTime.time}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {transaction.created_by?.name || 'غير متاح'}
-                        </div>
-                        <div className="text-gray-500">
-                          {transaction.created_by?.email || 'غير متاح'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {transaction.assigned_to?.name || 'Admin'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {transaction.from_currency?.name || 'غير متاح'}
-                        </div>
-                        <div className="text-gray-500">
-                          {transaction.from_currency?.code || 'N/A'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {transaction.to_currency?.name || 'غير متاح'}
-                        </div>
-                        <div className="text-gray-500">
-                          {transaction.to_currency?.code || 'N/A'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {formatAmount(
-                          transaction.original_amount.toString(),
-                          transaction.from_currency,
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {formatAmount(
-                          transaction.converted_amount.toString(),
-                          transaction.to_currency,
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getTransactionStatusChip(transaction.status)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {cashSession.closed_by?.name || 'غير متاح'}
-                        </div>
-                        {cashSession.closed_by?.email && (
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">
+            المعاملات ({totalTransactions})
+          </h2>
+          {hasMoreTransactions && (
+            <PrimaryButton
+              onClick={handleShowMoreTransactions}
+              className="text-sm"
+            >
+              عرض جميع المعاملات
+            </PrimaryButton>
+          )}
+        </div>
+        {displayedTransactions.length > 0 ? (
+          <>
+            <Table aria-label="معاملات الجلسة" selectionMode="single">
+              <TableHeader>
+                <TableColumn>رقم المعاملة</TableColumn>
+                <TableColumn>التاريخ والوقت</TableColumn>
+                <TableColumn>منشئ العملية</TableColumn>
+                <TableColumn>مُعين إلى</TableColumn>
+                <TableColumn>من</TableColumn>
+                <TableColumn>إلى</TableColumn>
+                <TableColumn>المبلغ الأصلي</TableColumn>
+                <TableColumn>المبلغ المحول</TableColumn>
+                <TableColumn>الحالة</TableColumn>
+                <TableColumn>أُغلقت بواسطة</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {displayedTransactions.map(transaction => {
+                  const transactionDateTime = formatDateTime(
+                    transaction.created_at,
+                  );
+                  return (
+                    <TableRow
+                      key={transaction.id}
+                      className="cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => handleTransactionClick(transaction.id)}
+                    >
+                      <TableCell>
+                        <span className="font-mono text-sm text-blue-600">
+                          #{transaction.id}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div>{transactionDateTime.date}</div>
                           <div className="text-gray-500">
-                            {cashSession.closed_by.email}
+                            {transactionDateTime.time}
                           </div>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div className="font-medium">
+                            {transaction.created_by?.name || 'غير متاح'}
+                          </div>
+                          <div className="text-gray-500">
+                            {transaction.created_by?.email || 'غير متاح'}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div className="font-medium">
+                            {transaction.assigned_to?.name || 'Admin'}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div className="font-medium">
+                            {transaction.from_currency?.name || 'غير متاح'}
+                          </div>
+                          <div className="text-gray-500">
+                            {transaction.from_currency?.code || 'N/A'}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div className="font-medium">
+                            {transaction.to_currency?.name || 'غير متاح'}
+                          </div>
+                          <div className="text-gray-500">
+                            {transaction.to_currency?.code || 'N/A'}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          {formatAmount(
+                            transaction.original_amount.toString(),
+                            transaction.from_currency,
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          {formatAmount(
+                            transaction.converted_amount.toString(),
+                            transaction.to_currency,
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getTransactionStatusChip(transaction.status)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div className="font-medium">
+                            {transaction.closed_by?.name || 'غير متاح'}
+                          </div>
+                          {transaction.closed_by?.email && (
+                            <div className="text-gray-500">
+                              {transaction.closed_by.email}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {hasMoreTransactions && (
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-600 mb-3">
+                  عرض {displayedTransactions.length} من أصل {totalTransactions}{' '}
+                  معاملة
+                </p>
+                <Button
+                  color="primary"
+                  variant="bordered"
+                  onClick={handleShowMoreTransactions}
+                  //   startContent={<FiEye className="w-4 h-4" />}
+                >
+                  عرض جميع المعاملات ({totalTransactions})
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <Card>
             <CardBody className="text-center py-12">
@@ -465,6 +536,13 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
             </Table>
           </div>
         )}
+
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
+        transactionId={selectedTransactionId}
+      />
     </RootLayout>
   );
 }

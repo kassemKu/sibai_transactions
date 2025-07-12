@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/Components/UI/Card';
 import { Currency } from '@/types';
-import { FiArrowUp, FiArrowDown, FiEdit3 } from 'react-icons/fi';
+import { FiArrowUp, FiArrowDown, FiEdit3, FiDollarSign } from 'react-icons/fi';
 
 interface CurrencyCardProps {
   currency: Currency;
@@ -21,11 +21,11 @@ export default function CurrencyCard({
     }
   };
 
-    return (
+  return (
     <Card
       className={`currency-card border border-gray-200 hover:border-gray-300 bg-gradient-to-br from-white to-gray-50 w-[280px] transition-all duration-200 ${
-        isEditable 
-          ? 'relative group hover:shadow-md hover:scale-[1.02] active:scale-[0.98]' 
+        isEditable
+          ? 'relative group hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
           : 'cursor-grab active:cursor-grabbing'
       }`}
       padding="xs"
@@ -38,7 +38,7 @@ export default function CurrencyCard({
           title="اضغط لتعديل العملة"
         />
       )}
-      
+
       <CardContent className="flex flex-col justify-between gap-4 px-6 py-4 relative z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -66,8 +66,13 @@ export default function CurrencyCard({
         </div>
 
         <div className="space-y-2">
+          {/* Reference Rate */}
           <div className="flex items-center justify-between">
-            <span className="text-bold-x20 text-primaryBlue font-bold">
+            <div className="flex items-center gap-2">
+              <FiDollarSign className="w-4 h-4 text-yellow-600" />
+              <span className="text-sm font-medium text-yellow-700">مرجعي</span>
+            </div>
+            <span className="text-lg font-bold text-yellow-600">
               {new Intl.NumberFormat('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 6,
@@ -75,7 +80,38 @@ export default function CurrencyCard({
               }).format(parseFloat(currency.rate_to_usd))}
             </span>
           </div>
-          <div className="text-xs text-gray-500 text-right bg-gray-100 px-2 py-1 rounded-full">
+
+          {/* Buy Rate */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FiArrowDown className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-700">شراء</span>
+            </div>
+            <span className="text-lg font-bold text-green-600">
+              {new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 6,
+                useGrouping: true,
+              }).format(parseFloat(currency.buy_rate_to_usd))}
+            </span>
+          </div>
+
+          {/* Sell Rate */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FiArrowUp className="w-4 h-4 text-red-600" />
+              <span className="text-sm font-medium text-red-700">بيع</span>
+            </div>
+            <span className="text-lg font-bold text-red-600">
+              {new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 6,
+                useGrouping: true,
+              }).format(parseFloat(currency.sell_rate_to_usd))}
+            </span>
+          </div>
+
+          <div className="text-xs text-gray-500 text-center bg-gray-100 px-2 py-1 rounded-full">
             مقابل 1 دولار أمريكي
           </div>
         </div>
