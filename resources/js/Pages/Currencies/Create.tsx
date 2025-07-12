@@ -15,6 +15,8 @@ interface CurrencyFormData {
   name: string;
   code: string;
   rate_to_usd: string;
+  buy_rate_to_usd: string;
+  sell_rate_to_usd: string;
   amount: string;
 }
 
@@ -22,6 +24,8 @@ interface CurrencyFormErrors {
   name?: string;
   code?: string;
   rate_to_usd?: string;
+  buy_rate_to_usd?: string;
+  sell_rate_to_usd?: string;
   amount?: string;
 }
 
@@ -30,6 +34,8 @@ export default function CurrenciesCreate() {
     name: '',
     code: '',
     rate_to_usd: '',
+    buy_rate_to_usd: '',
+    sell_rate_to_usd: '',
     amount: '0',
   });
   const [errors, setErrors] = useState<CurrencyFormErrors>({});
@@ -67,13 +73,33 @@ export default function CurrenciesCreate() {
       newErrors.code = 'رمز العملة يجب أن يكون 3 أحرف كبيرة باللغة الإنجليزية';
     }
 
-    const rateValue = formData.rate_to_usd?.trim();
-    if (!rateValue) {
-      newErrors.rate_to_usd = 'سعر الصرف مطلوب';
+    const referenceRateValue = formData.rate_to_usd?.trim();
+    if (!referenceRateValue) {
+      newErrors.rate_to_usd = 'السعر المرجعي مطلوب';
     } else {
-      const parsedRate = parseFloat(rateValue);
-      if (isNaN(parsedRate) || parsedRate <= 0) {
-        newErrors.rate_to_usd = 'سعر الصرف يجب أن يكون رقم موجب';
+      const parsedReferenceRate = parseFloat(referenceRateValue);
+      if (isNaN(parsedReferenceRate) || parsedReferenceRate <= 0) {
+        newErrors.rate_to_usd = 'السعر المرجعي يجب أن يكون رقم موجب';
+      }
+    }
+
+    const buyRateValue = formData.buy_rate_to_usd?.trim();
+    if (!buyRateValue) {
+      newErrors.buy_rate_to_usd = 'سعر الشراء مطلوب';
+    } else {
+      const parsedBuyRate = parseFloat(buyRateValue);
+      if (isNaN(parsedBuyRate) || parsedBuyRate <= 0) {
+        newErrors.buy_rate_to_usd = 'سعر الشراء يجب أن يكون رقم موجب';
+      }
+    }
+
+    const sellRateValue = formData.sell_rate_to_usd?.trim();
+    if (!sellRateValue) {
+      newErrors.sell_rate_to_usd = 'سعر البيع مطلوب';
+    } else {
+      const parsedSellRate = parseFloat(sellRateValue);
+      if (isNaN(parsedSellRate) || parsedSellRate <= 0) {
+        newErrors.sell_rate_to_usd = 'سعر البيع يجب أن يكون رقم موجب';
       }
     }
 
@@ -101,7 +127,9 @@ export default function CurrenciesCreate() {
     setIsSubmitting(true);
 
     try {
-      const rateValue = parseFloat(formData.rate_to_usd);
+      const referenceRateValue = parseFloat(formData.rate_to_usd);
+      const buyRateValue = parseFloat(formData.buy_rate_to_usd);
+      const sellRateValue = parseFloat(formData.sell_rate_to_usd);
       const amountValue = formData.amount?.trim()
         ? parseFloat(formData.amount)
         : 0;
@@ -109,7 +137,9 @@ export default function CurrenciesCreate() {
       const payload = {
         name: formData.name.trim(),
         code: formData.code.trim().toUpperCase(),
-        rate_to_usd: rateValue,
+        rate_to_usd: referenceRateValue,
+        buy_rate_to_usd: buyRateValue,
+        sell_rate_to_usd: sellRateValue,
         amount: amountValue,
       };
 
@@ -205,7 +235,7 @@ export default function CurrenciesCreate() {
 
             <div>
               <InputLabel htmlFor="rate_to_usd">
-                سعر الصرف مقابل الدولار *
+                السعر المرجعي مقابل الدولار *
               </InputLabel>
               <NumberInput
                 id="rate_to_usd"
@@ -217,12 +247,65 @@ export default function CurrenciesCreate() {
                 className="mt-1 block w-full"
               />
               <p className="mt-1 text-sm text-gray-500">
-                كم وحدة من هذه العملة تساوي 1 دولار أمريكي (مثال: 1.0 للدولار،
-                0.85 لليورو)
+                السعر المرجعي للعملة مقابل الدولار الأمريكي
               </p>
               {errors.rate_to_usd && (
                 <InputError message={errors.rate_to_usd} className="mt-2" />
               )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <InputLabel htmlFor="buy_rate_to_usd">
+                  سعر الشراء مقابل الدولار *
+                </InputLabel>
+                <NumberInput
+                  id="buy_rate_to_usd"
+                  value={formData.buy_rate_to_usd}
+                  onChange={value =>
+                    handleInputChange('buy_rate_to_usd', value)
+                  }
+                  placeholder="مثال: 1.0"
+                  decimalScale={6}
+                  min={0}
+                  className="mt-1 block w-full"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  سعر شراء العملة مقابل الدولار
+                </p>
+                {errors.buy_rate_to_usd && (
+                  <InputError
+                    message={errors.buy_rate_to_usd}
+                    className="mt-2"
+                  />
+                )}
+              </div>
+
+              <div>
+                <InputLabel htmlFor="sell_rate_to_usd">
+                  سعر البيع مقابل الدولار *
+                </InputLabel>
+                <NumberInput
+                  id="sell_rate_to_usd"
+                  value={formData.sell_rate_to_usd}
+                  onChange={value =>
+                    handleInputChange('sell_rate_to_usd', value)
+                  }
+                  placeholder="مثال: 1.0"
+                  decimalScale={6}
+                  min={0}
+                  className="mt-1 block w-full"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  سعر بيع العملة مقابل الدولار
+                </p>
+                {errors.sell_rate_to_usd && (
+                  <InputError
+                    message={errors.sell_rate_to_usd}
+                    className="mt-2"
+                  />
+                )}
+              </div>
             </div>
 
             <div>
@@ -243,7 +326,6 @@ export default function CurrenciesCreate() {
                 <InputError message={errors.amount} className="mt-2" />
               )}
             </div>
-
 
             {/* Form Actions */}
             <div className="flex items-center justify-end space-x-3 space-x-reverse pt-6 border-t border-gray-200">

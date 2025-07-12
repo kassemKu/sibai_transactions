@@ -20,16 +20,76 @@ class TransactionService
         $fromCurrency = Currency::findOrFail($fromCurrencyId);
         $toCurrency = Currency::findOrFail($toCurrencyId);
 
-        $usdAmount = $amount / $fromCurrency->rate_to_usd;
-        $finalAmount = $usdAmount * $toCurrency->rate_to_usd;
+        // 1️⃣ Conversion to USD
+        $usdAmount = $amount / $fromCurrency->sell_rate_to_usd;
+
+        // 2️⃣ Conversion to target currency
+        $convertedAmount = $usdAmount * $toCurrency->buy_rate_to_usd;
+
+        // 3️⃣ Margins
+        $fromCurrencyMargin = $fromCurrency->rate_to_usd - $fromCurrency->sell_rate_to_usd;
+        $toCurrencyMargin = $toCurrency->buy_rate_to_usd - $toCurrency->rate_to_usd;
+
+        // 4️⃣ Raw profit before normalization
+        $rawProfitFrom = $fromCurrencyMargin * $usdAmount;
+        $rawProfitTo = $toCurrencyMargin * $usdAmount;
+
+        // 5️⃣ Normalized profit in USD
+        $profitFromUSD = $rawProfitFrom / $fromCurrency->rate_to_usd;
+        $profitToUSD = $rawProfitTo / $toCurrency->rate_to_usd;
+
+        $totalProfitUSD = $profitFromUSD + $profitToUSD;
 
         return [
             'from_currency_id' => $fromCurrencyId,
             'to_currency_id' => $toCurrencyId,
             'original_amount' => round($amount, 2),
-            'converted_amount' => round($finalAmount, 2),
-            'from_rate_to_usd' => round($fromCurrency->rate_to_usd, 6),
-            'to_rate_to_usd' => round($toCurrency->rate_to_usd, 6),
+            'converted_amount' => round($convertedAmount, 2),
+            'usd_intermediate' => round($usdAmount, 2),
+            'profit_from_usd' => round($profitFromUSD, 2),
+            'profit_to_usd' => round($profitToUSD, 2),
+            'total_profit_usd' => round($totalProfitUSD, 2),
+            'from_currency_rates_snapshot' => [
+                'rate_to_usd' => $fromCurrency->rate_to_usd,
+                'buy_rate_to_usd' => $fromCurrency->buy_rate_to_usd,
+                'sell_rate_to_usd' => $fromCurrency->sell_rate_to_usd,
+            ],
+            'to_currency_rates_snapshot' => [
+                'rate_to_usd' => $toCurrency->rate_to_usd,
+                'buy_rate_to_usd' => $toCurrency->buy_rate_to_usd,
+                'sell_rate_to_usd' => $toCurrency->sell_rate_to_usd,
+            ],
+        ];
+    }
+
+    public function calculateProfitsFromConvertedAmount(
+        int $fromCurrencyId,
+        int $toCurrencyId,
+        float $convertedAmount
+    ): array {
+        $fromCurrency = Currency::findOrFail($fromCurrencyId);
+        $toCurrency = Currency::findOrFail($toCurrencyId);
+
+        // 1️⃣ Estimate USD amount from convertedAmount
+        $usdAmount = $convertedAmount / $toCurrency->sell_rate_to_usd;
+
+        // 2️⃣ Margins
+        $fromCurrencyMargin = $fromCurrency->rate_to_usd - $fromCurrency->buy_rate_to_usd;
+        $toCurrencyMargin = $toCurrency->sell_rate_to_usd - $toCurrency->rate_to_usd;
+
+        // 3️⃣ Raw profits
+        $rawProfitFrom = $fromCurrencyMargin * $usdAmount;
+        $rawProfitTo = $toCurrencyMargin * $usdAmount;
+
+        // 4️⃣ Normalized profits in USD
+        $profitFromUSD = $rawProfitFrom / $fromCurrency->rate_to_usd;
+        $profitToUSD = $rawProfitTo / $toCurrency->rate_to_usd;
+        $totalProfitUSD = $profitFromUSD + $profitToUSD;
+
+        return [
+            'profit_from_usd' => round($profitFromUSD, 2),
+            'profit_to_usd' => round($profitToUSD, 2),
+            'total_profit_usd' => round($totalProfitUSD, 2),
         ];
     }
 
@@ -47,9 +107,13 @@ class TransactionService
             'original_amount' => $data['original_amount'],
             'converted_amount' => $data['converted_amount'],
             'assigned_to' => $assignedTo,
-            'from_rate_to_usd' => $data['from_rate_to_usd'],
-            'to_rate_to_usd' => $data['to_rate_to_usd'],
             'status' => TransactionStatusEnum::PENDING->value,
+            'profit_from_usd' => $data['profit_from_usd'],
+            'profit_to_usd' => $data['profit_to_usd'],
+            'total_profit_usd' => $data['total_profit_usd'],
+            'usd_intermediate' => $data['usd_intermediate'],
+            'from_currency_rates_snapshot' => $data['from_currency_rates_snapshot'],
+            'to_currency_rates_snapshot' => $data['to_currency_rates_snapshot'],
         ]);
 
         return $transaction;
@@ -64,6 +128,9 @@ class TransactionService
                 'type' => CashMovementTypeEnum::IN->value,
                 'amount' => $transaction->original_amount,
                 'cash_session_id' => $transaction->cash_session_id,
+                'exchange_rate' => $transaction->from_currency_rates_snapshot['buy_rate_to_usd'],
+                'by' => $transaction->closed_by,
+                'cash_session_id' => $transaction->cash_session_id,
             ]);
 
             CashMovement::create([
@@ -71,6 +138,9 @@ class TransactionService
                 'currency_id' => $transaction->to_currency_id,
                 'type' => CashMovementTypeEnum::OUT->value,
                 'amount' => $transaction->converted_amount,
+                'cash_session_id' => $transaction->cash_session_id,
+                'exchange_rate' => $transaction->to_currency_rates_snapshot['sell_rate_to_usd'],
+                'by' => $transaction->created_by,
                 'cash_session_id' => $transaction->cash_session_id,
             ]);
         });

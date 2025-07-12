@@ -15,6 +15,8 @@ import {
   Button,
   Chip,
 } from '@heroui/react';
+import { router } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 
 interface Currency {
   id: number;
@@ -197,6 +199,10 @@ export default function RecentTransactionsTable({
     }
   };
 
+  const handleTransactionClick = (transactionId: number) => {
+    router.get(route('transaction.show', { transaction: transactionId }));
+  };
+
   // No need for polling logic since parent handles unified status polling
   return (
     <div className="w-full mb-8">
@@ -270,7 +276,11 @@ export default function RecentTransactionsTable({
               const isUpdating = updatingTransactions.has(transaction.id);
 
               return (
-                <TableRow key={transaction.id}>
+                <TableRow
+                  key={transaction.id}
+                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => handleTransactionClick(transaction.id)}
+                >
                   <TableCell>
                     <div className="text-sm">
                       <div>{dateTime.date}</div>

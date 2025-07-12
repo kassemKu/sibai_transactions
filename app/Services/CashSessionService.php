@@ -56,14 +56,16 @@ class CashSessionService
                 ->first()
                 ->opening_balance ?? 0;
 
-            $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
-                ->where('currency_id', $currency->id)
+            $totalIn = CashMovement::where('currency_id', $currency->id)
                 ->where('type', CashMovementTypeEnum::IN->value)
+                ->where('cash_session_id', $session->id)
+                ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->sum('amount');
 
-            $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
-                ->where('currency_id', $currency->id)
+            $totalOut = CashMovement::where('currency_id', $currency->id)
                 ->where('type', CashMovementTypeEnum::OUT->value)
+                ->where('cash_session_id', $session->id)
+                ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->sum('amount');
 
             $systemClosing = $opening + $totalIn - $totalOut;

@@ -135,7 +135,13 @@ export default function CurrenciesIndex({
                       الرمز
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      سعر الصرف (USD)
+                      السعر المرجعي (USD)
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      سعر الشراء (USD)
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      سعر البيع (USD)
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       النوع
@@ -162,8 +168,18 @@ export default function CurrenciesIndex({
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-mono">
+                        <div className="text-sm text-yellow-700 font-mono font-medium">
                           {formatRate(currency.rate_to_usd)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-green-700 font-mono font-medium">
+                          {formatRate(currency.buy_rate_to_usd)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-red-700 font-mono font-medium">
+                          {formatRate(currency.sell_rate_to_usd)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

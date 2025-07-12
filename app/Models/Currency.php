@@ -9,7 +9,7 @@ class Currency extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'code', 'rate_to_usd'];
+    protected $fillable = ['name', 'code', 'rate_to_usd', 'sell_rate_to_usd', 'buy_rate_to_usd'];
 
     public function cashMovements()
     {

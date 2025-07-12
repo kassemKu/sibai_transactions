@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\UserCollection;
+use App\Models\User;
 use Illuminate\Support\Facades\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\User;
-use App\Http\Resources\UserCollection;
 
 class EmployeeController extends Controller
 {
