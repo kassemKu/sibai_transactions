@@ -78,7 +78,7 @@ export default function TransactionForm({
       setCalculatedAmount('');
       setManualAmount('');
       setIsManualAmountEnabled(false);
-      
+
       // Clear the last calculation reference
       lastCalculationRef.current = null;
 
@@ -271,9 +271,8 @@ export default function TransactionForm({
         from_currency_id: parseInt(fromCurrency),
         to_currency_id: parseInt(toCurrency),
         original_amount: parseFloat(amount),
-        converted_amount: parseFloat(finalAmount), // Send the final amount (manual or calculated)
+        converted_amount: parseFloat(finalAmount), // Use the correct value (manual or calculated)
         customer_name: '', // You can add a customer name field later
-        converted_amount: calculatedAmount, // to be fixed, the collection is wrong number
         ...(isAdmin && assignedTo ? { assigned_to: parseInt(assignedTo) } : {}),
       };
 

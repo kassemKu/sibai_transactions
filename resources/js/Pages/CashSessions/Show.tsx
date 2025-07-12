@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import axios from 'axios';
 import RootLayout from '@/Layouts/RootLayout';
 import {
   Table,
@@ -12,6 +13,7 @@ import {
   Card,
   CardBody,
   Button,
+  Pagination,
 } from '@heroui/react';
 import {
   FiCalendar,
@@ -19,7 +21,7 @@ import {
   FiUser,
   FiArrowLeft,
   FiDollarSign,
-  //   FiEye,
+  FiLoader,
 } from 'react-icons/fi';
 import SecondaryButton from '@/Components/SecondaryButton';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -34,6 +36,14 @@ import {
 } from '@/types';
 import { route } from 'ziggy-js';
 
+interface PaginatedTransactions {
+  data: Transaction[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
 interface CashSessionShowProps {
   cashSession: CashSession;
 }
@@ -47,24 +57,45 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
   >(null);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
 
-  // Constants for transaction display
-  const MAX_TRANSACTIONS_DISPLAY = 10;
-  const totalTransactions = cashSession.transactions?.length || 0;
-  const displayedTransactions =
-    cashSession.transactions?.slice(0, MAX_TRANSACTIONS_DISPLAY) || [];
-  const hasMoreTransactions = totalTransactions > MAX_TRANSACTIONS_DISPLAY;
+  // State for transactions API
+  const [transactions, setTransactions] =
+    useState<PaginatedTransactions | null>(null);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Handle transaction row click
   const handleTransactionClick = (transactionId: number) => {
     router.get(route('transaction.show', { transaction: transactionId }));
   };
 
-  // Handle show more transactions
-  const handleShowMoreTransactions = () => {
-    router.get(
-      route('cash_sessions.transactions', { cashSession: cashSession.id }),
-    );
+  // Fetch transactions from API
+  const fetchTransactions = async (page: number = 1) => {
+    setIsLoadingTransactions(true);
+    try {
+      const response = await axios.get(
+        `/admin/cash-sessions/${cashSession.id}/transactions`,
+        {
+          params: { page },
+        },
+      );
+      setTransactions(response.data.data);
+      setCurrentPage(page);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setIsLoadingTransactions(false);
+    }
   };
+
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    fetchTransactions(page);
+  };
+
+  // Load transactions on component mount
+  useEffect(() => {
+    fetchTransactions(1);
+  }, [cashSession.id]);
 
   // Format date and time
   const formatDateTime = (dateString: string) => {
@@ -289,20 +320,19 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
             <div className="space-y-2 text-sm text-right">
               <div>
                 <span className="text-gray-500">عدد المعاملات:</span>
-                <div className="font-medium">{totalTransactions}</div>
+                <div className="font-medium">{transactions?.total || 0}</div>
               </div>
               <div>
                 <span className="text-gray-500">المدة الإجمالية:</span>
                 <div className="font-medium">{duration}</div>
               </div>
-              {cashSession.transactions && (
+              {transactions && (
                 <div>
                   <span className="text-gray-500">المعاملات المكتملة:</span>
                   <div className="font-medium">
                     {
-                      cashSession.transactions.filter(
-                        t => t.status === 'completed',
-                      ).length
+                      transactions.data.filter(t => t.status === 'completed')
+                        .length
                     }
                   </div>
                 </div>
@@ -316,18 +346,20 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            المعاملات ({totalTransactions})
+            المعاملات ({transactions?.total || 0})
           </h2>
-          {hasMoreTransactions && (
-            <PrimaryButton
-              onClick={handleShowMoreTransactions}
-              className="text-sm"
-            >
-              عرض جميع المعاملات
-            </PrimaryButton>
-          )}
         </div>
-        {displayedTransactions.length > 0 ? (
+
+        {isLoadingTransactions ? (
+          <Card>
+            <CardBody className="text-center py-12">
+              <div className="flex items-center justify-center space-x-2 space-x-reverse">
+                <FiLoader className="w-6 h-6 animate-spin text-blue-500" />
+                <span className="text-gray-600">جاري تحميل المعاملات...</span>
+              </div>
+            </CardBody>
+          </Card>
+        ) : transactions?.data && transactions.data.length > 0 ? (
           <>
             <Table aria-label="معاملات الجلسة" selectionMode="single">
               <TableHeader>
@@ -343,7 +375,7 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
                 <TableColumn>أُغلقت بواسطة</TableColumn>
               </TableHeader>
               <TableBody>
-                {displayedTransactions.map(transaction => {
+                {transactions.data.map(transaction => {
                   const transactionDateTime = formatDateTime(
                     transaction.created_at,
                   );
@@ -439,20 +471,17 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
                 })}
               </TableBody>
             </Table>
-            {hasMoreTransactions && (
-              <div className="mt-4 text-center">
-                <p className="text-sm text-gray-600 mb-3">
-                  عرض {displayedTransactions.length} من أصل {totalTransactions}{' '}
-                  معاملة
-                </p>
-                <Button
-                  color="primary"
-                  variant="bordered"
-                  onClick={handleShowMoreTransactions}
-                  //   startContent={<FiEye className="w-4 h-4" />}
-                >
-                  عرض جميع المعاملات ({totalTransactions})
-                </Button>
+
+            {/* Pagination */}
+            {transactions && transactions.last_page > 1 && (
+              <div className="flex justify-center mt-6">
+                <Pagination
+                  total={transactions.last_page}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  showControls
+                  className="gap-2"
+                />
               </div>
             )}
           </>
