@@ -19,17 +19,23 @@ interface CurrenciesEditProps {
 interface CurrencyFormData {
   name: string;
   rate_to_usd: string;
+  buy_rate_to_usd: string;
+  sell_rate_to_usd: string;
 }
 
 interface CurrencyFormErrors {
   name?: string;
   rate_to_usd?: string;
+  buy_rate_to_usd?: string;
+  sell_rate_to_usd?: string;
 }
 
 export default function CurrenciesEdit({ currency }: CurrenciesEditProps) {
   const [formData, setFormData] = useState<CurrencyFormData>({
     name: currency.name,
     rate_to_usd: currency.rate_to_usd.toString(),
+    buy_rate_to_usd: currency.buy_rate_to_usd.toString(),
+    sell_rate_to_usd: currency.sell_rate_to_usd.toString(),
   });
   const [errors, setErrors] = useState<CurrencyFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,13 +64,33 @@ export default function CurrenciesEdit({ currency }: CurrenciesEditProps) {
       newErrors.name = 'اسم العملة مطلوب';
     }
 
-    const rateValue = formData.rate_to_usd?.trim();
-    if (!rateValue) {
-      newErrors.rate_to_usd = 'سعر الصرف مطلوب';
+    const referenceRateValue = formData.rate_to_usd?.trim();
+    if (!referenceRateValue) {
+      newErrors.rate_to_usd = 'السعر المرجعي مطلوب';
     } else {
-      const parsedRate = parseFloat(rateValue);
-      if (isNaN(parsedRate) || parsedRate <= 0) {
-        newErrors.rate_to_usd = 'سعر الصرف يجب أن يكون رقم موجب';
+      const parsedReferenceRate = parseFloat(referenceRateValue);
+      if (isNaN(parsedReferenceRate) || parsedReferenceRate <= 0) {
+        newErrors.rate_to_usd = 'السعر المرجعي يجب أن يكون رقم موجب';
+      }
+    }
+
+    const buyRateValue = formData.buy_rate_to_usd?.trim();
+    if (!buyRateValue) {
+      newErrors.buy_rate_to_usd = 'سعر الشراء مطلوب';
+    } else {
+      const parsedBuyRate = parseFloat(buyRateValue);
+      if (isNaN(parsedBuyRate) || parsedBuyRate <= 0) {
+        newErrors.buy_rate_to_usd = 'سعر الشراء يجب أن يكون رقم موجب';
+      }
+    }
+
+    const sellRateValue = formData.sell_rate_to_usd?.trim();
+    if (!sellRateValue) {
+      newErrors.sell_rate_to_usd = 'سعر البيع مطلوب';
+    } else {
+      const parsedSellRate = parseFloat(sellRateValue);
+      if (isNaN(parsedSellRate) || parsedSellRate <= 0) {
+        newErrors.sell_rate_to_usd = 'سعر البيع يجب أن يكون رقم موجب';
       }
     }
 
@@ -86,6 +112,8 @@ export default function CurrenciesEdit({ currency }: CurrenciesEditProps) {
       const payload = {
         name: formData.name.trim(),
         rate_to_usd: parseFloat(formData.rate_to_usd),
+        buy_rate_to_usd: parseFloat(formData.buy_rate_to_usd),
+        sell_rate_to_usd: parseFloat(formData.sell_rate_to_usd),
       };
 
       await axios.put(`/admin/currencies/${currency.id}`, payload);
@@ -175,7 +203,7 @@ export default function CurrenciesEdit({ currency }: CurrenciesEditProps) {
 
             <div>
               <InputLabel htmlFor="rate_to_usd">
-                سعر الصرف مقابل الدولار *
+                السعر المرجعي مقابل الدولار *
               </InputLabel>
               <NumberInput
                 id="rate_to_usd"
@@ -187,12 +215,65 @@ export default function CurrenciesEdit({ currency }: CurrenciesEditProps) {
                 className="mt-1 block w-full"
               />
               <p className="mt-1 text-sm text-gray-500">
-                كم وحدة من هذه العملة تساوي 1 دولار أمريكي (مثال: 1.0 للدولار،
-                0.85 لليورو)
+                السعر المرجعي للعملة مقابل الدولار الأمريكي
               </p>
               {errors.rate_to_usd && (
                 <InputError message={errors.rate_to_usd} className="mt-2" />
               )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <InputLabel htmlFor="buy_rate_to_usd">
+                  سعر الشراء مقابل الدولار *
+                </InputLabel>
+                <NumberInput
+                  id="buy_rate_to_usd"
+                  value={formData.buy_rate_to_usd}
+                  onChange={value =>
+                    handleInputChange('buy_rate_to_usd', value)
+                  }
+                  placeholder="مثال: 1.0"
+                  decimalScale={6}
+                  min={0}
+                  className="mt-1 block w-full"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  سعر شراء العملة مقابل الدولار
+                </p>
+                {errors.buy_rate_to_usd && (
+                  <InputError
+                    message={errors.buy_rate_to_usd}
+                    className="mt-2"
+                  />
+                )}
+              </div>
+
+              <div>
+                <InputLabel htmlFor="sell_rate_to_usd">
+                  سعر البيع مقابل الدولار *
+                </InputLabel>
+                <NumberInput
+                  id="sell_rate_to_usd"
+                  value={formData.sell_rate_to_usd}
+                  onChange={value =>
+                    handleInputChange('sell_rate_to_usd', value)
+                  }
+                  placeholder="مثال: 1.0"
+                  decimalScale={6}
+                  min={0}
+                  className="mt-1 block w-full"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  سعر بيع العملة مقابل الدولار
+                </p>
+                {errors.sell_rate_to_usd && (
+                  <InputError
+                    message={errors.sell_rate_to_usd}
+                    className="mt-2"
+                  />
+                )}
+              </div>
             </div>
 
             {/* Form Actions */}

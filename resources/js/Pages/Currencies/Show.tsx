@@ -4,7 +4,14 @@ import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import { Currency } from '@/types';
-import { FiEdit3, FiArrowRight, FiDollarSign, FiHash } from 'react-icons/fi';
+import {
+  FiEdit3,
+  FiArrowRight,
+  FiDollarSign,
+  FiHash,
+  FiArrowUp,
+  FiArrowDown,
+} from 'react-icons/fi';
 
 interface CurrenciesShowProps {
   currency: Currency;
@@ -81,7 +88,7 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
           </div>
 
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Currency Code */}
               <div className="flex items-start space-x-3 space-x-reverse">
                 <div className="flex-shrink-0">
@@ -99,7 +106,7 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
                 </div>
               </div>
 
-              {/* Exchange Rate */}
+              {/* Reference Rate */}
               <div className="flex items-start space-x-3 space-x-reverse">
                 <div className="flex-shrink-0">
                   <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -108,9 +115,9 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-sm font-medium text-gray-900">
-                    سعر الصرف مقابل الدولار
+                    السعر المرجعي
                   </h3>
-                  <p className="text-lg font-mono font-semibold text-gray-700 mt-1">
+                  <p className="text-lg font-mono font-semibold text-yellow-700 mt-1">
                     {formatRate(currency.rate_to_usd)}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
@@ -119,8 +126,50 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
                 </div>
               </div>
 
-              {/* Currency Type */}
+              {/* Buy Rate */}
               <div className="flex items-start space-x-3 space-x-reverse">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <FiArrowDown className="w-5 h-5 text-green-600" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-gray-900">
+                    سعر الشراء
+                  </h3>
+                  <p className="text-lg font-mono font-semibold text-green-700 mt-1">
+                    {formatRate(currency.buy_rate_to_usd)}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    1 USD = {formatRate(currency.buy_rate_to_usd)}{' '}
+                    {currency.code}
+                  </p>
+                </div>
+              </div>
+
+              {/* Sell Rate */}
+              <div className="flex items-start space-x-3 space-x-reverse">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                    <FiArrowUp className="w-5 h-5 text-red-600" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-gray-900">
+                    سعر البيع
+                  </h3>
+                  <p className="text-lg font-mono font-semibold text-red-700 mt-1">
+                    {formatRate(currency.sell_rate_to_usd)}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    1 USD = {formatRate(currency.sell_rate_to_usd)}{' '}
+                    {currency.code}
+                  </p>
+                </div>
+              </div>
+
+              {/* Currency Type */}
+              <div className="flex items-start space-x-3 space-x-reverse md:col-span-2 lg:col-span-1">
                 <div className="flex-shrink-0">
                   <div
                     className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -162,23 +211,24 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
 
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* USD to Currency */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">
-                  من الدولار الأمريكي إلى {currency.name}
+              {/* USD to Currency (Buy Rate) */}
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <h4 className="text-sm font-medium text-green-900 mb-2 flex items-center gap-2">
+                  <FiArrowDown className="w-4 h-4" />
+                  شراء {currency.name} بالدولار الأمريكي
                 </h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">1 USD</span>
                     <span className="text-sm font-mono font-medium">
-                      {formatRate(currency.rate_to_usd)} {currency.code}
+                      {formatRate(currency.buy_rate_to_usd)} {currency.code}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">10 USD</span>
                     <span className="text-sm font-mono font-medium">
                       {formatRate(
-                        parseFloat(currency.rate_to_usd.toString()) * 10,
+                        parseFloat(currency.buy_rate_to_usd.toString()) * 10,
                       )}{' '}
                       {currency.code}
                     </span>
@@ -187,7 +237,7 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
                     <span className="text-sm text-gray-600">100 USD</span>
                     <span className="text-sm font-mono font-medium">
                       {formatRate(
-                        parseFloat(currency.rate_to_usd.toString()) * 100,
+                        parseFloat(currency.buy_rate_to_usd.toString()) * 100,
                       )}{' '}
                       {currency.code}
                     </span>
@@ -195,10 +245,11 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
                 </div>
               </div>
 
-              {/* Currency to USD */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">
-                  من {currency.name} إلى الدولار الأمريكي
+              {/* Currency to USD (Sell Rate) */}
+              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                <h4 className="text-sm font-medium text-red-900 mb-2 flex items-center gap-2">
+                  <FiArrowUp className="w-4 h-4" />
+                  بيع {currency.name} بالدولار الأمريكي
                 </h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
@@ -207,7 +258,7 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
                     </span>
                     <span className="text-sm font-mono font-medium">
                       {formatRate(
-                        1 / parseFloat(currency.rate_to_usd.toString()),
+                        1 / parseFloat(currency.sell_rate_to_usd.toString()),
                       )}{' '}
                       USD
                     </span>
@@ -218,7 +269,7 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
                     </span>
                     <span className="text-sm font-mono font-medium">
                       {formatRate(
-                        10 / parseFloat(currency.rate_to_usd.toString()),
+                        10 / parseFloat(currency.sell_rate_to_usd.toString()),
                       )}{' '}
                       USD
                     </span>
@@ -229,7 +280,7 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
                     </span>
                     <span className="text-sm font-mono font-medium">
                       {formatRate(
-                        100 / parseFloat(currency.rate_to_usd.toString()),
+                        100 / parseFloat(currency.sell_rate_to_usd.toString()),
                       )}{' '}
                       USD
                     </span>
