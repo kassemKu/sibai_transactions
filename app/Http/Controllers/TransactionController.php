@@ -50,6 +50,9 @@ class TransactionController extends Controller
     public function completeStatus(Transaction $transaction)
     {
         try {
+            if ($this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id) <= $transaction->converted_amount) {
+                return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
+            }
             $this->transactionService->confirmCashMovement($transaction);
 
             $transaction->update([
