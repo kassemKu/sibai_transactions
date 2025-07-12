@@ -21,7 +21,19 @@ class TransactionController extends Controller
     {
         try {
             $calc = $request->getCalc();
+            $convertedAmount = $request->converted_amount;
+
+            $profits = $this->transactionService->calculateProfitsFromConvertedAmount(
+                $calc['from_currency_id'],
+                $calc['to_currency_id'],
+                $convertedAmount
+            );
+
             $calc['converted_amount'] = $request->converted_amount;
+            $calc['profit_from_usd'] = $profits['profit_from_usd'];
+            $calc['profit_to_usd'] = $profits['profit_to_usd'];
+            $calc['total_profit_usd'] = $profits['total_profit_usd'];
+
             $result = array_merge($calc, ['assigned_to' => $request->assigned_to]);
             $transaction = $this->transactionService->createTransaction($result, $request->session);
 
