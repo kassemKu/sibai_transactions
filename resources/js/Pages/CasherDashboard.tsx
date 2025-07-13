@@ -4,7 +4,9 @@ import { usePage } from '@inertiajs/react';
 import { CurrenciesResponse, CashSession, InertiaSharedProps } from '@/types';
 import RootLayout from '@/Layouts/RootLayout';
 import { useStatusPolling } from '@/Hooks/useStatusPolling';
+import { useNewTransactionNotification } from '@/Hooks/useNewTransactionNotification';
 import PrimaryButton from '@/Components/PrimaryButton';
+import NewTransactionNotification from '@/Components/Casher/NewTransactionNotification';
 
 // Import casher-specific components
 import TransactionForm from '@/Components/Casher/TransactionForm';
@@ -37,6 +39,13 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
   const isSessionPending = !!(
     currentCashSession && currentCashSession.status === 'pending'
   );
+
+  // Use notification hook for new pending transactions
+  const { showVisualNotification, hideVisualNotification } =
+    useNewTransactionNotification(transactions, {
+      enabled: isSessionOpen, // Only enable when session is active
+      currentUserEmail: auth?.user?.email, // Pass current user email to filter self-created transactions
+    });
 
   // Create header actions for casher
   const headerActions: React.ReactNode = (
@@ -131,11 +140,11 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
 
       {/* Transaction Form */}
       <div id="transaction-form">
-      <TransactionForm
-        currencies={currenciesState}
-        isSessionOpen={!!isSessionOpen}
-        isSessionPending={!!isSessionPending}
-      />
+        <TransactionForm
+          currencies={currenciesState}
+          isSessionOpen={!!isSessionOpen}
+          isSessionPending={!!isSessionPending}
+        />
       </div>
 
       {/* Pending Transactions Table */}
@@ -147,6 +156,13 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
         isPolling={isPolling}
         lastUpdated={lastUpdated}
         onRefetch={refetch}
+      />
+
+      {/* New Transaction Notification */}
+      <NewTransactionNotification
+        transactions={transactions}
+        isVisible={showVisualNotification}
+        onClose={hideVisualNotification}
       />
     </RootLayout>
   );

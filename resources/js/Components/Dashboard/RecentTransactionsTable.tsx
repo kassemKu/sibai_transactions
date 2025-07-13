@@ -17,6 +17,10 @@ import {
 } from '@heroui/react';
 import { router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
+import { useNewTransactionNotification } from '@/Hooks/useNewTransactionNotification';
+import NewTransactionNotification from '@/Components/Casher/NewTransactionNotification';
+import { usePage } from '@inertiajs/react';
+import { Transaction as GlobalTransaction } from '@/types';
 
 interface Currency {
   id: number;
@@ -85,9 +89,17 @@ export default function RecentTransactionsTable({
   lastUpdated = null,
   onRefetch,
 }: RecentTransactionsTableProps) {
+  const { auth } = usePage().props as any;
   const [updatingTransactions, setUpdatingTransactions] = useState<Set<number>>(
     new Set(),
   );
+
+  // Use notification hook for new pending transactions
+  const { showVisualNotification, hideVisualNotification } =
+    useNewTransactionNotification(transactions as GlobalTransaction[], {
+      enabled: isSessionActive, // Only enable when session is active
+      currentUserEmail: auth?.user?.email, // Pass current user email to filter self-created transactions
+    });
 
   // Helper functions defined first
   const getStatusLabel = (status: Transaction['status']) => {
@@ -205,89 +217,90 @@ export default function RecentTransactionsTable({
 
   // No need for polling logic since parent handles unified status polling
   return (
-    <div className="w-full mb-8">
-      <Table
-        aria-label="Recent pending transactions table"
-        topContent={
-          <div className="mb-1 text-bold-x14 text-[#1F2937] flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <div>المعاملات المعلقة</div>
-                <div className="text-med-x14 text-text-grey-light">
-                  {isSessionPending ? (
-                    'الجلسة في حالة جرد حاليًا، لا يمكن تنفيذ عمليات جديدة'
-                  ) : isSessionActive ? (
-                    <>
-                      المعاملات التي تحتاج إلى مراجعة ({transactions.length})
-                      {lastUpdated && (
-                        <span className="text-xs ml-2">
-                          • آخر تحديث:{' '}
-                          {lastUpdated.toLocaleTimeString('ar-SA', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    'يتطلب جلسة نشطة لعرض المعاملات المعلقة'
-                  )}
+    <>
+      <div className="w-full mb-8">
+        <Table
+          aria-label="Recent pending transactions table"
+          topContent={
+            <div className="mb-1 text-bold-x14 text-[#1F2937] flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div>المعاملات المعلقة</div>
+                  <div className="text-med-x14 text-text-grey-light">
+                    {isSessionPending ? (
+                      'الجلسة في حالة جرد حاليًا، لا يمكن تنفيذ عمليات جديدة'
+                    ) : isSessionActive ? (
+                      <>
+                        المعاملات التي تحتاج إلى مراجعة ({transactions.length})
+                        {lastUpdated && (
+                          <span className="text-xs ml-2">
+                            • آخر تحديث:{' '}
+                            {lastUpdated.toLocaleTimeString('ar-SA', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      'يتطلب جلسة نشطة لعرض المعاملات المعلقة'
+                    )}
+                  </div>
                 </div>
+                {(isLoading || isPolling) && (
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-sm text-gray-500">
+                      {isLoading ? 'جاري التحميل...' : 'جاري التحديث...'}
+                    </span>
+                  </div>
+                )}
               </div>
-              {(isLoading || isPolling) && (
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span className="text-sm text-gray-500">
-                    {isLoading ? 'جاري التحميل...' : 'جاري التحديث...'}
-                  </span>
-                </div>
-              )}
             </div>
-          </div>
-        }
-      >
-        <TableHeader>
-          <TableColumn>التاريخ والوقت</TableColumn>
-          {/* <TableColumn>العميل</TableColumn> */}
-          <TableColumn>من</TableColumn>
-          <TableColumn>إلى</TableColumn>
-          <TableColumn>المبلغ الأصلي</TableColumn>
-          <TableColumn>المبلغ المحول</TableColumn>
-          <TableColumn>منشئ العملية</TableColumn>
-          <TableColumn>مُعين إلى</TableColumn>
-          <TableColumn>الحالة</TableColumn>
-          <TableColumn>الإجراءات</TableColumn>
-        </TableHeader>
-        <TableBody
-          emptyContent={
-            isLoading
-              ? 'جاري التحميل...'
-              : isSessionPending
-                ? 'الجلسة في حالة جرد - تم إيقاف المعاملات المعلقة'
-                : !isSessionActive
-                  ? 'لا توجد جلسة نشطة - لا يمكن عرض المعاملات المعلقة'
-                  : 'لا توجد معاملات معلقة'
           }
         >
-          {transactions
-            .filter(transaction => transaction && transaction.id) // Filter out invalid transactions
-            .map(transaction => {
-              const dateTime = formatDateTime(transaction.created_at);
-              const isUpdating = updatingTransactions.has(transaction.id);
+          <TableHeader>
+            <TableColumn>التاريخ والوقت</TableColumn>
+            {/* <TableColumn>العميل</TableColumn> */}
+            <TableColumn>من</TableColumn>
+            <TableColumn>إلى</TableColumn>
+            <TableColumn>المبلغ الأصلي</TableColumn>
+            <TableColumn>المبلغ المحول</TableColumn>
+            <TableColumn>منشئ العملية</TableColumn>
+            <TableColumn>مُعين إلى</TableColumn>
+            <TableColumn>الحالة</TableColumn>
+            <TableColumn>الإجراءات</TableColumn>
+          </TableHeader>
+          <TableBody
+            emptyContent={
+              isLoading
+                ? 'جاري التحميل...'
+                : isSessionPending
+                  ? 'الجلسة في حالة جرد - تم إيقاف المعاملات المعلقة'
+                  : !isSessionActive
+                    ? 'لا توجد جلسة نشطة - لا يمكن عرض المعاملات المعلقة'
+                    : 'لا توجد معاملات معلقة'
+            }
+          >
+            {transactions
+              .filter(transaction => transaction && transaction.id) // Filter out invalid transactions
+              .map(transaction => {
+                const dateTime = formatDateTime(transaction.created_at);
+                const isUpdating = updatingTransactions.has(transaction.id);
 
-              return (
-                <TableRow
-                  key={transaction.id}
-                  className="cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => handleTransactionClick(transaction.id)}
-                >
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{dateTime.date}</div>
-                      <div className="text-gray-500">{dateTime.time}</div>
-                    </div>
-                  </TableCell>
-                  {/* <TableCell>
+                return (
+                  <TableRow
+                    key={transaction.id}
+                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => handleTransactionClick(transaction.id)}
+                  >
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{dateTime.date}</div>
+                        <div className="text-gray-500">{dateTime.time}</div>
+                      </div>
+                    </TableCell>
+                    {/* <TableCell>
                     <div className="text-sm">
                       <div>{transaction.customer?.name || 'غير محدد'}</div>
                       {transaction.customer?.phone && (
@@ -297,120 +310,130 @@ export default function RecentTransactionsTable({
                       )}
                     </div>
                   </TableCell> */}
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{transaction.from_currency?.name || 'غير محدد'}</div>
-                      <div className="text-gray-500">
-                        {transaction.from_currency?.code || ''}
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>
+                          {transaction.from_currency?.name || 'غير محدد'}
+                        </div>
+                        <div className="text-gray-500">
+                          {transaction.from_currency?.code || ''}
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{transaction.to_currency?.name || 'غير محدد'}</div>
-                      <div className="text-gray-500">
-                        {transaction.to_currency?.code || ''}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{transaction.to_currency?.name || 'غير محدد'}</div>
+                        <div className="text-gray-500">
+                          {transaction.to_currency?.code || ''}
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">
-                      {transaction.from_currency
-                        ? formatAmount(
-                            transaction.original_amount,
-                            transaction.from_currency,
-                          )
-                        : new Intl.NumberFormat('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                            useGrouping: true,
-                          }).format(transaction.original_amount || 0)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">
-                      {transaction.to_currency
-                        ? formatAmount(
-                            transaction.converted_amount,
-                            transaction.to_currency,
-                          )
-                        : new Intl.NumberFormat('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                            useGrouping: true,
-                          }).format(transaction.converted_amount || 0)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{transaction.created_by?.name || 'غير محدد'}</div>
-                      <div className="text-gray-500 text-xs">
-                        {transaction.created_by?.email || ''}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">
+                        {transaction.from_currency
+                          ? formatAmount(
+                              transaction.original_amount,
+                              transaction.from_currency,
+                            )
+                          : new Intl.NumberFormat('en-US', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                              useGrouping: true,
+                            }).format(transaction.original_amount || 0)}
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{transaction.assigned_to?.name || 'Admin'}</div>
-                      <div className="text-gray-500 text-xs">
-                        {transaction.assigned_to?.email || ''}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">
+                        {transaction.to_currency
+                          ? formatAmount(
+                              transaction.converted_amount,
+                              transaction.to_currency,
+                            )
+                          : new Intl.NumberFormat('en-US', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                              useGrouping: true,
+                            }).format(transaction.converted_amount || 0)}
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusChip(transaction.status)}</TableCell>
-                  <TableCell>
-                    <Dropdown>
-                      <DropdownTrigger>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          isLoading={isUpdating}
-                          isDisabled={
-                            isUpdating || !isSessionActive || isSessionPending
-                          }
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{transaction.created_by?.name || 'غير محدد'}</div>
+                        <div className="text-gray-500 text-xs">
+                          {transaction.created_by?.email || ''}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{transaction.assigned_to?.name || 'Admin'}</div>
+                        <div className="text-gray-500 text-xs">
+                          {transaction.assigned_to?.email || ''}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusChip(transaction.status)}</TableCell>
+                    <TableCell>
+                      <Dropdown>
+                        <DropdownTrigger>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            isLoading={isUpdating}
+                            isDisabled={
+                              isUpdating || !isSessionActive || isSessionPending
+                            }
+                          >
+                            {isUpdating
+                              ? ''
+                              : isSessionPending
+                                ? 'جلسة معلقة'
+                                : !isSessionActive
+                                  ? 'غير متاح'
+                                  : 'الإجراءات'}
+                          </Button>
+                        </DropdownTrigger>
+                        <DropdownMenu
+                          aria-label="Transaction actions"
+                          onAction={key => {
+                            if (key === 'complete' || key === 'cancel') {
+                              updateTransactionStatus(
+                                transaction.id,
+                                key as 'complete' | 'cancel',
+                              );
+                            }
+                          }}
                         >
-                          {isUpdating
-                            ? ''
-                            : isSessionPending
-                              ? 'جلسة معلقة'
-                              : !isSessionActive
-                                ? 'غير متاح'
-                                : 'الإجراءات'}
-                        </Button>
-                      </DropdownTrigger>
-                      <DropdownMenu
-                        aria-label="Transaction actions"
-                        onAction={key => {
-                          if (key === 'complete' || key === 'cancel') {
-                            updateTransactionStatus(
-                              transaction.id,
-                              key as 'complete' | 'cancel',
-                            );
-                          }
-                        }}
-                      >
-                        <DropdownItem
-                          key="complete"
-                          color="success"
-                          description="تأكيد إكمال المعاملة"
-                        >
-                          تأكيد إكمال
-                        </DropdownItem>
-                        <DropdownItem
-                          key="cancel"
-                          color="danger"
-                          description="إلغاء المعاملة"
-                        >
-                          إلغاء المعاملة
-                        </DropdownItem>
-                      </DropdownMenu>
-                    </Dropdown>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-        </TableBody>
-      </Table>
-    </div>
+                          <DropdownItem
+                            key="complete"
+                            color="success"
+                            description="تأكيد إكمال المعاملة"
+                          >
+                            تأكيد إكمال
+                          </DropdownItem>
+                          <DropdownItem
+                            key="cancel"
+                            color="danger"
+                            description="إلغاء المعاملة"
+                          >
+                            إلغاء المعاملة
+                          </DropdownItem>
+                        </DropdownMenu>
+                      </Dropdown>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* New Transaction Notification */}
+      <NewTransactionNotification
+        transactions={transactions as GlobalTransaction[]}
+        isVisible={showVisualNotification}
+        onClose={hideVisualNotification}
+      />
+    </>
   );
 }
