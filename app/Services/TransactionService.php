@@ -21,14 +21,14 @@ class TransactionService
         $toCurrency = Currency::findOrFail($toCurrencyId);
 
         // 1️⃣ Conversion to USD
-        $usdAmount = $amount / $fromCurrency->buy_rate_to_usd;
+        $usdAmount = $amount / $fromCurrency->sell_rate_to_usd;
 
         // 2️⃣ Conversion to target currency
-        $convertedAmount = $usdAmount * $toCurrency->sell_rate_to_usd;
+        $convertedAmount = $usdAmount * $toCurrency->buy_rate_to_usd;
 
         // 3️⃣ Margins
-        $fromCurrencyMargin = $fromCurrency->rate_to_usd - $fromCurrency->buy_rate_to_usd;
-        $toCurrencyMargin = $toCurrency->sell_rate_to_usd - $toCurrency->rate_to_usd;
+        $fromCurrencyMargin = $fromCurrency->rate_to_usd - $fromCurrency->sell_rate_to_usd;
+        $toCurrencyMargin = $toCurrency->buy_rate_to_usd - $toCurrency->rate_to_usd;
 
         // 4️⃣ Raw profit before normalization
         $rawProfitFrom = $fromCurrencyMargin * $usdAmount;
