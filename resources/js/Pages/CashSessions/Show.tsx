@@ -26,6 +26,7 @@ import {
 import SecondaryButton from '@/Components/SecondaryButton';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TransactionDetailModal from '@/Components/TransactionDetailModal';
+import AddCashboxModal from '@/Components/AddCashboxModal';
 import {
   Currency,
   CashSession,
@@ -33,6 +34,7 @@ import {
   Transaction,
   SessionOpeningBalance,
   CashBalance,
+  CurrenciesResponse,
 } from '@/types';
 import { route } from 'ziggy-js';
 
@@ -46,10 +48,17 @@ interface PaginatedTransactions {
 
 interface CashSessionShowProps {
   cashSession: CashSession;
+  currencies?: CurrenciesResponse;
 }
 
-export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
+export default function CashSessionShow({
+  cashSession,
+  currencies,
+}: CashSessionShowProps) {
   console.log(cashSession);
+
+  // State for add cashbox modal
+  const [showAddCashboxModal, setShowAddCashboxModal] = useState(false);
 
   // State for transaction modal
   const [selectedTransactionId, setSelectedTransactionId] = useState<
@@ -62,12 +71,41 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
     useState<PaginatedTransactions | null>(null);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-
+  const response = async () => {
+    try {
+      const response = await axios.get('/admin/get-cash-sessions-users',
+        {
+          params: {
+            cash_session_id: cashSession.id,
+          },
+        },
+      );
+      console.log(response.data);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    }
+  };
+  response();
+  const responseCashmovment = async (userid:number) => {
+    try {
+      const response = await axios.get('/admin/casher-cash-movements',
+        {
+          params: {
+            cash_session_id: cashSession.id,
+            user_id:userid,
+          },
+        },
+      );
+      console.log(response.data);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    }
+  };
+  responseCashmovment(1);
   // Handle transaction row click
   const handleTransactionClick = (transactionId: number) => {
     router.get(route('transaction.show', { transaction: transactionId }));
   };
-
   // Fetch transactions from API
   const fetchTransactions = async (page: number = 1) => {
     setIsLoadingTransactions(true);
@@ -90,6 +128,17 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
   // Handle pagination
   const handlePageChange = (page: number) => {
     fetchTransactions(page);
+  };
+
+  // Handle add cashbox modal
+  const handleAddCashboxModalClose = () => {
+    setShowAddCashboxModal(false);
+  };
+
+  // Handle add cashbox success
+  const handleAddCashboxSuccess = () => {
+    // Refresh the page to show updated data
+    window.location.reload();
   };
 
   // Load transactions on component mount
@@ -205,13 +254,23 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
         { label: `جلسة #${cashSession.id}` },
       ]}
       headerActions={
-        <SecondaryButton
-          onClick={() => router.get(route('cash_sessions.index'))}
-          className="text-sm"
-        >
-          <FiArrowLeft className="w-4 h-4 ml-1" />
-          العودة للقائمة
-        </SecondaryButton>
+        <div className="flex items-center space-x-3 space-x-reverse">
+          <SecondaryButton
+            onClick={() => router.get(route('cash_sessions.index'))}
+            className="text-sm"
+          >
+            <FiArrowLeft className="w-4 h-4 ml-1" />
+            العودة للقائمة
+          </SecondaryButton>
+          {cashSession.status === 'active' && currencies && (
+            <PrimaryButton
+              className="text-sm"
+              onClick={() => setShowAddCashboxModal(true)}
+            >
+              إضافة صندوق للجلسة
+            </PrimaryButton>
+          )}
+        </div>
       }
     >
       {/* Session Header */}
@@ -572,6 +631,16 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
         onClose={() => setIsTransactionModalOpen(false)}
         transactionId={selectedTransactionId}
       />
+
+      {/* Add Cashbox Modal */}
+      {currencies && (
+        <AddCashboxModal
+          isOpen={showAddCashboxModal}
+          onClose={handleAddCashboxModalClose}
+          onSuccess={handleAddCashboxSuccess}
+          currencies={currencies}
+        />
+      )}
     </RootLayout>
   );
 }

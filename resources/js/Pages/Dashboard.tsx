@@ -25,6 +25,7 @@ import CloseSessionModal from '@/Components/CloseSessionModal';
 import CurrencyEditModal from '@/Components/Dashboard/CurrencyEditModal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import PendingTransactionsConfirmModal from '@/Components/PendingTransactionsConfirmModal';
+import AddCashboxModal from '@/Components/AddCashboxModal';
 
 interface DashboardProps {
   currencies: CurrenciesResponse;
@@ -47,6 +48,7 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(
     null,
   );
+  const [showAddCashboxModal, setShowAddCashboxModal] = useState(false);
 
   // Use unified status polling hook
   const {
@@ -191,6 +193,17 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
     refetch();
   };
 
+  // Handle add cashbox modal
+  const handleAddCashboxModalClose = () => {
+    setShowAddCashboxModal(false);
+  };
+
+  // Handle add cashbox success
+  const handleAddCashboxSuccess = () => {
+    // Refetch status to update the display
+    refetch();
+  };
+
   // Handle session becoming pending
   const handleSessionPending = () => {
     // Refetch status to update local state (with a slight delay to avoid race conditions)
@@ -227,29 +240,38 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
       )}
 
       {isSessionOpen && !isSessionLoading && (
-        <PrimaryButton
-          className="text-sm"
-          onClick={() => {
-            const transactionForm = document.getElementById('transaction-form');
-            if (transactionForm) {
-              transactionForm.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-                inline: 'nearest',
-              });
-              // Optional: Focus on the first input field
-              setTimeout(() => {
-                const firstInput =
-                  transactionForm.querySelector('input, select');
-                if (firstInput && firstInput instanceof HTMLElement) {
-                  firstInput.focus();
-                }
-              }, 500);
-            }
-          }}
-        >
-          معاملة جديدة
-        </PrimaryButton>
+        <>
+          <PrimaryButton
+            className="text-sm"
+            onClick={() => {
+              const transactionForm =
+                document.getElementById('transaction-form');
+              if (transactionForm) {
+                transactionForm.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                  inline: 'nearest',
+                });
+                // Optional: Focus on the first input field
+                setTimeout(() => {
+                  const firstInput =
+                    transactionForm.querySelector('input, select');
+                  if (firstInput && firstInput instanceof HTMLElement) {
+                    firstInput.focus();
+                  }
+                }, 500);
+              }
+            }}
+          >
+            معاملة جديدة
+          </PrimaryButton>
+          <PrimaryButton
+            className="text-sm"
+            onClick={() => setShowAddCashboxModal(true)}
+          >
+            إضافة صندوق للجلسة
+          </PrimaryButton>
+        </>
       )}
 
       {/* Session Management Buttons - ADMIN ONLY */}
@@ -366,6 +388,14 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
         isOpen={showEditModal}
         onClose={handleEditModalClose}
         onSuccess={handleEditSuccess}
+      />
+
+      {/* Add Cashbox Modal */}
+      <AddCashboxModal
+        isOpen={showAddCashboxModal}
+        onClose={handleAddCashboxModalClose}
+        onSuccess={handleAddCashboxSuccess}
+        currencies={currenciesState}
       />
     </RootLayout>
   );
