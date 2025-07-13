@@ -46,6 +46,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::post('/cash-sessions/pending', [CashSessionController::class, 'pending'])->middleware(EnsureActiveCashSession::class);
         Route::post('/cash-sessions/close', [CashSessionController::class, 'close'])->middleware(EnsurePendingCashSession::class);
         Route::get('/cash-sessions/{cashSession}/transactions', [CashSessionController::class, 'getCashSessionTransactions'])->name('cash_sessions.transactions');
+        Route::get('/get-cash-sessions-users', [CashSessionController::class, 'getSessionUsers']);
 
         Route::get('/casher-cash-movements', [CashMovementController::class, 'getCasherCashMovements']);
 
