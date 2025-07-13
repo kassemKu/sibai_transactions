@@ -20,11 +20,6 @@ class CasherCashSession extends Model
         'status', // 'active', 'closed', 'pending'
     ];
 
-    public function transactions()
-    {
-        return $this->hasMany(Transaction::class)->where('closed_by', auth()->id());
-    }
-
     public function openedBy()
     {
         return $this->belongsTo(User::class, 'opened_by');

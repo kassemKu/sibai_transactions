@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Casher\CasherCashSessionController;
 use App\Http\Controllers\Casher\TransactionController as CasherTransactionController;
 use App\Http\Controllers\CashMovementController;
 use App\Http\Controllers\CashSessionController;
@@ -26,6 +27,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
 
     Route::group(['middleware' => ['role:super_admin|superadministrator|administrator'], 'prefix' => 'admin'], function () {
         Route::get('/', [DashboardController::class, 'AdminDashboard'])->name('admin.dashboard');
+
+        Route::post('/open-casher-session', [CasherCashSessionController::class, 'open'])->middleware(EnsureActiveCashSession::class);
 
         Route::Resource('/currencies', CurrencyController::class)->except(['destroy', 'store']);
         Route::post('/currencies', [CurrencyController::class, 'store'])->middleware(EnsureOpenCashSession::class);

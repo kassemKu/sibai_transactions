@@ -41,6 +41,7 @@ class TransactionRequest extends FormRequest
                 new SufficientBalance($calc),
             ],
             'converted_amount' => 'required|numeric|min:0.01',
+            'notes' => 'nullable|string|max:255',
         ];
     }
 
