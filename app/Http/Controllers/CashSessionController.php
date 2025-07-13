@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\CloseCashSessionRequest;
+use App\Http\Requests\GetSessionUsersRequest;
 use App\Models\CashSession;
 use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
@@ -156,7 +157,7 @@ class CashSessionController extends Controller
         // Return JSON for API/AJAX requests
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
-                'data' => $transactions
+                'data' => $transactions,
             ]);
         }
 
@@ -167,6 +168,15 @@ class CashSessionController extends Controller
                 'closedBy',
             ]),
             'transactions' => $transactions,
+        ]);
+    }
+
+    public function getSessionUsers(GetSessionUsersRequest $request): JsonResponse
+    {
+        $cashSessionUsers = $this->service->getSessionUsers($request->cash_session_id);
+
+        return $this->success('تم فتح الجلسة النقدية بنجاح.', [
+            'cash_session' => $cashSession,
         ]);
     }
 }

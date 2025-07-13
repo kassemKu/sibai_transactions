@@ -39,6 +39,7 @@ class TransactionRequest extends FormRequest
                 'min:0.01',
                 new SufficientBalance($calc),
             ],
+            'notes' => 'nullable|string|max:255',
         ];
     }
 
