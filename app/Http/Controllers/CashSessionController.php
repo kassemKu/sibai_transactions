@@ -7,6 +7,7 @@ use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\CloseCashSessionRequest;
 use App\Http\Requests\GetSessionUsersRequest;
 use App\Models\CashSession;
+use App\Models\Currency;
 use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -54,6 +55,7 @@ class CashSessionController extends Controller
                 'openedBy',
                 'closedBy',
             ]),
+            'currencies' => Currency::all(),
             'totalUsdProfits' => $cashSession->transactions()
                 ->where('status', TransactionStatusEnum::COMPLETED->value)
                 ->sum('total_profit_usd'),
@@ -175,8 +177,8 @@ class CashSessionController extends Controller
     {
         $cashSessionUsers = $this->service->getSessionUsers($request->cash_session_id);
 
-        return $this->success('تم فتح الجلسة النقدية بنجاح.', [
-            'cash_session' => $cashSession,
+        return $this->success('تم جلب مستخدمي الجلسة بنجاح.', [
+            'users' => $cashSessionUsers,
         ]);
     }
 }
