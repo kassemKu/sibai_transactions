@@ -48,7 +48,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::get('/cash-sessions/{cashSession}/transactions', [CashSessionController::class, 'getCashSessionTransactions'])->name('cash_sessions.transactions');
         Route::get('/get-cash-sessions-users', [CashSessionController::class, 'getSessionUsers']);
 
-        Route::post('/open-casher-session', [CasherCashSessionController::class, 'open']);
+        Route::post('/open-casher-session', [CasherCashSessionController::class, 'open'])->middleware(EnsureActiveCashSession::class);
         Route::post('/casher-cash-session/{casherCashSession}/pending', [CasherCashSessionController::class, 'pending'])->middleware(EnsureActiveCasherCashSession::class);
         Route::post('/casher-close-cash-session/{casherCashSession}/close', [CasherCashSessionController::class, 'close'])->middleware(EnsureCasherPendingCashSession::class);
         Route::get('/get-closing-balances/{casherCashSession}', [CasherCashSessionController::class, 'getClosingBalances'])->middleware(EnsureOpenCashSession::class);
