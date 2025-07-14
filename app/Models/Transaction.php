@@ -71,7 +71,6 @@ class Transaction extends Model
 
     public function getFromCurrencyRatesSnapshotAttribute($value)
     {
-        // dd(json_decode($value, true));
         return json_decode($value, true);
     }
 

@@ -158,12 +158,12 @@ class TransactionService
             ->first()
             ->opening_balance ?? 0;
 
-        $totalIn = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
+        $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
             ->where('currency_id', $currencyId)
             ->where('type', CashMovementTypeEnum::IN->value)
             ->sum('amount');
 
-        $totalOut = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
+        $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
             ->where('currency_id', $currencyId)
             ->where('type', CashMovementTypeEnum::OUT->value)
             ->sum('amount');

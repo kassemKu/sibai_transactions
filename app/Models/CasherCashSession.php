@@ -15,6 +15,8 @@ class CasherCashSession extends Model
         'opened_by',
         'closed_by',
         'opening_balances',
+        'system_balances',
+        'actual_closing_balances',
         'cash_session_id',
         'casher_id',
         'status', // 'active', 'closed', 'pending'
@@ -38,5 +40,20 @@ class CasherCashSession extends Model
     public function casher()
     {
         return $this->belongsTo(User::class, 'casher_id');
+    }
+
+    public function getOpeningBalancesAttribute($value)
+    {
+        return json_decode($value, true);
+    }
+
+    public function getSystemBalancesAttribute($value)
+    {
+        return json_decode($value, true);
+    }
+
+    public function getActualClosingBalancesAttribute($value)
+    {
+        return json_decode($value, true);
     }
 }
