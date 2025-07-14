@@ -44,4 +44,9 @@ class User extends Authenticatable implements LaratrustUser
             'password' => 'hashed',
         ];
     }
+
+    public function casherCashSessions()
+    {
+        return $this->hasMany(CasherCashSession::class, 'casher_id');
+    }
 }

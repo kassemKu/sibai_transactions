@@ -66,9 +66,7 @@ class CasherCashSessionService
                 ];
             }
 
-            // يمكنك هنا تحديث الجلسة أو إرجاع النتائج كما تريد
             return [
-                'session' => $session->refresh(),
                 'system_closing_balances' => $balances,
             ];
         });

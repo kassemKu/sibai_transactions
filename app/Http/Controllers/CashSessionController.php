@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\CloseCashSessionRequest;
-use App\Http\Requests\GetSessionUsersRequest;
 use App\Models\CashSession;
 use App\Models\Currency;
+use App\Models\User;
 use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -175,12 +175,14 @@ class CashSessionController extends Controller
         ]);
     }
 
-    public function getSessionUsers(GetSessionUsersRequest $request): JsonResponse
+    public function getAvailableCashers(Request $request): JsonResponse
     {
-        $cashSessionUsers = $this->service->getSessionUsers($request->cash_session_id);
+        $availableCashers = User::whereDoesntHave('casherCashSessions', function ($q) use ($request) {
+            $q->where('cash_session_id', $request->session_id);
+        })->get();
 
         return $this->success('تم جلب مستخدمي الجلسة بنجاح.', [
-            'users' => $cashSessionUsers,
+            'users' => $availableCashers,
         ]);
     }
 }

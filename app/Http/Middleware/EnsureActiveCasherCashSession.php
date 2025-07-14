@@ -13,7 +13,10 @@ class EnsureActiveCasherCashSession
     public function handle(Request $request, Closure $next)
     {
         $session = CashSession::where('status', CashSessionEnum::ACTIVE->value)->first();
-        $casherSession = CasherCashSession::where('status', CashSessionEnum::ACTIVE->value)->where('cash_session_id', $session->id)->first();
+        $casherSession = CasherCashSession::where('status', CashSessionEnum::ACTIVE->value)
+            ->where('cash_session_id', $session->id)
+            ->where('casher_id', auth()->id())
+            ->first();
 
         if (! $session || ! $casherSession) {
             if ($request->expectsJson()) {

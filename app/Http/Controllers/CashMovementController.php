@@ -16,10 +16,6 @@ class CashMovementController extends Controller
         $balances = [];
 
         foreach ($currencies as $currency) {
-            // $opening = CashBalance::where('cash_session_id', $session->id)
-            //     ->where('currency_id', $currency->id)
-            //     ->first()
-            //     ->opening_balance ?? 0;
 
             $totalIn = CashMovement::where('currency_id', $currency->id)
                 ->where('by', $request->user_id)

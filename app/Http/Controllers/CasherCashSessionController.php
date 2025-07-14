@@ -75,9 +75,10 @@ class CasherCashSessionController extends Controller
         }
     }
 
-    public function getClosingBalances(Request $request, CasherCashSession $session): JsonResponse
+    public function getClosingBalances($id, Request $request): JsonResponse
     {
         try {
+            $session = CasherCashSession::findOrFail($id);
             $balances = $this->service->getClosingBalances($request->session, $session);
 
             return $this->success('تم جلب أرصدة الإغلاق بنجاح.', [
