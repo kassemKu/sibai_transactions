@@ -55,7 +55,7 @@ export default function CashSessionShow({
   cashSession,
   currencies,
 }: CashSessionShowProps) {
-  console.log(cashSession);
+  console.log("cash-sessionr",cashSession);
 
   // State for add cashbox modal
   const [showAddCashboxModal, setShowAddCashboxModal] = useState(false);
@@ -96,12 +96,21 @@ export default function CashSessionShow({
           },
         },
       );
-      console.log(response.data);
+      console.log("cash-movements-casher",response.data);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     }
   };
   responseCashmovment(1);
+  const closeCashSession = async () => {
+    try {
+      const response = await axios.get(`/admin/get-closing-balances/${cashSession.id}`)
+      console.log("closing-balances-casher",response.data);
+    } catch (error) {
+      console.error('Error closing cash session:', error);
+    }
+  };
+  closeCashSession()
   // Handle transaction row click
   const handleTransactionClick = (transactionId: number) => {
     router.get(route('transaction.show', { transaction: transactionId }));
