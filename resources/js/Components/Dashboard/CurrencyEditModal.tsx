@@ -15,6 +15,7 @@ import InputLabel from '@/Components/InputLabel';
 import InputError from '@/Components/InputError';
 import { Currency } from '@/types';
 import { FiSave, FiLoader } from 'react-icons/fi';
+import { evaluate } from 'mathjs';
 
 interface CurrencyEditModalProps {
   currency: Currency | null;
@@ -52,6 +53,12 @@ export default function CurrencyEditModal({
   const [errors, setErrors] = useState<CurrencyFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Add raw input state for buy/sell fields
+  const [buyRaw, setBuyRaw] = useState('');
+  const [sellRaw, setSellRaw] = useState('');
+  const [buyResult, setBuyResult] = useState<string | null>(null);
+  const [sellResult, setSellResult] = useState<string | null>(null);
+
   // Reset form when currency changes or modal opens
   useEffect(() => {
     if (currency && isOpen) {
@@ -61,9 +68,49 @@ export default function CurrencyEditModal({
         buy_rate_to_usd: currency.buy_rate_to_usd.toString(),
         sell_rate_to_usd: currency.sell_rate_to_usd.toString(),
       });
+      setBuyRaw('');
+      setSellRaw('');
+      setBuyResult(null);
+      setSellResult(null);
       setErrors({});
     }
   }, [currency, isOpen]);
+
+  // Evaluate buy formula
+  useEffect(() => {
+    if (buyRaw && /[+\-*/]/.test(buyRaw)) {
+      try {
+        const result = evaluate(buyRaw);
+        if (typeof result === 'number' && isFinite(result)) {
+          setBuyResult(result.toString());
+        } else {
+          setBuyResult(null);
+        }
+      } catch {
+        setBuyResult(null);
+      }
+    } else {
+      setBuyResult(null);
+    }
+  }, [buyRaw]);
+
+  // Evaluate sell formula
+  useEffect(() => {
+    if (sellRaw && /[+\-*/]/.test(sellRaw)) {
+      try {
+        const result = evaluate(sellRaw);
+        if (typeof result === 'number' && isFinite(result)) {
+          setSellResult(result.toString());
+        } else {
+          setSellResult(null);
+        }
+      } catch {
+        setSellResult(null);
+      }
+    } else {
+      setSellResult(null);
+    }
+  }, [sellRaw]);
 
   // Handle form input changes
   const handleInputChange = (field: keyof CurrencyFormData, value: string) => {
@@ -174,6 +221,10 @@ export default function CurrencyEditModal({
         buy_rate_to_usd: '',
         sell_rate_to_usd: '',
       });
+      setBuyRaw('');
+      setSellRaw('');
+      setBuyResult(null);
+      setSellResult(null);
       setErrors({});
       onClose();
     }
@@ -268,18 +319,36 @@ export default function CurrencyEditModal({
                 <InputLabel htmlFor="modal-buy-rate">
                   سعر الشراء مقابل الدولار *
                 </InputLabel>
-                <NumberInput
+                <input
                   id="modal-buy-rate"
-                  value={formData.buy_rate_to_usd}
-                  onChange={value =>
-                    handleInputChange('buy_rate_to_usd', value)
-                  }
-                  placeholder="مثال: 1.0"
-                  decimalScale={6}
-                  min={0}
-                  className="mt-1 block w-full"
+                  type="text"
+                  value={buyRaw || formData.buy_rate_to_usd}
+                  onChange={e => {
+                    setBuyRaw(e.target.value);
+                    handleInputChange('buy_rate_to_usd', e.target.value);
+                  }}
+                  placeholder="مثال: 1.0 أو 1/1.13"
+                  className="mt-1 block w-full border rounded px-3 py-2"
                   disabled={isSubmitting}
                 />
+                {buyResult && (
+                  <div className="mt-1 text-xs text-blue-700 flex items-center gap-2">
+                    = {buyResult}
+                    <button
+                      type="button"
+                      className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          buy_rate_to_usd: buyResult,
+                        }));
+                        setBuyRaw('');
+                      }}
+                    >
+                      استخدام الناتج
+                    </button>
+                  </div>
+                )}
                 <p className="mt-1 text-sm text-gray-500">
                   سعر شراء العملة مقابل الدولار
                 </p>
@@ -295,18 +364,36 @@ export default function CurrencyEditModal({
                 <InputLabel htmlFor="modal-sell-rate">
                   سعر البيع مقابل الدولار *
                 </InputLabel>
-                <NumberInput
+                <input
                   id="modal-sell-rate"
-                  value={formData.sell_rate_to_usd}
-                  onChange={value =>
-                    handleInputChange('sell_rate_to_usd', value)
-                  }
-                  placeholder="مثال: 1.0"
-                  decimalScale={6}
-                  min={0}
-                  className="mt-1 block w-full"
+                  type="text"
+                  value={sellRaw || formData.sell_rate_to_usd}
+                  onChange={e => {
+                    setSellRaw(e.target.value);
+                    handleInputChange('sell_rate_to_usd', e.target.value);
+                  }}
+                  placeholder="مثال: 1.0 أو 1/1.15"
+                  className="mt-1 block w-full border rounded px-3 py-2"
                   disabled={isSubmitting}
                 />
+                {sellResult && (
+                  <div className="mt-1 text-xs text-blue-700 flex items-center gap-2">
+                    = {sellResult}
+                    <button
+                      type="button"
+                      className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          sell_rate_to_usd: sellResult,
+                        }));
+                        setSellRaw('');
+                      }}
+                    >
+                      استخدام الناتج
+                    </button>
+                  </div>
+                )}
                 <p className="mt-1 text-sm text-gray-500">
                   سعر بيع العملة مقابل الدولار
                 </p>
