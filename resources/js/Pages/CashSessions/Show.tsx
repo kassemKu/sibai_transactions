@@ -14,6 +14,8 @@ import {
   CardBody,
   Button,
   Pagination,
+  Accordion,
+  AccordionItem,
 } from '@heroui/react';
 import {
   FiCalendar,
@@ -22,11 +24,15 @@ import {
   FiArrowLeft,
   FiDollarSign,
   FiLoader,
+  FiEye,
+  FiChevronDown,
+  FiChevronUp,
 } from 'react-icons/fi';
 import SecondaryButton from '@/Components/SecondaryButton';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TransactionDetailModal from '@/Components/TransactionDetailModal';
 import AddCashboxModal from '@/Components/AddCashboxModal';
+import DialogModal from '@/Components/DialogModal';
 import {
   Currency,
   CashSession,
@@ -35,6 +41,7 @@ import {
   SessionOpeningBalance,
   CashBalance,
   CurrenciesResponse,
+  CasherCashSession,
 } from '@/types';
 import { route } from 'ziggy-js';
 
@@ -71,37 +78,20 @@ export default function CashSessionShow({
     useState<PaginatedTransactions | null>(null);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const response = async () => {
-    try {
-      const response = await axios.get('/admin/get-cash-sessions-users',
-        {
-          params: {
-            cash_session_id: cashSession.id,
-          },
-        },
-      );
-      console.log(response.data);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-    }
-  };
-  response();
-  const responseCashmovment = async (userid:number) => {
-    try {
-      const response = await axios.get('/admin/casher-cash-movements',
-        {
-          params: {
-            cash_session_id: cashSession.id,
-            user_id:userid,
-          },
-        },
-      );
-      console.log(response.data);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-    }
-  };
-  responseCashmovment(1);
+
+  // State for cashier boxes balances
+  const [loadingBalances, setLoadingBalances] = useState<
+    Record<number, boolean>
+  >({});
+  const [cashierBalances, setCashierBalances] = useState<Record<number, any>>(
+    {},
+  );
+
+  // State for cashier details modal
+  const [isCashierModalOpen, setIsCashierModalOpen] = useState(false);
+  const [selectedCashierSession, setSelectedCashierSession] =
+    useState<CasherCashSession | null>(null);
+
   // Handle transaction row click
   const handleTransactionClick = (transactionId: number) => {
     router.get(route('transaction.show', { transaction: transactionId }));
@@ -139,6 +129,42 @@ export default function CashSessionShow({
   const handleAddCashboxSuccess = () => {
     // Refresh the page to show updated data
     window.location.reload();
+  };
+
+  // Fetch cashier balances
+  const fetchCashierBalances = async (casherCashSessionId: number) => {
+    setLoadingBalances(prev => ({ ...prev, [casherCashSessionId]: true }));
+    try {
+      const response = await axios.get(
+        `/admin/get-closing-balances/${casherCashSessionId}`,
+      );
+      setCashierBalances(prev => ({
+        ...prev,
+        [casherCashSessionId]:
+          response.data.data.balances.system_closing_balances,
+      }));
+      console.log(response.data.data.balances.system_closing_balances);
+    } catch (error) {
+      console.error('Error fetching cashier balances:', error);
+    } finally {
+      setLoadingBalances(prev => ({ ...prev, [casherCashSessionId]: false }));
+    }
+  };
+
+  // Handle view cashier details
+  const handleViewCashierDetails = (casherCashSession: CasherCashSession) => {
+    setSelectedCashierSession(casherCashSession);
+    setIsCashierModalOpen(true);
+    // Fetch balances when modal opens
+    if (!cashierBalances[casherCashSession.id]) {
+      fetchCashierBalances(casherCashSession.id);
+    }
+  };
+
+  // Handle modal close
+  const handleCashierModalClose = () => {
+    setIsCashierModalOpen(false);
+    setSelectedCashierSession(null);
   };
 
   // Load transactions on component mount
@@ -209,11 +235,11 @@ export default function CashSessionShow({
   ) => {
     try {
       if (!currency || !amount) {
-        return 'غير متاح';
+        return '0.00';
       }
       const numAmount = parseFloat(amount);
       if (isNaN(numAmount)) {
-        return 'غير متاح';
+        return '0.00';
       }
       const formattedAmount = new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 2,
@@ -222,7 +248,7 @@ export default function CashSessionShow({
       }).format(numAmount);
       return `${formattedAmount}`;
     } catch (error) {
-      return 'غير متاح';
+      return '0.00';
     }
   };
 
@@ -554,6 +580,295 @@ export default function CashSessionShow({
           </Card>
         )}
       </div>
+
+      {/* Cashier Boxes */}
+      {cashSession.casher_cash_sessions &&
+        cashSession.casher_cash_sessions.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              صناديق الصرافين في هذه الجلسة
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {cashSession.casher_cash_sessions.map(casherSession => (
+                <Card key={casherSession.id} className="dir-rtl">
+                  <CardBody className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <FiUser className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <h3 className="font-semibold text-gray-900 text-right">
+                            {casherSession.casher.name}
+                          </h3>
+                          <p className="text-sm text-gray-500 text-right">
+                            {casherSession.casher.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        {getStatusChip(casherSession.status)}
+                        <Button
+                          size="sm"
+                          variant="light"
+                          onClick={() =>
+                            handleViewCashierDetails(casherSession)
+                          }
+                          className="text-blue-600"
+                        >
+                          <FiEye className="w-4 h-4 ml-1" />
+                          عرض التفاصيل
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Basic Info */}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">عدد العملات:</span>
+                        <span className="font-medium">
+                          {casherSession?.opening_balances?.length || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">تاريخ الفتح:</span>
+                        <span className="font-medium">
+                          {formatDateTime(casherSession.opened_at).date}
+                        </span>
+                      </div>
+                      {casherSession.closed_at && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">تاريخ الإغلاق:</span>
+                          <span className="font-medium">
+                            {formatDateTime(casherSession.closed_at).date}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </CardBody>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+      {/* Cashier Details Modal */}
+      <DialogModal
+        isOpen={isCashierModalOpen}
+        onClose={handleCashierModalClose}
+        maxWidth="6xl"
+      >
+        <DialogModal.Content
+          title={`تفاصيل صندوق الصراف - ${selectedCashierSession?.casher.name}`}
+        >
+          {selectedCashierSession && (
+            <div className="space-y-6" dir="rtl">
+              <div className="text-sm text-gray-600 mb-4 text-right">
+                عرض تفاصيل الأرصدة الافتتاحية والأرصدة النظامية للصراف
+              </div>
+
+              {/* Opening Balances Section */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3 text-right text-lg">
+                  الأرصدة الافتتاحية
+                </h4>
+                <div className="overflow-x-auto">
+                  <table
+                    className="min-w-full divide-y divide-gray-200"
+                    dir="rtl"
+                  >
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          العملة
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          الرصيد الافتتاحي
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedCashierSession?.opening_balances?.map(
+                        (balance, index) => {
+                          const currency = currencies?.find(
+                            c => c.id === balance.currency_id,
+                          );
+                          return (
+                            <tr key={index}>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {currency?.name ||
+                                    `العملة ${balance.currency_id}`}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {currency?.code || 'N/A'}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <div className="text-sm text-gray-900">
+                                  {formatAmount(
+                                    balance?.amount?.toString(),
+                                    currency,
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        },
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* System Balances Section */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3 text-right text-lg">
+                  الأرصدة النظامية
+                </h4>
+                {loadingBalances[selectedCashierSession.id] ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="mr-3 text-gray-600">
+                      جاري تحميل الأرصدة...
+                    </span>
+                  </div>
+                ) : cashierBalances[selectedCashierSession.id] &&
+                  Array.isArray(cashierBalances[selectedCashierSession.id]) ? (
+                  <div className="overflow-x-auto">
+                    <table
+                      className="min-w-full divide-y divide-gray-200"
+                      dir="rtl"
+                    >
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            العملة
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            الرصيد الافتتاحي
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            إجمالي الداخل
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            إجمالي الخارج
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            الرصيد النظامي
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {cashierBalances[selectedCashierSession.id].map(
+                          (balance: any, index: number) => (
+                            <tr key={index}>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {balance.name}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {balance.code}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <div className="text-sm text-gray-900">
+                                  {formatAmount(balance.opening_balance, {
+                                    name: balance.name,
+                                    code: balance.code,
+                                  } as Currency)}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <div className="text-sm text-green-600">
+                                  {formatAmount(balance.total_in, {
+                                    name: balance.name,
+                                    code: balance.code,
+                                  } as Currency)}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <div className="text-sm text-red-600">
+                                  {formatAmount(balance.total_out, {
+                                    name: balance.name,
+                                    code: balance.code,
+                                  } as Currency)}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <div className="text-sm font-medium text-blue-600">
+                                  {formatAmount(balance.system_balance, {
+                                    name: balance.name,
+                                    code: balance.code,
+                                  } as Currency)}
+                                </div>
+                              </td>
+                            </tr>
+                          ),
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    لا توجد أرصدة نظامية متاحة
+                  </div>
+                )}
+              </div>
+
+              {/* Session Info Section */}
+              <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                <h4 className="font-medium text-gray-900 text-right text-lg">
+                  معلومات الجلسة
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                  <div className="text-right">
+                    <span className="text-gray-600 block mb-1">
+                      اسم الصراف:
+                    </span>
+                    <div className="font-medium text-gray-900">
+                      {selectedCashierSession.casher.name}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-gray-600 block mb-1">
+                      تاريخ الفتح:
+                    </span>
+                    <div className="font-medium text-gray-900">
+                      {formatDateTime(selectedCashierSession.opened_at).date} -{' '}
+                      {formatDateTime(selectedCashierSession.opened_at).time}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-gray-600 block mb-1">الحالة:</span>
+                    <div className="font-medium">
+                      {getStatusChip(selectedCashierSession.status)}
+                    </div>
+                  </div>
+                  {selectedCashierSession.closed_at && (
+                    <div className="text-right">
+                      <span className="text-gray-600 block mb-1">
+                        تاريخ الإغلاق:
+                      </span>
+                      <div className="font-medium text-gray-900">
+                        {formatDateTime(selectedCashierSession.closed_at).date}{' '}
+                        -{' '}
+                        {formatDateTime(selectedCashierSession.closed_at).time}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogModal.Content>
+
+        <DialogModal.Footer>
+          <div className="flex justify-end space-x-3 space-x-reverse">
+            <SecondaryButton onClick={handleCashierModalClose}>
+              إغلاق
+            </SecondaryButton>
+          </div>
+        </DialogModal.Footer>
+      </DialogModal>
 
       {/* Closing Balances */}
       {cashSession.cash_balances &&

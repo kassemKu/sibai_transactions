@@ -207,6 +207,39 @@ export interface CashSession {
   opening_balances: SessionOpeningBalance[];
   cash_balances: CashBalance[];
   transactions: Transaction[];
+  casher_cash_sessions?: CasherCashSession[];
+}
+
+export interface CasherCashSession {
+  id: number;
+  opened_at: string;
+  closed_at: Nullable<string>;
+  opened_by: User;
+  closed_by: Nullable<User>;
+  opening_balances: Array<{
+    currency_id: number;
+    amount: string;
+    currency?: Currency;
+  }>;
+  system_balances?: Array<{
+    currency_id: number;
+    name: string;
+    code: string;
+    opening_balance: string;
+    total_in: string;
+    total_out: string;
+    system_balance: string;
+  }>;
+  actual_closing_balances?: Array<{
+    currency_id: number;
+    amount: string;
+  }>;
+  cash_session_id: number;
+  casher_id: number;
+  status: 'active' | 'pending' | 'closed';
+  created_at: string;
+  updated_at: string;
+  casher: User;
 }
 
 export interface CashSessionsResponse {
