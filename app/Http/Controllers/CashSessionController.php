@@ -52,6 +52,8 @@ class CashSessionController extends Controller
                 'transactions.assignedTo',
                 'transactions.fromCurrency',
                 'transactions.toCurrency',
+                'casherCashSessions',
+                'casherCashSessions.casher',
                 'openedBy',
                 'closedBy',
             ]),

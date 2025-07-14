@@ -24,6 +24,11 @@ class CashSession extends Model
         return $this->hasMany(Transaction::class);
     }
 
+    public function casherCashSessions()
+    {
+        return $this->hasMany(CasherCashSession::class, 'cash_session_id');
+    }
+
     public function cashBalances()
     {
         return $this->hasMany(CashBalance::class);
