@@ -53,12 +53,13 @@ class TransactionController extends Controller
             if ($this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id) <= $transaction->converted_amount) {
                 return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
             }
-            $this->transactionService->confirmCashMovement($transaction);
 
             $transaction->update([
                 'status' => TransactionStatusEnum::COMPLETED->value,
                 'closed_by' => auth()->id(),
             ]);
+
+            $this->transactionService->confirmCashMovement($transaction);
 
             return $this->success('تم تغيير حالة المعاملة إلى مكتملة.', [
                 'transaction' => $transaction->refresh(),
