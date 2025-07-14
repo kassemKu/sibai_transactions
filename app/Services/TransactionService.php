@@ -129,7 +129,7 @@ class TransactionService
                 'amount' => $transaction->original_amount,
                 'cash_session_id' => $transaction->cash_session_id,
                 'exchange_rate' => $transaction->from_currency_rates_snapshot['buy_rate_to_usd'],
-                'by' => $transaction->closed_by,
+                'by' => $transaction->created_by,
                 'cash_session_id' => $transaction->cash_session_id,
             ]);
 
@@ -140,7 +140,7 @@ class TransactionService
                 'amount' => $transaction->converted_amount,
                 'cash_session_id' => $transaction->cash_session_id,
                 'exchange_rate' => $transaction->to_currency_rates_snapshot['sell_rate_to_usd'],
-                'by' => $transaction->created_by,
+                'by' => $transaction->closed_by,
                 'cash_session_id' => $transaction->cash_session_id,
             ]);
         });
@@ -158,12 +158,12 @@ class TransactionService
             ->first()
             ->opening_balance ?? 0;
 
-        $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
+        $totalIn = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
             ->where('currency_id', $currencyId)
             ->where('type', CashMovementTypeEnum::IN->value)
             ->sum('amount');
 
-        $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
+        $totalOut = CashMovement::whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
             ->where('currency_id', $currencyId)
             ->where('type', CashMovementTypeEnum::OUT->value)
             ->sum('amount');
