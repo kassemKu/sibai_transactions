@@ -15,8 +15,8 @@ class CurrencySeeder extends Seeder
                 'name' => 'دولار أمريكي',
                 'code' => 'USD',
                 'rate_to_usd' => 1.000000,
-                'buy_rate_to_usd' => 0.980000,
-                'sell_rate_to_usd' => 1.020000,
+                'buy_rate_to_usd' => 1.000000,
+                'sell_rate_to_usd' => 1.000000,
             ],
             [
                 'name' => 'ليرة سوري',
