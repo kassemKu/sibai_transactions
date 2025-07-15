@@ -11,6 +11,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureActiveCasherCashSession;
 use App\Http\Middleware\EnsureActiveCashSession;
+use App\Http\Middleware\EnsureActiveIsCasherCashSession;
 use App\Http\Middleware\EnsureCasherPendingCashSession;
 use App\Http\Middleware\EnsureNoOpenCashSession;
 use App\Http\Middleware\EnsureNotActiveCasherCashSession;
@@ -91,7 +92,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
 
     Route::group(['middleware' => ['role:casher'], 'prefix' => 'casher'], function () {
         Route::get('/', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
-        Route::post('/transactions', [CasherTransactionController::class, 'store'])->middleware(EnsureActiveCasherCashSession::class);
-        Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware([EnsurePendingTransaction::class, EnsureActiveCasherCashSession::class]);
+        Route::post('/transactions', [CasherTransactionController::class, 'store'])->middleware(EnsureActiveIsCasherCashSession::class);
+        Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware([EnsurePendingTransaction::class, EnsureActiveIsCasherCashSession::class]);
     });
 });
