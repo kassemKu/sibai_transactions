@@ -123,6 +123,7 @@ class CasherCashSessionController extends Controller
             $casherCashSession->update([
                 'actual_closing_balances' => json_encode($request->actual_closing_balances),
                 'system_balances' => json_encode($systemBalances),
+                'differences' => json_encode($result['differences'] ?? []),
                 'status' => CashSessionEnum::CLOSED->value,
                 'closed_at' => now(),
                 'closed_by' => auth()->id(),

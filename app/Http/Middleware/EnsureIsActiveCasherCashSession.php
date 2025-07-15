@@ -6,7 +6,7 @@ use App\Enums\CashSessionEnum;
 use Closure;
 use Illuminate\Http\Request;
 
-class EnsureActiveIsCasherCashSession
+class EnsureIsActiveCasherCashSession
 {
     public function handle(Request $request, Closure $next)
     {
@@ -17,7 +17,7 @@ class EnsureActiveIsCasherCashSession
             })
             ->first();
 
-        if (!$casherSession) {
+        if (! $casherSession) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'status' => false,
