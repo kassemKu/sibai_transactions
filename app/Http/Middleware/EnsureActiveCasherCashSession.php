@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Enums\CashSessionEnum;
-use App\Models\CasherCashSession;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -11,7 +10,7 @@ class EnsureActiveCasherCashSession
 {
     public function handle(Request $request, Closure $next)
     {
-        $casherSession = CasherCashSession::findOrFail($request->route('casherCashSession'));
+        $casherSession = $request->route('casherCashSession');
         $session = $casherSession->cashSession;
 
         if ($session->status != CashSessionEnum::ACTIVE->value || $casherSession->status != CashSessionEnum::ACTIVE->value) {

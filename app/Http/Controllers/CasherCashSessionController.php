@@ -91,15 +91,15 @@ class CasherCashSessionController extends Controller
         }
     }
 
-    public function pending(CasherCashSession $session): JsonResponse
+    public function pending(CasherCashSession $casherCashSession): JsonResponse
     {
         try {
-            $session->update([
+            $casherCashSession->update([
                 'status' => CashSessionEnum::PENDING->value,
             ]);
 
             return $this->success('تم تحويل حالة الجلسة إلى قيد الإغلاق.', [
-                'session' => $session->refresh(),
+                'session' => $casherCashSession->refresh(),
             ]);
         } catch (\Exception $e) {
             $this->errorLog($e, 'CasherCashSessionController@pending');
@@ -108,18 +108,34 @@ class CasherCashSessionController extends Controller
         }
     }
 
-    public function close(CloseCasherCashSessionRequest $request, CasherCashSession $session): JsonResponse
+    public function close(CloseCasherCashSessionRequest $request, CasherCashSession $casherCashSession): JsonResponse
     {
         try {
-            $result = $this->service->getClosingBalances($request->session, $session);
+            $result = $this->service->getClosingBalances($casherCashSession->cashSession, $casherCashSession);
 
-            return $this->success('تم إغلاق الجلسة النقدية بنجاح (محاكاة).', [
+            $systemBalances = collect($result['system_closing_balances'] ?? [])->map(function ($balance) {
+                return [
+                    'currency_id' => $balance['currency_id'],
+                    'amount' => $balance['system_balance'],
+                ];
+            })->values()->all();
+
+            $casherCashSession->update([
+                'actual_closing_balances' => json_encode($request->actual_closing_balances),
+                'system_balances' => json_encode($systemBalances),
+                'status' => CashSessionEnum::CLOSED->value,
+                'closed_at' => now(),
+                'closed_by' => auth()->id(),
+            ]);
+
+            return $this->success('تم إغلاق الجلسة النقدية بنجاح.', [
+                'session' => $casherCashSession->refresh(),
                 'report' => $result,
             ]);
         } catch (\Exception $e) {
-            $this->errorLog($e, 'CasherCashSessionController@open (simulation)');
+            $this->errorLog($e, 'CasherCashSessionController@close');
 
-            return $this->failed('حدث خطأ أثناء إغلاق الجلسة النقدية (محاكاة)');
+            return $this->failed('حدث خطأ أثناء إغلاق الجلسة النقدية');
         }
     }
 }
