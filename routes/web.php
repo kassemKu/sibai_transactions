@@ -92,6 +92,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::group(['middleware' => ['role:casher'], 'prefix' => 'casher'], function () {
         Route::get('/', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
         Route::post('/transactions', [CasherTransactionController::class, 'store'])->middleware(EnsureActiveCasherCashSession::class);
-        Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
+        Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware([EnsurePendingTransaction::class, EnsureActiveCasherCashSession::class]);
     });
 });

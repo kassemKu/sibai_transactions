@@ -6,7 +6,9 @@ use App\Enums\TransactionStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Casher\TransactionRequest;
 use App\Models\Transaction;
+use App\Services\CasherCashSessionService;
 use App\Services\TransactionService;
+use Illuminate\Http\Request;
 
 class TransactionController extends Controller
 {
@@ -21,18 +23,22 @@ class TransactionController extends Controller
     {
         $calc = $request->getCalc();
 
-        $transaction = $this->transactionService->createTransaction($calc, $request->session);
+        $transaction = $this->transactionService->createTransaction($calc, $request->cash_session);
 
         return $this->success('Transaction created successfully.', [
             'transaction' => $transaction,
         ]);
     }
 
-    public function confirmStatus(Transaction $transaction)
+    public function confirmStatus(Transaction $transaction, CasherCashSessionService $service, Request $request)
     {
         $this->authorize('complete', $transaction);
 
         if ($this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id) <= $transaction->converted_amount) {
+            return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
+        }
+
+        if ($service->getClosingBalanceForCurrency($request->cash_session, $request->casherSession, $transaction->to_currency_id)['system_balance'] < $transaction->converted_amount) {
             return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
         }
 

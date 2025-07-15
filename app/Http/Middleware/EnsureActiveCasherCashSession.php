@@ -30,7 +30,7 @@ class EnsureActiveCasherCashSession
         }
 
         // Inject the session into request if you want
-        $request->merge(['session' => $session, 'casherSession' => $casherSession]);
+        $request->merge(['cash_session' => $session, 'casherSession' => $casherSession]);
 
         return $next($request);
     }

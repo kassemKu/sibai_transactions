@@ -13,6 +13,45 @@ use Illuminate\Support\Facades\DB;
 
 class CasherCashSessionService
 {
+    public function getClosingBalanceForCurrency($session, $casherSession, $currencyId)
+    {
+        return DB::transaction(function () use ($session, $casherSession, $currencyId) {
+            $currency = Currency::find($currencyId);
+            if (! $currency) {
+                return null;
+            }
+
+            $openingBalances = collect($casherSession->opening_balances)->keyBy('currency_id');
+            $opening = $openingBalances[$currency->id]['amount'] ?? 0;
+
+            $totalIn = CashMovement::where('currency_id', $currency->id)
+                ->where('by', $casherSession->casher_id)
+                ->where('type', CashMovementTypeEnum::IN->value)
+                ->where('cash_session_id', $session->id)
+                ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
+                ->sum('amount');
+
+            $totalOut = CashMovement::where('currency_id', $currency->id)
+                ->where('by', $casherSession->casher_id)
+                ->where('type', CashMovementTypeEnum::OUT->value)
+                ->where('cash_session_id', $session->id)
+                ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
+                ->sum('amount');
+
+            $systemClosing = $opening + $totalIn - $totalOut;
+
+            return [
+                'currency_id' => $currency->id,
+                'name' => $currency->name,
+                'code' => $currency->code,
+                'opening_balance' => $opening,
+                'total_in' => $totalIn,
+                'total_out' => $totalOut,
+                'system_balance' => $systemClosing,
+            ];
+        });
+    }
+
     public function openCashSession($casherId, $openingBalances, $session)
     {
         $session = CasherCashSession::create([
@@ -33,7 +72,6 @@ class CasherCashSessionService
             $currencies = Currency::all();
             $balances = [];
 
-            // Get opening balances as array indexed by currency_id for easy lookup
             $openingBalances = collect($casherSession->opening_balances)->keyBy('currency_id');
 
             foreach ($currencies as $currency) {
