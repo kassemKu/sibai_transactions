@@ -79,7 +79,7 @@ class CasherCashSessionController extends Controller
     {
         try {
             $session = CasherCashSession::findOrFail($id);
-            $balances = $this->service->getClosingBalances($request->session, $session);
+            $balances = $this->service->getClosingBalances($session);
 
             return $this->success('تم جلب أرصدة الإغلاق بنجاح.', [
                 'balances' => $balances,
