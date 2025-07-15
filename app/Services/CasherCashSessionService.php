@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\CashMovementTypeEnum;
 use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
+use App\Models\CashBalance;
 use App\Models\CasherCashSession;
 use App\Models\CashMovement;
 use App\Models\Currency;
@@ -54,6 +55,19 @@ class CasherCashSessionService
 
     public function openCashSession($casherId, $openingBalances, $session)
     {
+        // Subtract amounts from CashBalance opening_balance for each currency
+        foreach ($openingBalances as $balance) {
+            $currencyId = $balance['currency_id'];
+            $amount = $balance['amount'];
+            $cashBalance = CashBalance::where('cash_session_id', $session->id)
+                ->where('currency_id', $currencyId)
+                ->first();
+            if ($cashBalance) {
+                $cashBalance->opening_balance = $cashBalance->opening_balance - $amount;
+                $cashBalance->save();
+            }
+        }
+
         $session = CasherCashSession::create([
             'cash_session_id' => $session->id,
             'opened_at' => now(),

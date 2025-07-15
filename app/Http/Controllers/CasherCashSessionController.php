@@ -6,9 +6,11 @@ use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\Casher\OpenCasherCashSessionRequest;
 use App\Http\Requests\CloseCasherCashSessionRequest;
+use App\Models\CashBalance;
 use App\Models\CasherCashSession;
 use App\Models\CashSession;
 use App\Services\CasherCashSessionService;
+use App\Services\TransactionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -60,9 +62,18 @@ class CasherCashSessionController extends Controller
         ]);
     }
 
-    public function open(OpenCasherCashSessionRequest $request): JsonResponse
+    public function open(OpenCasherCashSessionRequest $request, TransactionService $service): JsonResponse
     {
         try {
+            foreach ($request->opening_balances as $balance) {
+                $currencyId = $balance['currency_id'];
+                $amount = $balance['amount'];
+                $available = $service->getCurrencyAvailableBalance($currencyId);
+                if ($available < $amount) {
+                    return $this->failed('لا يوجد رصيد كافٍ للعملة رقم '.$currencyId.' (المتوفر: '.$available.', المطلوب: '.$amount.')');
+                }
+            }
+
             $cashSession = $this->service->openCashSession($request->casher_id, $request->opening_balances, $request->session);
 
             return $this->success('تم فتح الجلسة النقدية بنجاح.', [
@@ -119,6 +130,19 @@ class CasherCashSessionController extends Controller
                     'amount' => $balance['system_balance'],
                 ];
             })->values()->all();
+
+            // Add actual_closing_balance to CashBalance opening_balance for each currency
+            foreach ($request->actual_closing_balances as $balance) {
+                $currencyId = $balance['currency_id'];
+                $amount = $balance['amount'];
+                $cashBalance = CashBalance::where('cash_session_id', $casherCashSession->cash_session_id)
+                    ->where('currency_id', $currencyId)
+                    ->first();
+                if ($cashBalance) {
+                    $cashBalance->opening_balance = $cashBalance->opening_balance + $amount;
+                    $cashBalance->save();
+                }
+            }
 
             $casherCashSession->update([
                 'actual_closing_balances' => json_encode($request->actual_closing_balances),

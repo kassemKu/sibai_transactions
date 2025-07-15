@@ -9,7 +9,6 @@ class CurrencySeeder extends Seeder
 {
     public function run()
     {
-        // القيم المرجعية والأسعار مع الهوامش
         $currencyData = [
             [
                 'name' => 'دولار أمريكي',
