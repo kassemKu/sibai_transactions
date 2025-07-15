@@ -10,12 +10,14 @@ class EnsureActiveIsCasherCashSession
 {
     public function handle(Request $request, Closure $next)
     {
-        $casherSession = auth()->user()->casherCashSession;
-        if (
-            !$casherSession
-            || $casherSession->status != CashSessionEnum::ACTIVE->value
-            || !$casherSession->cashSession->status != CashSessionEnum::ACTIVE->value
-        ) {
+        $casherSession = auth()->user()->casherCashSessions()->latest()
+            ->where('status', CashSessionEnum::ACTIVE->value)
+            ->whereHas('cashSession', function ($query) {
+                $query->where('status', CashSessionEnum::ACTIVE->value);
+            })
+            ->first();
+
+        if (!$casherSession) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'status' => false,
