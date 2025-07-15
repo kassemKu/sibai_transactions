@@ -34,10 +34,6 @@ class TransactionController extends Controller
     {
         $this->authorize('complete', $transaction);
 
-        if ($this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id) < $transaction->converted_amount) {
-            return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
-        }
-
         if ($service->getClosingBalanceForCurrency($request->cash_session, $request->casherSession, $transaction->to_currency_id)['system_balance'] < $transaction->converted_amount) {
             return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
         }

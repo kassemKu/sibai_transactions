@@ -97,6 +97,11 @@ class CashSessionController extends Controller
     public function pending(Request $request): JsonResponse
     {
         try {
+            $activeSubSession = $request->session->casherCashSessions()->where('status', CashSessionEnum::ACTIVE->value)->exists();
+            if ($activeSubSession) {
+                return $this->failed('لا يمكن تحويل الجلسة إلى قيد الإغلاق لوجود جلسة فرعية نشطة.');
+            }
+
             $request->session->update([
                 'status' => CashSessionEnum::PENDING->value,
             ]);
