@@ -37,7 +37,7 @@ class TransactionRequest extends FormRequest
                 'required',
                 'numeric',
                 'min:0.01',
-                new SufficientBalance($calc),
+                // new SufficientBalance($calc),
             ],
             'notes' => 'nullable|string|max:255',
         ];
