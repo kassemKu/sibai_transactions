@@ -19,6 +19,7 @@ class CasherCashSession extends Model
         'actual_closing_balances',
         'cash_session_id',
         'casher_id',
+        'differences',
         'status', // 'active', 'closed', 'pending'
     ];
 
