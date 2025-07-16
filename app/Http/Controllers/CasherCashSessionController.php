@@ -140,9 +140,10 @@ class CasherCashSessionController extends Controller
                 $cashBalance = CashBalance::where('cash_session_id', $casherCashSession->cash_session_id)
                     ->where('currency_id', $currencyId)
                     ->first();
+                $openingAmount = $openingBalances[$currencyId]['amount'] ?? 0;
 
                 if ($cashBalance) {
-                    $cashBalance->opening_balance = $cashBalance->opening_balance + $amount;
+                    $cashBalance->opening_balance = $cashBalance->opening_balance + $amount + $openingAmount;
                     $cashBalance->save();
                 }
             }
