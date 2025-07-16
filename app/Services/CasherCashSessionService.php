@@ -107,6 +107,8 @@ class CasherCashSessionService
 
                 $systemClosing = $opening + $totalIn - $totalOut;
 
+                $actualAmount = $actualClosingBalances[$currency->id]['amount'] ?? 0;
+
                 $balances[] = [
                     'currency_id' => $currency->id,
                     'name' => $currency->name,
@@ -115,7 +117,7 @@ class CasherCashSessionService
                     'total_in' => $totalIn,
                     'total_out' => $totalOut,
                     'system_balance' => $systemClosing,
-                    'difference' => $systemClosing - ($casherSession->actual_closing_balances[$currency->id]['amount'] ?? 0),
+                    'difference' => $systemClosing - $actualAmount,
                 ];
             }
 

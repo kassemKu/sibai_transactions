@@ -25,8 +25,7 @@ class EnsureNotActiveCasherCashSession
             abort(403, 'لا توجد جلسة نقدية نشطة.');
         }
 
-        $casherSession = CasherCashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])
-            ->where('cash_session_id', $session->id)
+        $casherSession = CasherCashSession::where('cash_session_id', $session->id)
             ->where('casher_id', $request->casher_id)
             ->first();
 
@@ -34,11 +33,11 @@ class EnsureNotActiveCasherCashSession
             if ($request->expectsJson()) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'توجد جلسة نقدية نشطة.',
+                    'message' => 'توجد جلسة نقدية بالفعل لهذا العميل يرجى اغلاق الجلسه العموميه.',
                     'data' => [],
                 ], 403);
             }
-            abort(403, ' توجد جلسة نقدية نشطة.');
+            abort(403, ' توجد جلسة نقدية بالفعل لهذا العميل يرجى اغلاق الجلسه العمومية.');
         }
 
         $request->merge(['session' => $session]);

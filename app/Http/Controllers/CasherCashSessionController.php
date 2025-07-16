@@ -122,22 +122,25 @@ class CasherCashSessionController extends Controller
     public function close(CloseCasherCashSessionRequest $request, CasherCashSession $casherCashSession): JsonResponse
     {
         try {
-            $result = $this->service->getClosingBalances($casherCashSession->cashSession, $casherCashSession);
+            $result = $this->service->getClosingBalances($casherCashSession);
 
             $systemBalances = collect($result['system_closing_balances'] ?? [])->map(function ($balance) {
                 return [
                     'currency_id' => $balance['currency_id'],
                     'amount' => $balance['system_balance'],
+                    'opening_balance' => $balance['opening_balance'],
                 ];
             })->values()->all();
-
+            // dd($systemBalances);
             // Add actual_closing_balance to CashBalance opening_balance for each currency
+            $openingBalances = collect($casherCashSession->opening_balances)->keyBy('currency_id');
             foreach ($request->actual_closing_balances as $balance) {
                 $currencyId = $balance['currency_id'];
                 $amount = $balance['amount'];
                 $cashBalance = CashBalance::where('cash_session_id', $casherCashSession->cash_session_id)
                     ->where('currency_id', $currencyId)
                     ->first();
+
                 if ($cashBalance) {
                     $cashBalance->opening_balance = $cashBalance->opening_balance + $amount;
                     $cashBalance->save();
