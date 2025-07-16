@@ -143,7 +143,13 @@ class CasherCashSessionController extends Controller
                 $openingAmount = $openingBalances[$currencyId]['amount'] ?? 0;
 
                 if ($cashBalance) {
-                    $cashBalance->opening_balance = $cashBalance->opening_balance + $amount + $openingAmount;
+                    // if ($currencyId == 4) {
+                    //     dd($cashBalance->opening_balance + $openingAmount);
+                    // }
+                    $cashBalance->opening_balance = $cashBalance->opening_balance + $openingAmount;
+                    if ($currencyId == 4) {
+                        // dd($cashBalance->opening_balance);
+                    }
                     $cashBalance->save();
                 }
             }
