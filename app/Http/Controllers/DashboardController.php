@@ -32,7 +32,9 @@ class DashboardController extends Controller
 
     public function getStatus()
     {
-        $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])->first();
+        $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])
+            ->with(['casherCashSessions.casher'])
+            ->first();
 
         $transactionsQuery = Transaction::where('status', TransactionStatusEnum::PENDING->value)
             ->whereHas('cashSession', function ($query) {
