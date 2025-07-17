@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('cash_movements', function (Blueprint $table) {
             $table->id();
-            $table->enum('type', ['in', 'out']);
+            $table->enum('type', ['in', 'out'])->index();
             $table->decimal('amount', 18, 2);
             $table->decimal('exchange_rate', 18, 6)->nullable();
 
