@@ -37,7 +37,7 @@ class TransferController extends Controller
         }
     }
 
-    public function show(Transfer $transfer)
+    public function edit(Transfer $transfer)
     {
         try {
             return inertia('Transfers/Show')->with([
@@ -50,7 +50,20 @@ class TransferController extends Controller
         }
     }
 
-    public function update(\App\Http\Requests\TransferUpdateRequest $request, Transfer $transfer)
+    public function show(Transfer $transfer)
+    {
+        try {
+            return $this->success('تم جلب بيانات الحوالة بنجاح.', [
+                'transfer' => $transfer->load('company'),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransferController@show');
+
+            return $this->failed('حدث خطأ أثناء جلب بيانات الحوالة');
+        }
+    }
+
+    public function update(TransferStoreRequest $request, Transfer $transfer)
     {
         try {
             $transfer->update($request->validated());

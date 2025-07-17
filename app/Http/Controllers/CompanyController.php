@@ -10,7 +10,7 @@ class CompanyController extends Controller
     public function index()
     {
         try {
-            $companies = Company::all();
+            $companies = Company::with('transfers')->get();
 
             return inertia('Companies/Index')->with([
                 'companies' => $companies,
@@ -37,10 +37,25 @@ class CompanyController extends Controller
         }
     }
 
-    public function show(Company $company)
+    public function edit(Company $company)
     {
         try {
             return inertia('Companies/Show')->with([
+                'company' => $company->load([
+                    'transfers',
+                ]),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'CompanyController@show');
+
+            return $this->failed('حدث خطأ أثناء جلب بيانات الشركة');
+        }
+    }
+
+    public function show(Company $company)
+    {
+        try {
+            $this->success('تم جلب بيانات الشركة بنجاح.', [
                 'company' => $company->load([
                     'transfers',
                 ]),

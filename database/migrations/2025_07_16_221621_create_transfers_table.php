@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
             $table->foreignId('currency_id')->constrained('currencies')->onDelete('cascade');
-            $table->decimal('receive', 10, 2);
-            $table->decimal('delivery', 10, 2);
+            $table->decimal('amount', 10, 2);
+            $table->enum('type', ['in', 'out'])->index();
             $table->timestamps();
         });
     }
