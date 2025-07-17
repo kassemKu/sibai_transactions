@@ -61,12 +61,14 @@ class CashSessionService
             $totalIn = CashMovement::where('currency_id', $currency->id)
                 ->where('type', CashMovementTypeEnum::IN->value)
                 ->where('cash_session_id', $session->id)
+                ->where('sub', false)
                 ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->sum('amount');
 
             $totalOut = CashMovement::where('currency_id', $currency->id)
                 ->where('type', CashMovementTypeEnum::OUT->value)
                 ->where('cash_session_id', $session->id)
+                ->where('sub', false)
                 ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->sum('amount');
 
