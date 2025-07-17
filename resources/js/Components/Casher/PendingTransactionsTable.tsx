@@ -39,23 +39,38 @@ interface Customer {
 
 interface Transaction {
   id: number;
-  customer_id: number | null;
-  user_id: number;
   cash_session_id: number;
+  user_id: number;
+  assigned_to: User | null;
+  customer_id: number | null;
   from_currency_id: number;
   to_currency_id: number;
   original_amount: number;
+  converted_amount: number;
   from_rate_to_usd: string | number;
   to_rate_to_usd: string | number;
-  converted_amount: number;
   status: 'pending' | 'completed' | 'canceled';
   created_at: string;
   updated_at: string;
   from_currency: Currency;
   to_currency: Currency;
   created_by: User;
-  assigned_to: User;
-  customer: Customer;
+  customer?: Customer;
+  closed_by?: User;
+  profit_from_usd?: number;
+  profit_to_usd?: number;
+  total_profit_usd?: number;
+  usd_intermediate?: number;
+  from_currency_rates_snapshot?: {
+    rate_to_usd: number;
+    buy_rate_to_usd: number;
+    sell_rate_to_usd: number;
+  };
+  to_currency_rates_snapshot?: {
+    rate_to_usd: number;
+    buy_rate_to_usd: number;
+    sell_rate_to_usd: number;
+  };
 }
 
 interface PendingTransactionsResponse {

@@ -17,6 +17,7 @@ import { useStatusPolling } from '@/Hooks/useStatusPolling';
 
 import CurrencyCardsSlider from '@/Components/Dashboard/CurrencyCardsSlider';
 import TransactionForm from '@/Components/Dashboard/TransactionForm';
+import TransferForm from '@/Components/Dashboard/TransferForm';
 import RecentTransactionsTable from '@/Components/Dashboard/RecentTransactionsTable';
 import RecentTransactionsList from '@/Components/Dashboard/RecentTransactionsList';
 import QuickActions from '@/Components/Dashboard/QuickActions';
@@ -35,6 +36,7 @@ interface DashboardProps {
   currencies: CurrenciesResponse;
   cashSessions: any;
   user_roles: string[];
+  companies: Company[];
 }
 
 interface ActiveCashier {
@@ -49,7 +51,18 @@ interface ActiveCashier {
   status: string;
 }
 
-export default function Dashboard({ currencies, user_roles }: DashboardProps) {
+interface Company {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export default function Dashboard({
+  currencies,
+  user_roles,
+  companies,
+}: DashboardProps) {
   const { auth, cash_session, roles } = usePage().props as any;
   const route = useRoute();
   const isAdmin =
@@ -65,6 +78,11 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
     null,
   );
   const [showAddCashboxModal, setShowAddCashboxModal] = useState(false);
+
+  // Add form type toggle state
+  const [formType, setFormType] = useState<'transaction' | 'transfer'>(
+    'transaction',
+  );
 
   // Quick View state
   const [showQuickView, setShowQuickView] = useState(false);
@@ -118,6 +136,13 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
     setShowQuickView(true);
     setActiveCashiers(getCashierSessions());
   };
+
+  // Update active cashiers when current session changes and modal is open
+  useEffect(() => {
+    if (showQuickView && currentCashSession) {
+      setActiveCashiers(getCashierSessions());
+    }
+  }, [currentCashSession, showQuickView]);
 
   // Handle quick view close
   const handleQuickViewClose = () => {
@@ -564,12 +589,55 @@ export default function Dashboard({ currencies, user_roles }: DashboardProps) {
 
       {/* Always show TransactionForm with overlay when session is not active */}
       <div id="transaction-form">
-        <TransactionForm
-          currencies={currenciesState}
-          isSessionOpen={!!isSessionOpen}
-          isSessionPending={!!isSessionPending}
-          onStartSession={isAdmin ? handleOpenSession : undefined}
-        />
+        {/* Form Type Toggle - Admin Only */}
+        {isAdmin && (
+          <div className="mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center justify-center space-x-2 space-x-reverse">
+                <button
+                  type="button"
+                  onClick={() => setFormType('transaction')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    formType === 'transaction'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  عملية جديدة
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormType('transfer')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    formType === 'transfer'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  تحويل جديد
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show appropriate form based on toggle */}
+        {formType === 'transaction' ? (
+          <TransactionForm
+            currencies={currenciesState}
+            isSessionOpen={!!isSessionOpen}
+            isSessionPending={!!isSessionPending}
+            onStartSession={isAdmin ? handleOpenSession : undefined}
+          />
+        ) : (
+          <TransferForm
+            currencies={currenciesState}
+            companies={companies}
+            isSessionOpen={!!isSessionOpen}
+            isSessionPending={!!isSessionPending}
+            onStartSession={isAdmin ? handleOpenSession : undefined}
+          />
+        )}
       </div>
 
       <RecentTransactionsTable

@@ -193,6 +193,20 @@ export interface CashBalance {
   currency: Currency; // ✅ Now loaded from backend
 }
 
+export interface CashierBalance {
+  currency_id: number;
+  amount: number;
+  currency?: Currency;
+}
+
+export interface Cashier {
+  id: number;
+  name: string;
+  email: string;
+  system_balances: CashierBalance[];
+  has_active_session: boolean;
+}
+
 export interface CashSession {
   id: number;
   opened_at: string;

@@ -234,7 +234,6 @@ export default function TransactionForm({
                   <div className="space-y-2">
                     <InputLabel htmlFor="from_currency" className="mb-2">
                     أختر العمله
-
                     </InputLabel>
                     <div className="relative">
                       <Select
@@ -266,7 +265,6 @@ export default function TransactionForm({
                         </svg>
                       </div>
                     </div>
-
                   </div>
                   <div className="space-y-2">
                     <InputLabel htmlFor="from_amount" className="mb-2">
