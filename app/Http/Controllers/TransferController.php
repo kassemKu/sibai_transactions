@@ -50,6 +50,19 @@ class TransferController extends Controller
         }
     }
 
+    public function show(Transfer $transfer)
+    {
+        try {
+            return $this->success('تم جلب بيانات الحوالة بنجاح.', [
+                'transfer' => $transfer->load('company'),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransferController@show');
+
+            return $this->failed('حدث خطأ أثناء جلب بيانات الحوالة');
+        }
+    }
+
     public function update(TransferStoreRequest $request, Transfer $transfer)
     {
         try {

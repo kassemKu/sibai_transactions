@@ -52,6 +52,21 @@ class CompanyController extends Controller
         }
     }
 
+    public function show(Company $company)
+    {
+        try {
+            $this->success('تم جلب بيانات الشركة بنجاح.', [
+                'company' => $company->load([
+                    'transfers',
+                ]),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'CompanyController@show');
+
+            return $this->failed('حدث خطأ أثناء جلب بيانات الشركة');
+        }
+    }
+
     public function update(CompanyStoreRequest $request, Company $company)
     {
         try {
