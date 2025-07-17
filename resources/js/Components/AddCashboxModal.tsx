@@ -59,7 +59,7 @@ export default function AddCashboxModal({
   const fetchUsers = async () => {
     setIsLoadingUsers(true);
     try {
-      const response = await axios.get('/admin/users');
+      const response = await axios.get('/admin/get-cash-sessions-available-cashers');
       setUsers(response.data.data.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
