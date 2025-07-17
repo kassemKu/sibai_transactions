@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CashSessionEnum;
-use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\Casher\OpenCasherCashSessionRequest;
 use App\Http\Requests\CloseCasherCashSessionRequest;
 use App\Models\CashBalance;
@@ -43,25 +42,6 @@ class CasherCashSessionController extends Controller
         ]);
     }
 
-    public function show(CashSession $cashSession)
-    {
-        return inertia('CashSessions/Show')->with([
-            'cashSession' => $cashSession->load([
-                'cashBalances.currency',
-                'transactions.createdBy',
-                'transactions.closedBy',
-                'transactions.assignedTo',
-                'transactions.fromCurrency',
-                'transactions.toCurrency',
-                'openedBy',
-                'closedBy',
-            ]),
-            'totalUsdProfits' => $cashSession->transactions()
-                ->where('status', TransactionStatusEnum::COMPLETED->value)
-                ->sum('total_profit_usd'),
-        ]);
-    }
-
     public function open(OpenCasherCashSessionRequest $request, TransactionService $service): JsonResponse
     {
         try {
@@ -86,14 +66,14 @@ class CasherCashSessionController extends Controller
         }
     }
 
-    public function getClosingBalances($id, Request $request): JsonResponse
+    public function getClosingBalances(CasherCashSession $casherCashSession, Request $request): JsonResponse
     {
         try {
-            $session = CasherCashSession::findOrFail($id);
-            $balances = $this->service->getClosingBalances($session);
+            $balances = $this->service->getClosingBalances($casherCashSession);
 
             return $this->success('تم جلب أرصدة الإغلاق بنجاح.', [
                 'balances' => $balances,
+                'session' => $casherCashSession,
             ]);
         } catch (\Exception $e) {
             $this->errorLog($e, 'CashSessionController@getClosingBalances');
@@ -131,7 +111,7 @@ class CasherCashSessionController extends Controller
                     'opening_balance' => $balance['opening_balance'],
                 ];
             })->values()->all();
-            // dd($systemBalances);
+
             // Add actual_closing_balance to CashBalance opening_balance for each currency
             $openingBalances = collect($casherCashSession->opening_balances)->keyBy('currency_id');
             foreach ($request->actual_closing_balances as $balance) {
@@ -140,16 +120,10 @@ class CasherCashSessionController extends Controller
                 $cashBalance = CashBalance::where('cash_session_id', $casherCashSession->cash_session_id)
                     ->where('currency_id', $currencyId)
                     ->first();
-                $openingAmount = $openingBalances[$currencyId]['amount'] ?? 0;
+                // $openingAmount = $openingBalances[$currencyId]['amount'] ?? 0;
 
                 if ($cashBalance) {
-                    // if ($currencyId == 4) {
-                    //     dd($cashBalance->opening_balance + $openingAmount);
-                    // }
-                    $cashBalance->opening_balance = $cashBalance->opening_balance + $openingAmount;
-                    if ($currencyId == 4) {
-                        // dd($cashBalance->opening_balance);
-                    }
+                    $cashBalance->opening_balance = $cashBalance->opening_balance + $amount;
                     $cashBalance->save();
                 }
             }

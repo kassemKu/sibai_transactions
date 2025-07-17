@@ -4,10 +4,12 @@ use App\Http\Controllers\Casher\TransactionController as CasherTransactionContro
 use App\Http\Controllers\CasherCashSessionController;
 use App\Http\Controllers\CashMovementController;
 use App\Http\Controllers\CashSessionController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureActiveCasherCashSession;
 use App\Http\Middleware\EnsureActiveCashSession;
@@ -88,6 +90,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
             'parameters' => ['' => 'employee'],
             'name' => 'employees',
         ]);
+
+        Route::resource('/companies', CompanyController::class);
+        Route::resource('/transfers', TransferController::class);
     });
 
     Route::group(['middleware' => ['role:casher'], 'prefix' => 'casher'], function () {
