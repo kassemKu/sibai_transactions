@@ -86,18 +86,18 @@ class CasherCashSessionController extends Controller
         }
     }
 
-    public function getClosingBalances($id, Request $request): JsonResponse
+    public function getClosingBalances(CasherCashSession $casherCashSession, Request $request): JsonResponse
     {
         try {
-            $session = CasherCashSession::findOrFail($id);
-            $balances = $this->service->getClosingBalances($session);
-
+            $balances = $this->service->getClosingBalances($casherCashSession);
+ 
             return $this->success('تم جلب أرصدة الإغلاق بنجاح.', [
                 'balances' => $balances,
+                'session' => $casherCashSession,
             ]);
         } catch (\Exception $e) {
             $this->errorLog($e, 'CashSessionController@getClosingBalances');
-
+ 
             return $this->failed('حدث خطأ أثناء جلب أرصدة الإغلاق');
         }
     }
