@@ -15,8 +15,9 @@ class TransferStoreRequest extends FormRequest
     {
         return [
             'company_id' => 'required|exists:companies,id',
-            'receive' => 'required|numeric',
-            'delivery' => 'required|numeric',
+            'currency_id' => 'required|exists:currencies,id',
+            'amount' => 'required|numeric',
+            'type' => 'required|in:in,out',
         ];
     }
 }

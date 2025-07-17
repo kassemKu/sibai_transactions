@@ -10,7 +10,7 @@ class CompanyController extends Controller
     public function index()
     {
         try {
-            $companies = Company::all();
+            $companies = Company::with('transfers')->get();
 
             return inertia('Companies/Index')->with([
                 'companies' => $companies,
@@ -37,7 +37,7 @@ class CompanyController extends Controller
         }
     }
 
-    public function show(Company $company)
+    public function edit(Company $company)
     {
         try {
             return inertia('Companies/Show')->with([
