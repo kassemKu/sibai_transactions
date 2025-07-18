@@ -29,11 +29,11 @@ class UserController extends Controller
         try {
             $users = User::with('roles')->get();
 
-            $this->success('تم جلب المستخدمين بنجاح.', [
+            return $this->success('تم جلب المستخدمين بنجاح.', [
                 'users' => $users,
             ]);
         } catch (\Exception $e) {
-            $this->errorLog($e, 'UserController@index');
+            $this->errorLog($e, 'UserController@getUsers');
 
             return $this->failed('حدث خطأ أثناء جلب المستخدمين');
         }
