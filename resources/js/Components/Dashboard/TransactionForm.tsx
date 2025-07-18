@@ -187,7 +187,7 @@ export default function TransactionForm({
       const fetchUsers = async () => {
         setIsLoadingUsers(true);
         try {
-          const response = await axios.get('/admin/users');
+          const response = await axios.get('/admin/get-users');
           setUsers(response.data.data.users || []);
         } catch (error) {
           console.error('Error fetching users:', error);
