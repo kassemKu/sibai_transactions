@@ -116,9 +116,11 @@ export default function RootLayout({
   const isCasher =
     roles && Array.isArray(roles) && (roles as string[]).includes('casher');
   const isAdmin =
-    roles &&
+    (roles &&
     Array.isArray(roles) &&
-    (roles as string[]).includes('super_admin') || (roles as string[]).includes('superadministrator') || (roles as string[]).includes('administrator');
+      (roles as string[]).includes('super_admin')) ||
+    (roles as string[]).includes('superadministrator') ||
+    (roles as string[]).includes('administrator');
 
   // All navigation items
   const allNavigation: NavItem[] = [
@@ -151,6 +153,12 @@ export default function RootLayout({
       href: route('currencies.index'),
       icon: <FaCoins className="h-5 w-5" />,
       current: route().current('currencies.*'),
+    },
+    {
+      name: 'الشركات',
+      href: route('companies.index'),
+      icon: <FaUsers className="h-5 w-5" />,
+      current: route().current('companies.*'),
     },
   ];
 

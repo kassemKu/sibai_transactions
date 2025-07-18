@@ -59,7 +59,9 @@ export default function AddCashboxModal({
   const fetchUsers = async () => {
     setIsLoadingUsers(true);
     try {
-      const response = await axios.get('/admin/get-cash-sessions-available-cashers');
+      const response = await axios.get(
+        '/admin/get-cash-sessions-available-cashers',
+      );
       setUsers(response.data.data.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -103,14 +105,16 @@ export default function AddCashboxModal({
     }
 
     if (
-      openingBalances.some(balance => !balance.currency_id || !balance.amount)
+      openingBalances.some(
+        balance => !balance.currency_id || balance.amount === '',
+      )
     ) {
       toast.error('يرجى ملء جميع حقول العملة والمبلغ');
       return;
     }
 
-    if (openingBalances.some(balance => parseFloat(balance.amount) <= 0)) {
-      toast.error('يجب أن يكون المبلغ أكبر من صفر');
+    if (openingBalances.some(balance => parseFloat(balance.amount) < 0)) {
+      toast.error('يجب أن يكون المبلغ أكبر من أو يساوي صفر');
       return;
     }
 

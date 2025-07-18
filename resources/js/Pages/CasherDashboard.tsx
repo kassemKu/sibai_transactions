@@ -6,7 +6,9 @@ import RootLayout from '@/Layouts/RootLayout';
 import { useStatusPolling } from '@/Hooks/useStatusPolling';
 import { useNewTransactionNotification } from '@/Hooks/useNewTransactionNotification';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
 import NewTransactionNotification from '@/Components/Casher/NewTransactionNotification';
+import CashierBalanceModal from '@/Components/Casher/CashierBalanceModal';
 
 // Import casher-specific components
 import TransactionForm from '@/Components/Casher/TransactionForm';
@@ -18,20 +20,37 @@ interface CasherDashboardProps {
   cashSessions: any;
 }
 
+interface Cashier {
+  id: number;
+  name: string;
+  email: string;
+  system_balances?: Array<{
+    currency_id: number;
+    amount: number;
+    currency?: any;
+  }>;
+  has_active_session?: boolean;
+}
+
 const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
-  const { auth, cash_session, roles } = usePage().props;
+  const { auth, cash_session, roles } = usePage<InertiaSharedProps>().props;
 
   // Use unified status polling hook
   const {
     currentSession: currentCashSession,
     currencies: currenciesState,
     transactions,
+    cashiers,
     isLoading: isInitialSessionLoading,
     isPolling,
     lastUpdated,
     error,
     refetch,
   } = useStatusPolling(3000, true);
+
+  // State for cashier balance modal
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [selectedCashier, setSelectedCashier] = useState<Cashier | null>(null);
 
   const isSessionOpen = !!(
     currentCashSession && currentCashSession.status === 'active'
@@ -40,17 +59,38 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
     currentCashSession && currentCashSession.status === 'pending'
   );
 
+  // Check if current user has an active cashier session
+  const currentUserCashier = cashiers?.find(
+    (cashier: Cashier) => cashier.email === auth?.user?.email,
+  );
+  const hasActiveCashierSession = currentUserCashier?.has_active_session;
+  const canPerformTransactions = isSessionOpen && hasActiveCashierSession;
+
   // Use notification hook for new pending transactions
   const { showVisualNotification, hideVisualNotification } =
     useNewTransactionNotification(transactions, {
-      enabled: isSessionOpen, // Only enable when session is active
+      enabled: canPerformTransactions, // Only enable when session is active and cashier has session
       currentUserEmail: auth?.user?.email, // Pass current user email to filter self-created transactions
     });
+
+  // Handle opening balance modal
+  const handleOpenBalanceModal = () => {
+    if (currentUserCashier) {
+      setSelectedCashier(currentUserCashier);
+      setShowBalanceModal(true);
+    }
+  };
+
+  // Handle closing balance modal
+  const handleCloseBalanceModal = () => {
+    setShowBalanceModal(false);
+    setSelectedCashier(null);
+  };
 
   // Create header actions for casher
   const headerActions: React.ReactNode = (
     <div className="flex items-center space-x-3 space-x-reverse">
-      {/* Session Status Indicator */}
+      {/* Session Status Indicators */}
       {isSessionPending && (
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
@@ -59,7 +99,15 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
           </span>
         </div>
       )}
-      {isSessionOpen && (
+      {isSessionOpen && !hasActiveCashierSession && (
+        <div className="flex items-center space-x-2 space-x-reverse">
+          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+          <span className="text-sm text-orange-600 font-medium">
+            لا توجد جلسة صراف نشطة
+          </span>
+        </div>
+      )}
+      {isSessionOpen && hasActiveCashierSession && (
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
           <span className="text-sm text-green-600 font-medium">جلسة نشطة</span>
@@ -74,8 +122,18 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
         </div>
       )}
 
-      {/* New Transaction Button - only show if session is open */}
-      {isSessionOpen && (
+      {/* Balance Button - Show if cashier has system balances */}
+      {currentUserCashier?.system_balances &&
+        currentUserCashier.system_balances.some(
+          balance => balance.amount > 0,
+        ) && (
+          <SecondaryButton className="text-sm" onClick={handleOpenBalanceModal}>
+            عرض رصيدي النظامي
+          </SecondaryButton>
+        )}
+
+      {/* New Transaction Button - only show if session is open and cashier has active session */}
+      {canPerformTransactions && (
         <PrimaryButton
           className="text-sm"
           onClick={() => {
@@ -135,6 +193,22 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
         <p className="text-gray-600">إدارة المعاملات وتأكيد العمليات</p>
       </div>
 
+      {/* Session Status Alert */}
+      {isSessionOpen && !hasActiveCashierSession && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+            <span className="text-sm font-medium text-yellow-800">
+              لا توجد جلسة صراف نشطة
+            </span>
+          </div>
+          <p className="text-sm text-yellow-700">
+            الجلسة النقدية العامة نشطة، لكن لا توجد جلسة صراف نشطة لك. يرجى
+            التواصل مع المشرف لفتح جلسة صراف جديدة.
+          </p>
+        </div>
+      )}
+
       {/* Currency Cards Slider */}
       <CurrencyCardsSlider currencies={currenciesState} />
 
@@ -142,7 +216,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       <div id="transaction-form">
         <TransactionForm
           currencies={currenciesState}
-          isSessionOpen={!!isSessionOpen}
+          isSessionOpen={!!canPerformTransactions}
           isSessionPending={!!isSessionPending}
         />
       </div>
@@ -150,7 +224,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       {/* Pending Transactions Table */}
       <PendingTransactionsTable
         transactions={transactions}
-        isSessionActive={!!isSessionOpen}
+        isSessionActive={!!canPerformTransactions}
         isSessionPending={!!isSessionPending}
         isLoading={isInitialSessionLoading}
         isPolling={isPolling}
@@ -163,6 +237,14 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
         transactions={transactions}
         isVisible={showVisualNotification}
         onClose={hideVisualNotification}
+      />
+
+      {/* Cashier Balance Modal */}
+      <CashierBalanceModal
+        isOpen={showBalanceModal}
+        onClose={handleCloseBalanceModal}
+        cashier={selectedCashier}
+        currencies={currenciesState}
       />
     </RootLayout>
   );

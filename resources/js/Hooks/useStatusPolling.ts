@@ -2,10 +2,25 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Currency, CashSession, User, Customer, Transaction } from '../types';
 
+interface CashierBalance {
+  currency_id: number;
+  amount: number;
+  currency?: Currency;
+}
+
+interface Cashier {
+  id: number;
+  name: string;
+  email: string;
+  system_balances?: CashierBalance[];
+  has_active_session?: boolean;
+}
+
 interface StatusData {
   current_session: CashSession | null;
   currencies: Currency[];
   transactions: Transaction[];
+  cashiers?: Cashier[];
 }
 
 interface StatusResponse {
@@ -18,6 +33,7 @@ interface UseStatusPollingReturn {
   currentSession: CashSession | null;
   currencies: Currency[];
   transactions: Transaction[];
+  cashiers: Cashier[];
   isLoading: boolean;
   isPolling: boolean;
   lastUpdated: Date | null;
@@ -34,6 +50,7 @@ export const useStatusPolling = (
   );
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [cashiers, setCashiers] = useState<Cashier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPolling, setIsPolling] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -57,11 +74,13 @@ export const useStatusPolling = (
             current_session,
             currencies: fetchedCurrencies,
             transactions: fetchedTransactions,
+            cashiers: fetchedCashiers = [],
           } = response.data.data;
 
           setCurrentSession(current_session);
           setCurrencies(fetchedCurrencies);
           setTransactions(fetchedTransactions);
+          setCashiers(fetchedCashiers);
           setLastUpdated(new Date());
           setError(null);
         }
@@ -110,6 +129,7 @@ export const useStatusPolling = (
     currentSession,
     currencies,
     transactions,
+    cashiers,
     isLoading,
     isPolling,
     lastUpdated,
