@@ -11,6 +11,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from 'react-icons/fi';
+import CompanyEditModal from '@/Components/Companies/CompanyEditModal';
 
 interface Currency {
   id: number;
@@ -73,14 +74,36 @@ interface PaginatedTransfers {
 interface CompaniesShowProps {
   company: Company;
   transfers: PaginatedTransfers;
+  total_incoming: number;
+  total_outgoing: number;
+  admin_position: 'debtor' | 'creditor' | 'neutral';
+  currency_balances: Array<{
+    currency: { id: number; name: string; code: string };
+    total_incoming: number;
+    total_outgoing: number;
+    net: number;
+  }>;
 }
 
 export default function CompaniesShow({
   company,
   transfers,
+  total_incoming,
+  total_outgoing,
+  admin_position,
+  currency_balances,
 }: CompaniesShowProps) {
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [currentCompany, setCurrentCompany] = React.useState(company);
+
+  // Optionally, refresh company data after edit
+  const handleEditSuccess = () => {
+    window.location.reload(); // Or use Inertia reload if preferred
+  };
+
   console.log(company);
   console.log(transfers);
+
   return (
     <RootLayout
       title={company.name}
@@ -90,12 +113,13 @@ export default function CompaniesShow({
       ]}
       headerActions={
         <div className="flex items-center space-x-3 space-x-reverse">
-          <Link href={route('companies.edit', company.id)}>
-            <PrimaryButton className="text-sm">
-              <FiEdit2 className="w-4 h-4 ml-2" />
-              تعديل
-            </PrimaryButton>
-          </Link>
+          <PrimaryButton
+            className="text-sm"
+            onClick={() => setEditModalOpen(true)}
+          >
+            <FiEdit2 className="w-4 h-4 ml-2" />
+            تعديل
+          </PrimaryButton>
           <Link href={route('companies.index')}>
             <SecondaryButton className="text-sm">
               <FiArrowLeft className="w-4 h-4 ml-2" />
@@ -107,27 +131,26 @@ export default function CompaniesShow({
     >
       <Head title={company.name} />
 
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {company.name}
-        </h1>
-        <p className="text-gray-600">تفاصيل الشركة</p>
-      </div>
+      {/* Edit Modal */}
+      <CompanyEditModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        company={currentCompany}
+        onSuccess={handleEditSuccess}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Company Details */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+      {/* Combined Info & Stats Card */}
+      <div className="mb-8  mx-auto">
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-8 flex flex-col md:grid-cols-3 md:space-x-12 md:space-x-reverse items-stretch">
+          {/* Company Info */}
+          <div className=" mb-8 md:mb-0 md:pr-8 border-b md:border-b-0 md:border-r border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
               معلومات الشركة
             </h2>
-
             <div className="space-y-4">
-              {/* Created At */}
-              <div className="flex items-start space-x-3 space-x-reverse">
-                <FiCalendar className="w-5 h-5 text-gray-400 mt-0.5" />
-                <div className="flex-1">
+              <div className="flex items-center space-x-3 space-x-reverse">
+                <FiCalendar className="w-5 h-5 text-gray-400" />
+                <div>
                   <p className="text-sm font-medium text-gray-500">
                     تاريخ الإنشاء
                   </p>
@@ -140,11 +163,9 @@ export default function CompaniesShow({
                   </p>
                 </div>
               </div>
-
-              {/* Updated At */}
-              <div className="flex items-start space-x-3 space-x-reverse">
-                <FiCalendar className="w-5 h-5 text-gray-400 mt-0.5" />
-                <div className="flex-1">
+              <div className="flex items-center space-x-3 space-x-reverse">
+                <FiCalendar className="w-5 h-5 text-gray-400" />
+                <div>
                   <p className="text-sm font-medium text-gray-500">آخر تحديث</p>
                   <p className="text-gray-900">
                     {new Date(company.updated_at).toLocaleDateString('ar-EG', {
@@ -157,31 +178,9 @@ export default function CompaniesShow({
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              إجراءات سريعة
-            </h3>
-            <div className="space-y-3">
-              <Link
-                href={route('companies.edit', company.id)}
-                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <FiEdit2 className="w-4 h-4 ml-2" />
-                تعديل الشركة
-              </Link>
-            </div>
-          </div>
-
-          {/* Company Stats */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              إحصائيات
-            </h3>
+          {/* Statistics */}
+          <div className="md:col-span-2 md:pl-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">إحصائيات</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">عدد التحويلات</span>
@@ -189,6 +188,69 @@ export default function CompaniesShow({
                   {transfers.total}
                 </span>
               </div>
+              {/* Per-currency breakdown */}
+              {currency_balances && currency_balances.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                    تفصيل حسب العملة
+                  </h4>
+                  <table className="min-w-full text-sm border rounded overflow-hidden">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-right font-medium text-gray-500">
+                          العملة
+                        </th>
+                        <th className="px-3 py-2 text-right font-medium text-green-700">
+                          الوارد
+                        </th>
+                        <th className="px-3 py-2 text-right font-medium text-red-700">
+                          الصادر
+                        </th>
+                        <th className="px-3 py-2 text-center font-medium text-gray-700">
+                          الصافي
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currency_balances.map((cb, idx) => (
+                        <tr
+                          key={cb.currency.id}
+                          className="border-b last:border-b-0"
+                        >
+                          <td className="px-3 py-2 whitespace-nowrap font-bold">
+                            {cb.currency.name} ({cb.currency.code})
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-green-700 font-medium">
+                            {cb.total_incoming.toLocaleString()}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-red-700 font-medium">
+                            {cb.total_outgoing.toLocaleString()}
+                          </td>
+                          <td
+                            className={`px-3 py-2 whitespace-nowrap font-bold rounded-full text-center
+                            ${cb.net > 0 ? 'bg-green-100 text-green-800' : cb.net < 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}
+                          >
+                            {cb.net > 0 && (
+                              <span title="دائن">
+                                {cb.net.toLocaleString()} دائن
+                              </span>
+                            )}
+                            {cb.net < 0 && (
+                              <span title="مدين">
+                                {Math.abs(cb.net).toLocaleString()} مدين
+                              </span>
+                            )}
+                            {cb.net === 0 && <span title="متوازن">متوازن</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {/* End per-currency breakdown */}
+              {/* Placeholder for future unified global total (using exchange rates) */}
+              {/* <div className="mt-6">هنا يمكن عرض الإجمالي الموحد بعد التحويل للعملة الأساسية في المستقبل</div> */}
             </div>
           </div>
         </div>
@@ -222,14 +284,67 @@ export default function CompaniesShow({
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {transfers.data.map(transfer => (
-                    <tr key={transfer.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {parseFloat(transfer.amount).toLocaleString()}
+                    <tr
+                      key={transfer.id}
+                      className={
+                        transfer.type === 'in'
+                          ? 'bg-green-50'
+                          : transfer.type === 'out'
+                            ? 'bg-red-50'
+                            : ''
+                      }
+                    >
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${transfer.type === 'in' ? 'text-green-800' : 'text-red-800'}`}
+                      >
+                        {transfer.type === 'in' ? (
+                          <span
+                            title="وارد"
+                            className="inline-flex items-center"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-1 text-green-500"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 4v16m8-8H4"
+                              />
+                            </svg>
+                            {parseFloat(transfer.amount).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span
+                            title="صادر"
+                            className="inline-flex items-center"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-1 text-red-500"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 20V4m8 8H4"
+                              />
+                            </svg>
+                            {parseFloat(transfer.amount).toLocaleString()}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {transfer.currency.name} ({transfer.currency.code})
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${transfer.type === 'in' ? 'text-green-700' : 'text-red-700'}`}
+                      >
                         {transfer.type === 'in' ? 'وارد' : 'صادر'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
