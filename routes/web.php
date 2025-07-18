@@ -96,6 +96,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         ]);
 
         Route::resource('/companies', CompanyController::class);
+
+        Route::get('/companies/get-company/{company}', [CompanyController::class, 'getCompany']);
         Route::resource('/transfers', TransferController::class);
     });
 
