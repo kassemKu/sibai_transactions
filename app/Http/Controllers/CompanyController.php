@@ -60,6 +60,8 @@ class CompanyController extends Controller
             return inertia('Companies/Show')->with([
                 'company' => $company->load([
                     'transfers',
+                    'transfers.company',
+                    'transfers.currency',
                 ]),
             ]);
         } catch (\Exception $e) {
