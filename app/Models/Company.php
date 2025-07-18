@@ -9,7 +9,7 @@ class Company extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'address', 'phone', 'email'];
 
     public function transfers()
     {

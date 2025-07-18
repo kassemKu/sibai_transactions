@@ -39,6 +39,21 @@ class UserController extends Controller
         }
     }
 
+    public function getUser($id)
+    {
+        try {
+            $user = User::with('roles')->findOrFail($id);
+
+            return $this->success('تم جلب بيانات المستخدم بنجاح.', [
+                'user' => $user,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'UserController@getUser');
+
+            return $this->failed('حدث خطأ أثناء جلب بيانات المستخدم');
+        }
+    }
+
     public function show(User $user)
     {
         try {
@@ -101,7 +116,7 @@ class UserController extends Controller
     public function getRoles()
     {
         try {
-            $roles = Role::all();
+            $roles = Role::where('name', '!=', 'super_admin')->get();
 
             return $this->success('تم جلب الأدوار بنجاح.', [
                 'roles' => $roles,
