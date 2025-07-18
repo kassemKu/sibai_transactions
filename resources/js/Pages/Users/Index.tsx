@@ -4,6 +4,15 @@ import { route } from 'ziggy-js';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import { FiPlus, FiEdit2, FiEye } from 'react-icons/fi';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@heroui/react';
+import UserModal from '@/Components/Users/UserModal';
 
 interface Role {
   id: number;
@@ -25,6 +34,8 @@ interface UsersIndexProps {
 
 export default function UsersIndex({ users }: UsersIndexProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editUserId, setEditUserId] = useState<number | null>(null);
 
   const filteredUsers = users.filter(
     user =>
@@ -32,12 +43,28 @@ export default function UsersIndex({ users }: UsersIndexProps) {
       user.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const handleOpenCreate = () => {
+    setEditUserId(null);
+    setShowUserModal(true);
+  };
+  const handleOpenEdit = (userId: number) => {
+    setEditUserId(userId);
+    setShowUserModal(true);
+  };
+  const handleCloseModal = () => {
+    setShowUserModal(false);
+    setEditUserId(null);
+  };
+  const handleSuccess = () => {
+    window.location.reload();
+  };
+
   return (
     <RootLayout
       title="المستخدمين"
       breadcrumbs={[{ label: 'المستخدمين' }]}
       headerActions={
-        <PrimaryButton className="text-sm">
+        <PrimaryButton className="text-sm" onClick={handleOpenCreate}>
           <FiPlus className="w-4 h-4 ml-2" />
           إضافة مستخدم جديد
         </PrimaryButton>
@@ -64,20 +91,32 @@ export default function UsersIndex({ users }: UsersIndexProps) {
         </div>
       </div>
 
-      {/* Users Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredUsers.map(user => (
-          <div
-            key={user.id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+      {/* Users Table */}
+      <div className="overflow-x-auto">
+        <Table aria-label="جدول المستخدمين" className="min-w-full">
+          <TableHeader>
+            <TableColumn>#</TableColumn>
+            <TableColumn>الاسم</TableColumn>
+            <TableColumn>البريد الإلكتروني</TableColumn>
+            <TableColumn>الدور</TableColumn>
+            <TableColumn>تاريخ الإنشاء</TableColumn>
+            <TableColumn>إجراء</TableColumn>
+          </TableHeader>
+          <TableBody
+            emptyContent={
+              filteredUsers.length === 0
+                ? searchTerm
+                  ? 'لا توجد نتائج للبحث المحدد'
+                  : 'لا توجد مستخدمين'
+                : undefined
+            }
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  {user.name}
-                </h3>
-                <p className="text-sm text-gray-600">{user.email}</p>
-                <div className="mt-2">
+            {filteredUsers.map((user, idx) => (
+              <TableRow key={user.id}>
+                <TableCell>{idx + 1}</TableCell>
+                <TableCell>{user.name}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
                   {user.roles.map(role => (
                     <span
                       key={role.id}
@@ -86,34 +125,40 @@ export default function UsersIndex({ users }: UsersIndexProps) {
                       {role.display_name}
                     </span>
                   ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              <div className="text-xs text-gray-500">
-                تم الإنشاء:{' '}
-                {new Date(user.created_at).toLocaleDateString('ar-EG')}
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <a
-                  href={route('users.show', user.id)}
-                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="عرض التفاصيل"
-                >
-                  <FiEye className="w-4 h-4" />
-                </a>
-                <a
-                  href={route('users.edit', user.id)}
-                  className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                  title="تعديل"
-                >
-                  <FiEdit2 className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          </div>
-        ))}
+                </TableCell>
+                <TableCell>
+                  {new Date(user.created_at).toLocaleDateString('ar-EG')}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <a
+                      href={route('users.show', user.id)}
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="عرض التفاصيل"
+                    >
+                      <FiEye className="w-4 h-4" />
+                    </a>
+                    <button
+                      type="button"
+                      className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      title="تعديل"
+                      onClick={() => handleOpenEdit(user.id)}
+                    >
+                      <FiEdit2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
+      <UserModal
+        isOpen={showUserModal}
+        onClose={handleCloseModal}
+        onSuccess={handleSuccess}
+        userId={editUserId}
+      />
 
       {/* Empty State */}
       {filteredUsers.length === 0 && (

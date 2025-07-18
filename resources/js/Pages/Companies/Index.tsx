@@ -6,6 +6,14 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import { FiPlus, FiEdit2, FiEye } from 'react-icons/fi';
 import CompanyCreateModal from '@/Components/Companies/CompanyCreateModal';
 import CompanyEditModal from '@/Components/Companies/CompanyEditModal';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@heroui/react';
 
 interface Company {
   id: number;
@@ -83,45 +91,54 @@ export default function CompaniesIndex({ companies }: CompaniesIndexProps) {
           </div>
         </div>
       </div>
-      {/* Companies Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCompanies.map(company => (
-          <div
-            key={company.id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+      {/* Companies Table */}
+      <div className="overflow-x-auto">
+        <Table aria-label="جدول الشركات" className="min-w-full">
+          <TableHeader>
+            <TableColumn>#</TableColumn>
+            <TableColumn>اسم الشركة</TableColumn>
+            <TableColumn>تاريخ الإنشاء</TableColumn>
+            <TableColumn>إجراء</TableColumn>
+          </TableHeader>
+          <TableBody
+            emptyContent={
+              filteredCompanies.length === 0
+                ? searchTerm
+                  ? 'لا توجد نتائج للبحث المحدد'
+                  : 'لا توجد شركات'
+                : undefined
+            }
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  {company.name}
-                </h3>
-              </div>
-            </div>
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              <div className="text-xs text-gray-500">
-                تم الإنشاء:{' '}
-                {new Date(company.created_at).toLocaleDateString('ar-EG')}
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <a
-                  href={route('companies.show', company.id)}
-                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="عرض التفاصيل"
-                >
-                  <FiEye className="w-4 h-4" />
-                </a>
-                <button
-                  type="button"
-                  className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                  title="تعديل"
-                  onClick={() => handleOpenEdit(company)}
-                >
-                  <FiEdit2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+            {filteredCompanies.map((company, idx) => (
+              <TableRow key={company.id}>
+                <TableCell>{idx + 1}</TableCell>
+                <TableCell>{company.name}</TableCell>
+                <TableCell>
+                  {new Date(company.created_at).toLocaleDateString('ar-EG')}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <a
+                      href={route('companies.show', company.id)}
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="عرض التفاصيل"
+                    >
+                      <FiEye className="w-4 h-4" />
+                    </a>
+                    <button
+                      type="button"
+                      className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      title="تعديل"
+                      onClick={() => handleOpenEdit(company)}
+                    >
+                      <FiEdit2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
       {/* Empty State */}
       {filteredCompanies.length === 0 && (
