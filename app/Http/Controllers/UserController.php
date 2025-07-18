@@ -39,23 +39,10 @@ class UserController extends Controller
         }
     }
 
-    public function edit(User $user)
-    {
-        try {
-            return inertia('Users/Show')->with([
-                'user' => $user->load('roles'),
-            ]);
-        } catch (\Exception $e) {
-            $this->errorLog($e, 'UserController@show');
-
-            return $this->failed('حدث خطأ أثناء جلب بيانات المستخدم');
-        }
-    }
-
     public function show(User $user)
     {
         try {
-            return $this->success('تم جلب بيانات المستخدم بنجاح.', [
+            return inertia('Users/Show')->with([
                 'user' => $user->load('roles'),
             ]);
         } catch (\Exception $e) {
