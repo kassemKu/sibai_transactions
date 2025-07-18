@@ -37,32 +37,14 @@ class CompanyController extends Controller
         }
     }
 
-    public function edit(Company $company)
-    {
-        try {
-            return inertia('Companies/Show')->with([
-                'company' => $company->load([
-                    'transfers',
-                    'transfers.company',
-                    'transfers.currency',
-                ]),
-            ]);
-        } catch (\Exception $e) {
-            $this->errorLog($e, 'CompanyController@show');
-
-            return $this->failed('حدث خطأ أثناء جلب بيانات الشركة');
-        }
-    }
-
     public function show(Company $company)
     {
         try {
+            $company->load([]); // eager load nothing extra for company itself
+            $transfers = $company->transfers()->with(['company', 'currency'])->paginate(10);
             return inertia('Companies/Show')->with([
-                'company' => $company->load([
-                    'transfers',
-                    'transfers.company',
-                    'transfers.currency',
-                ]),
+                'company' => $company,
+                'transfers' => $transfers,
             ]);
         } catch (\Exception $e) {
             $this->errorLog($e, 'CompanyController@show');
