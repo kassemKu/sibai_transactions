@@ -1,17 +1,44 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
-import { FiEdit2, FiArrowLeft, FiCalendar } from 'react-icons/fi';
+import {
+  FiEdit2,
+  FiArrowLeft,
+  FiCalendar,
+  FiChevronLeft,
+  FiChevronRight,
+} from 'react-icons/fi';
+
+interface Currency {
+  id: number;
+  name: string;
+  code: string;
+  rate_to_usd: string;
+  sell_rate_to_usd: string;
+  buy_rate_to_usd: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface Transfer {
   id: number;
-  amount: number;
-  currency: string;
+  company_id: number;
+  currency_id: number;
+  amount: string;
   type: string;
   created_at: string;
+  updated_at: string;
+  company: {
+    id: number;
+    name: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+  };
+  currency: Currency;
 }
 
 interface Company {
@@ -19,15 +46,41 @@ interface Company {
   name: string;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
   transfers?: Transfer[];
+}
+
+interface PaginatedTransfers {
+  current_page: number;
+  data: Transfer[];
+  first_page_url: string;
+  from: number;
+  last_page: number;
+  last_page_url: string;
+  links: Array<{
+    url: string | null;
+    label: string;
+    active: boolean;
+  }>;
+  next_page_url: string | null;
+  path: string;
+  per_page: number;
+  prev_page_url: string | null;
+  to: number;
+  total: number;
 }
 
 interface CompaniesShowProps {
   company: Company;
+  transfers: PaginatedTransfers;
 }
 
-export default function CompaniesShow({ company }: CompaniesShowProps) {
+export default function CompaniesShow({
+  company,
+  transfers,
+}: CompaniesShowProps) {
   console.log(company);
+  console.log(transfers);
   return (
     <RootLayout
       title={company.name}
@@ -133,7 +186,7 @@ export default function CompaniesShow({ company }: CompaniesShowProps) {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">عدد التحويلات</span>
                 <span className="text-sm font-medium text-gray-900">
-                  {company.transfers?.length || 0}
+                  {transfers.total}
                 </span>
               </div>
             </div>
@@ -142,7 +195,7 @@ export default function CompaniesShow({ company }: CompaniesShowProps) {
       </div>
 
       {/* Transfers Section */}
-      {company.transfers && company.transfers.length > 0 && (
+      {transfers.data && transfers.data.length > 0 && (
         <div className="mt-8">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
@@ -168,16 +221,16 @@ export default function CompaniesShow({ company }: CompaniesShowProps) {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {company.transfers.map(transfer => (
+                  {transfers.data.map(transfer => (
                     <tr key={transfer.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {transfer.amount.toLocaleString()}
+                        {parseFloat(transfer.amount).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {transfer.currency}
+                        {transfer.currency.name} ({transfer.currency.code})
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {transfer.type}
+                        {transfer.type === 'in' ? 'وارد' : 'صادر'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(transfer.created_at).toLocaleDateString(
@@ -189,6 +242,80 @@ export default function CompaniesShow({ company }: CompaniesShowProps) {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {transfers.last_page > 1 && (
+              <div className="mt-6 flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  عرض {transfers.from} إلى {transfers.to} من {transfers.total}{' '}
+                  نتيجة
+                </div>
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  {/* Previous Page */}
+                  {transfers.prev_page_url && (
+                    <button
+                      onClick={() => {
+                        const url = new URL(transfers.prev_page_url!);
+                        router.get(url.pathname + url.search);
+                      }}
+                      className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      title="الصفحة السابقة"
+                    >
+                      <FiChevronRight className="w-4 h-4 ml-1" />
+                      السابق
+                    </button>
+                  )}
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center space-x-1 space-x-reverse">
+                    {transfers.links.map((link, index) => {
+                      if (link.url === null && !link.active) {
+                        return (
+                          <span
+                            key={index}
+                            className="px-3 py-2 text-sm text-gray-400"
+                            dangerouslySetInnerHTML={{ __html: link.label }}
+                          />
+                        );
+                      }
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            if (link.url) {
+                              const url = new URL(link.url);
+                              router.get(url.pathname + url.search);
+                            }
+                          }}
+                          className={`px-3 py-2 text-sm font-medium rounded-md ${
+                            link.active
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                          }`}
+                          dangerouslySetInnerHTML={{ __html: link.label }}
+                          title={`الصفحة ${link.label.replace(/[^0-9]/g, '')}`}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Next Page */}
+                  {transfers.next_page_url && (
+                    <button
+                      onClick={() => {
+                        const url = new URL(transfers.next_page_url!);
+                        router.get(url.pathname + url.search);
+                      }}
+                      className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      title="الصفحة التالية"
+                    >
+                      التالي
+                      <FiChevronLeft className="w-4 h-4 mr-1" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
