@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transfer extends Model
 {
-    protected $fillable = ['company_id', 'receive', 'delivery', 'currency_id'];
+    protected $fillable = ['company_id', 'currency_id', 'amount', 'type'];
 
     public function company()
     {

@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
 use App\Models\CashSession;
+use App\Models\Company;
 use App\Models\Currency;
 use App\Models\Transaction;
-use Illuminate\Support\Facades\Auth;
 use App\Models\User;
-use App\Models\Company;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
@@ -60,20 +60,20 @@ class DashboardController extends Controller
         })->get();
 
         $currencies = Currency::get();
-        $cashiers = $allCashiers->map(function ($user) use ($session, $currencies) {
+        $cashiers = $allCashiers->map(function ($user) use ($currencies) {
             // Get the user's most recent session (not just for current cash session)
             $cashierSession = $user->casherCashSessions()
                 ->orderBy('created_at', 'desc')
                 ->first();
-            
+
             // Calculate system balances dynamically
             $systemBalances = [];
             if ($cashierSession) {
                 $openingBalances = collect($cashierSession->opening_balances)->keyBy('currency_id');
-                
+
                 foreach ($currencies as $currency) {
                     $opening = $openingBalances[$currency->id]['amount'] ?? 0;
-                    
+
                     // Calculate total in/out movements for this cashier and currency
                     $totalIn = \App\Models\CashMovement::where('currency_id', $currency->id)
                         ->where('by', $cashierSession->casher_id)
@@ -81,16 +81,16 @@ class DashboardController extends Controller
                         ->where('cash_session_id', $cashierSession->cash_session_id)
                         ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
                         ->sum('amount');
-                    
+
                     $totalOut = \App\Models\CashMovement::where('currency_id', $currency->id)
                         ->where('by', $cashierSession->casher_id)
                         ->where('type', \App\Enums\CashMovementTypeEnum::OUT->value)
                         ->where('cash_session_id', $cashierSession->cash_session_id)
                         ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
                         ->sum('amount');
-                    
+
                     $systemBalance = $opening + $totalIn - $totalOut;
-                    
+
                     $systemBalances[] = [
                         'currency_id' => $currency->id,
                         'amount' => $systemBalance,
@@ -107,7 +107,7 @@ class DashboardController extends Controller
                     ];
                 })->toArray();
             }
-            
+
             return [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -119,19 +119,19 @@ class DashboardController extends Controller
 
         // Always include the logged-in cashier, even if not in the above list
         $currentUser = Auth::user();
-        if ($currentUser->hasRole('casher') && !$cashiers->contains('id', $currentUser->id)) {
+        if ($currentUser->hasRole('casher') && ! $cashiers->contains('id', $currentUser->id)) {
             // Get the current user's most recent session and system balances
             $currentUserSession = $currentUser->casherCashSessions()
                 ->orderBy('created_at', 'desc')
                 ->first();
-            
+
             $systemBalances = [];
             if ($currentUserSession) {
                 $openingBalances = collect($currentUserSession->opening_balances)->keyBy('currency_id');
-                
+
                 foreach ($currencies as $currency) {
                     $opening = $openingBalances[$currency->id]['amount'] ?? 0;
-                    
+
                     // Calculate total in/out movements for this cashier and currency
                     $totalIn = \App\Models\CashMovement::where('currency_id', $currency->id)
                         ->where('by', $currentUserSession->casher_id)
@@ -139,16 +139,16 @@ class DashboardController extends Controller
                         ->where('cash_session_id', $currentUserSession->cash_session_id)
                         ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
                         ->sum('amount');
-                    
+
                     $totalOut = \App\Models\CashMovement::where('currency_id', $currency->id)
                         ->where('by', $currentUserSession->casher_id)
                         ->where('type', \App\Enums\CashMovementTypeEnum::OUT->value)
                         ->where('cash_session_id', $currentUserSession->cash_session_id)
                         ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
                         ->sum('amount');
-                    
+
                     $systemBalance = $opening + $totalIn - $totalOut;
-                    
+
                     $systemBalances[] = [
                         'currency_id' => $currency->id,
                         'amount' => $systemBalance,
@@ -165,7 +165,7 @@ class DashboardController extends Controller
                     ];
                 })->toArray();
             }
-            
+
             $cashiers->push([
                 'id' => $currentUser->id,
                 'name' => $currentUser->name,

@@ -20,7 +20,7 @@ class CashMovementController extends Controller
             $casherSession = \App\Models\CasherCashSession::where('casher_id', $request->user_id)
                 ->where('cash_session_id', $request->cash_session_id)
                 ->first();
-            
+
             $opening = 0;
             if ($casherSession && $casherSession->opening_balances) {
                 $openingBalances = collect($casherSession->opening_balances)->keyBy('currency_id');
