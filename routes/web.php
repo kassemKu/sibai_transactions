@@ -87,6 +87,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
 
         Route::get('/users-roles', [UserController::class, 'getRoles']);
         Route::resource('/users', UserController::class);
+        Route::get('/get-users', [UserController::class, 'getUsers']);
 
         Route::resource('/employees', EmployeeController::class, [
             'parameters' => ['' => 'employee'],

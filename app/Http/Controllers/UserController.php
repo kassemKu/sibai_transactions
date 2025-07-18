@@ -24,6 +24,21 @@ class UserController extends Controller
         }
     }
 
+    public function getUsers()
+    {
+        try {
+            $users = User::with('roles')->get();
+
+            return inertia('Users/Index')->with([
+                'users' => $users,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'UserController@index');
+
+            return $this->failed('حدث خطأ أثناء جلب المستخدمين');
+        }
+    }
+
     public function edit(User $user)
     {
         try {
