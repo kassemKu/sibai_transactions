@@ -50,6 +50,7 @@ class CompanyController extends Controller
                 ->get()
                 ->map(function ($row) {
                     $net = $row->total_incoming - $row->total_outgoing;
+
                     return [
                         'currency' => $row->currency,
                         'total_incoming' => (float) $row->total_incoming,
@@ -83,6 +84,7 @@ class CompanyController extends Controller
                 ->get()
                 ->map(function ($row) {
                     $net = $row->total_incoming - $row->total_outgoing;
+
                     return [
                         'currency' => $row->currency,
                         'total_incoming' => (float) $row->total_incoming,
