@@ -29,7 +29,7 @@ class UserController extends Controller
         try {
             $users = User::with('roles')->get();
 
-            return inertia('Users/Index')->with([
+            $this->success('تم جلب المستخدمين بنجاح.', [
                 'users' => $users,
             ]);
         } catch (\Exception $e) {
