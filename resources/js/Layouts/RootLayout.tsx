@@ -117,7 +117,7 @@ export default function RootLayout({
     roles && Array.isArray(roles) && (roles as string[]).includes('casher');
   const isAdmin =
     (roles &&
-    Array.isArray(roles) &&
+      Array.isArray(roles) &&
       (roles as string[]).includes('super_admin')) ||
     (roles as string[]).includes('superadministrator') ||
     (roles as string[]).includes('administrator');
@@ -144,9 +144,9 @@ export default function RootLayout({
     },
     {
       name: 'الموظفين',
-      href: route('employees.index'),
+      href: route('users.index'), // Point to Users module
       icon: <FaUsers className="h-5 w-5" />,
-      current: route().current('employees.*'),
+      current: route().current('users.*'), // Highlight when on users pages
     },
     {
       name: 'العملات',
@@ -156,9 +156,9 @@ export default function RootLayout({
     },
     {
       name: 'الشركات',
-      href: route('companies.index'),
+      href: route('companies.index'), // Point to Companies module
       icon: <FaUsers className="h-5 w-5" />,
-      current: route().current('companies.*'),
+      current: route().current('companies.*'), // Highlight when on companies pages
     },
   ];
 

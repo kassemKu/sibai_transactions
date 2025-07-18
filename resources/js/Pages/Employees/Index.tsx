@@ -7,9 +7,9 @@ import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from 
 import React from "react"
 
 const Index = () => {
+    
   const route = useRoute()
   const { admins: { data } } = useTypedPage().props as any
-
   const breadcrumbs = [
     { label: 'الرئيسية', href: route('dashboard') },
     { label: 'الموظفين' },
