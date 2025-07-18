@@ -55,7 +55,7 @@ class CompanyController extends Controller
     public function show(Company $company)
     {
         try {
-            $this->success('تم جلب بيانات الشركة بنجاح.', [
+            return inertia('Companies/Show')->with([
                 'company' => $company->load([
                     'transfers',
                 ]),
