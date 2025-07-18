@@ -39,13 +39,11 @@ class UserController extends Controller
         }
     }
 
-    public function getUser($id)
+    public function getUser(User $user)
     {
         try {
-            $user = User::with('roles')->findOrFail($id);
-
             return $this->success('تم جلب بيانات المستخدم بنجاح.', [
-                'user' => $user,
+                'user' => $user->load('roles'),
             ]);
         } catch (\Exception $e) {
             $this->errorLog($e, 'UserController@getUser');
