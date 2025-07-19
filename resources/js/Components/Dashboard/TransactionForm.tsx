@@ -65,6 +65,7 @@ export default function TransactionForm({
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [notes, setNotes] = useState('');
 
   // Assignment settings state
   const [showSettings, setShowSettings] = useState(false);
@@ -165,6 +166,7 @@ export default function TransactionForm({
       setCalculatedAmount('');
       setManualAmount('');
       setIsManualAmountEnabled(false);
+      setNotes('');
 
       // Clear the last calculation reference
       lastCalculationRef.current = null;
@@ -418,6 +420,7 @@ export default function TransactionForm({
         converted_amount: parseFloat(finalAmount), // Use the correct value (manual or calculated)
         customer_name: '', // You can add a customer name field later
         ...(isAdmin && assignedTo ? { assigned_to: parseInt(assignedTo) } : {}),
+        ...(notes.trim() ? { notes: notes.trim() } : {}),
       };
 
       const response = await axios.post('/admin/transactions', transactionData);
@@ -477,6 +480,7 @@ export default function TransactionForm({
     resetForm,
     currencies,
     users,
+    notes,
   ]);
 
   // Helper function to format amount for display
@@ -494,27 +498,16 @@ export default function TransactionForm({
   };
 
   return (
-    <div className="w-full mb-8 relative">
-      <Card>
-        <CardContent className="p-2">
+    <div className="w-full relative">
           <div
             className={`flex flex-col gap-6 ${!isSessionOpen || isSessionPending ? 'blur-sm opacity-60' : ''}`}
           >
-            <div className="flex flex-col gap-2">
-              <div className="text-bold-x18 text-text-black">عملية جديدة</div>
-              <div className="text-med-x14 text-text-grey-light">
-                إنشاء عملية تحويل جديدة
-              </div>
-            </div>
-
             {/* Admin User Assignment Section */}
             {isAdmin && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <div className="text-bold-x16 text-blue-900">
-                      تعيين المسؤول
-                    </div>
+                <div className="text-bold-x16 text-blue-900">تعيين المسؤول</div>
                     <button
                       type="button"
                       onClick={() => setShowSettings(!showSettings)}
@@ -568,9 +561,7 @@ export default function TransactionForm({
                             onChange={e =>
                               setNewRule(prev => ({
                                 ...prev,
-                                direction: e.target.value as
-                                  | 'receive'
-                                  | 'spend',
+                            direction: e.target.value as 'receive' | 'spend',
                               }))
                             }
                             className="text-sm"
@@ -694,13 +685,15 @@ export default function TransactionForm({
               </div>
             )}
 
+        {/* Currency Exchange Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* From Currency */}
               <div className="space-y-4">
                 <div className="text-bold-x16 text-text-black">من</div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <InputLabel htmlFor="from_currency" className="mb-2">
-                      اختر العملة
+                  أختر العمله
                     </InputLabel>
                     <Select
                       id="from_currency"
@@ -710,6 +703,7 @@ export default function TransactionForm({
                       onChange={e => setFromCurrency(e.target.value)}
                       className="border-blue-200 focus:border-blue-500"
                     >
+                  <option value="">اختر العملة</option>
                       {currencies.map(currency => (
                         <option key={currency.id} value={currency.id}>
                           {currency.name} ({currency.code})
@@ -731,12 +725,13 @@ export default function TransactionForm({
                       decimalScale={2}
                       thousandSeparator={true}
                       dir="rtl"
-                      aria-label="مبلغ التحويل"
+                  aria-label="مبلغ العملية"
                     />
                   </div>
                 </div>
               </div>
 
+          {/* To Currency */}
               <div className="space-y-4">
                 <div className="text-bold-x16 text-text-black">إلى</div>
                 <div className="grid grid-cols-2 gap-4">
@@ -752,6 +747,7 @@ export default function TransactionForm({
                       onChange={e => setToCurrency(e.target.value)}
                       className="border-blue-200 focus:border-blue-500"
                     >
+                  <option value="">اختر العملة</option>
                       {currencies.map(currency => (
                         <option key={currency.id} value={currency.id}>
                           {currency.name} ({currency.code})
@@ -760,10 +756,27 @@ export default function TransactionForm({
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <InputLabel htmlFor="to_amount">
+                <InputLabel htmlFor="to_amount" className="mb-2">
                         المبلغ المحسوب
                       </InputLabel>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <NumberInput
+                      id="to_amount"
+                      placeholder="سيتم الحساب تلقائياً"
+                      className="w-full text-right bg-gray-50"
+                      value={
+                        isManualAmountEnabled ? manualAmount : calculatedAmount
+                      }
+                      onValueChange={values => setManualAmount(values.value)}
+                      min={0}
+                      decimalScale={2}
+                      thousandSeparator={true}
+                      dir="rtl"
+                      disabled={!isManualAmountEnabled}
+                      aria-label="المبلغ المحسوب"
+                    />
+                  </div>
                       {isAdmin && (
                         <button
                           type="button"
@@ -789,84 +802,40 @@ export default function TransactionForm({
                         </button>
                       )}
                     </div>
-                    <div className="relative">
-                      <NumberInput
-                        id="to_amount"
-                        placeholder={
-                          isCalculating
-                            ? 'جاري الحساب...'
-                            : isManualAmountEnabled
-                              ? 'أدخل المبلغ يدوياً'
-                              : 'سيتم الحساب تلقائياً'
-                        }
-                        className={`w-full text-right ${
-                          isManualAmountEnabled
-                            ? 'bg-orange-50 border-orange-300 focus:border-orange-500 focus:ring-orange-500 ring-2 ring-orange-200 pr-12'
-                            : 'bg-gray-50 border-gray-200'
-                        }`}
-                        value={
-                          isCalculating
-                            ? ''
-                            : isManualAmountEnabled
-                              ? manualAmount
-                              : calculatedAmount
-                        }
-                        onValueChange={
-                          isManualAmountEnabled
-                            ? values => setManualAmount(values.value)
-                            : undefined
-                        }
-                        readOnly={!isManualAmountEnabled}
-                        thousandSeparator={true}
-                        decimalScale={2}
-                        dir="rtl"
-                        aria-label="المبلغ المحسوب"
-                      />
                       {isCalculating && (
-                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primaryBlue"></div>
+                  <div className="text-xs text-blue-600 mt-1">
+                    جاري حساب المبلغ...
                         </div>
                       )}
-                      {isAdmin && isManualAmountEnabled && (
-                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1 pointer-events-none">
-                          <FiEdit3 className="w-4 h-4 text-orange-500" />
                         </div>
-                      )}
                     </div>
-                    {isAdmin && calculatedAmount && (
-                      <div className="text-xs text-gray-600 mt-1 flex items-center gap-1">
-                        <IoCalculatorSharp className="w-3 h-3" />
-                        <span>
-                          المبلغ المحسوب تلقائياً:{' '}
-                          {formatDisplayAmount(calculatedAmount)}{' '}
-                          {currencies.find(c => c.id.toString() === toCurrency)
-                            ?.code || ''}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
 
-            {/* Admin Manual Override Info */}
-            {isAdmin && isManualAmountEnabled && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <FiInfo className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="text-sm font-medium text-orange-900 mb-1">
-                      تم تفعيل التعديل اليدوي
+        {/* Notes Section */}
+        <div className="space-y-4">
+          <div className="text-bold-x16 text-text-black">ملاحظات</div>
+          <div className="space-y-2">
+            <InputLabel htmlFor="notes" className="mb-2">
+              ملاحظة (اختيارية)
+            </InputLabel>
+            <textarea
+              id="notes"
+              placeholder="أضف ملاحظة للعملية (اختياري)"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              rows={3}
+              maxLength={255}
+              dir="rtl"
+            />
+            <div className="text-xs text-gray-500 text-left">
+              {notes.length}/255 حرف
                     </div>
-                    <div className="text-xs text-orange-700">
-                      يمكنك الآن تعديل المبلغ المحسوب يدوياً. سيتم استخدام
-                      المبلغ المدخل بدلاً من المبلغ المحسوب تلقائياً.
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
 
+        {/* Action Buttons */}
             <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl">
               <div className="text-med-x14 flex flex-col items-start gap-2">
                 <span className="text-[#6B7280] text-med-x14">
@@ -898,8 +867,6 @@ export default function TransactionForm({
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
       {/* Overlay when session is closed or pending */}
       {(!isSessionOpen || isSessionPending) && (
@@ -927,17 +894,8 @@ export default function TransactionForm({
                   الجلسة النقدية معلقة
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  الجلسة الحالية معلقة، يتم الآن جرد الأرصدة ولا يمكن تنفيذ
-                  عمليات جديدة.
+                  يرجى الانتظار حتى يتم تأكيد الجلسة من قبل المشرف
                 </p>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-4">
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse flex-shrink-0"></div>
-                    <span className="text-xs text-orange-800">
-                      يرجى انتظار انتهاء عملية جرد الأرصدة لإكمال إغلاق الجلسة
-                    </span>
-                  </div>
-                </div>
               </>
             ) : (
               // Closed session message

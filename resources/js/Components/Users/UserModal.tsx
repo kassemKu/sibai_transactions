@@ -62,7 +62,7 @@ export default function UserModal({
     if (isOpen && userId) {
       setLoadingUser(true);
       axios
-        .get(`/admin/users/${userId}`)
+        .get(`/admin/users/get-user/${userId}`)
         .then(res => {
           const user = res.data.data.user;
           setData({
@@ -171,7 +171,7 @@ export default function UserModal({
                 <option value="">اختر الدور</option>
                 {roles.map(role => (
                   <option key={role.id} value={role.id}>
-                    {role.display_name}
+                    {role.display_name || role.name}
                   </option>
                 ))}
               </Select>
@@ -186,7 +186,7 @@ export default function UserModal({
                 className="mt-1 block w-full"
                 value={data.password || ''}
                 onChange={handleChange}
-                required={!userId} // Only required for create mode
+                {...(!userId && { required: true })}
                 placeholder={
                   userId ? 'اتركه فارغًا للإبقاء على كلمة المرور الحالية' : ''
                 }

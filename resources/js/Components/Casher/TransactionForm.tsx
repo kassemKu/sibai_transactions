@@ -29,6 +29,7 @@ export default function TransactionForm({
   const [calculatedAmount, setCalculatedAmount] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notes, setNotes] = useState('');
 
   // Set SYP as default and only option for "From" currency for cashiers
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function TransactionForm({
       setToCurrency('');
       setAmount('');
       setCalculatedAmount('');
+      setNotes('');
       if (showToast) {
         toast.success('تم إعادة تعيين النموذج');
       }
@@ -144,6 +146,7 @@ export default function TransactionForm({
         to_currency_id: parseInt(toCurrency),
         original_amount: parseFloat(amount),
         customer_name: '', // You can add a customer name field later
+        notes: notes, // Add notes to transaction data
       };
 
       const response = await axios.post(
@@ -197,6 +200,7 @@ export default function TransactionForm({
     isSessionPending,
     resetForm,
     currencies,
+    notes,
   ]);
 
   // Helper function to format amount for display
@@ -334,6 +338,29 @@ export default function TransactionForm({
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes Section */}
+            <div className="space-y-4">
+              <div className="text-bold-x16 text-text-black">ملاحظات</div>
+              <div className="space-y-2">
+                <InputLabel htmlFor="notes" className="mb-2">
+                  ملاحظة (اختيارية)
+                </InputLabel>
+                <textarea
+                  id="notes"
+                  placeholder="أضف ملاحظة للعملية (اختياري)"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  rows={3}
+                  maxLength={255}
+                  dir="rtl"
+                />
+                <div className="text-xs text-gray-500 text-left">
+                  {notes.length}/255 حرف
                 </div>
               </div>
             </div>

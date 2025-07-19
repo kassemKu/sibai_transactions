@@ -8,70 +8,13 @@ import {
   TableHeader,
   TableColumn,
   Table,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
   Button,
   Chip,
 } from '@heroui/react';
 import { router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
-
-interface Currency {
-  id: number;
-  name: string;
-  code: string;
-  rate_to_usd: string | number;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
-interface Customer {
-  id: number;
-  name: string;
-  phone?: string;
-}
-
-interface Transaction {
-  id: number;
-  cash_session_id: number;
-  user_id: number;
-  assigned_to: User | null;
-  customer_id: number | null;
-  from_currency_id: number;
-  to_currency_id: number;
-  original_amount: number;
-  converted_amount: number;
-  from_rate_to_usd: string | number;
-  to_rate_to_usd: string | number;
-  status: 'pending' | 'completed' | 'canceled';
-  created_at: string;
-  updated_at: string;
-  from_currency: Currency;
-  to_currency: Currency;
-  created_by: User;
-  customer?: Customer;
-  closed_by?: User;
-  profit_from_usd?: number;
-  profit_to_usd?: number;
-  total_profit_usd?: number;
-  usd_intermediate?: number;
-  from_currency_rates_snapshot?: {
-    rate_to_usd: number;
-    buy_rate_to_usd: number;
-    sell_rate_to_usd: number;
-  };
-  to_currency_rates_snapshot?: {
-    rate_to_usd: number;
-    buy_rate_to_usd: number;
-    sell_rate_to_usd: number;
-  };
-}
+import NotesModal from '../NotesModal';
+import type { Transaction, User, Currency, Customer } from '../../types';
 
 interface PendingTransactionsResponse {
   status: boolean;
@@ -103,6 +46,9 @@ export default function PendingTransactionsTable({
   const [updatingTransactions, setUpdatingTransactions] = useState<Set<number>>(
     new Set(),
   );
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
 
   // Helper functions defined first
   const getStatusLabel = (status: Transaction['status']) => {
@@ -220,6 +166,16 @@ export default function PendingTransactionsTable({
     );
   };
 
+  const handleViewNotes = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setNotesModalOpen(true);
+  };
+
+  const handleCloseNotesModal = () => {
+    setNotesModalOpen(false);
+    setSelectedTransaction(null);
+  };
+
   return (
     <div className="w-full mb-8">
       <Table
@@ -272,6 +228,7 @@ export default function PendingTransactionsTable({
           <TableColumn>المبلغ المحول</TableColumn>
           <TableColumn>منشئ العملية</TableColumn>
           <TableColumn>مُعين إلى</TableColumn>
+          <TableColumn>ملاحظات</TableColumn>
           <TableColumn>الحالة</TableColumn>
           <TableColumn>الإجراءات</TableColumn>
         </TableHeader>
@@ -374,6 +331,31 @@ export default function PendingTransactionsTable({
                       </div>
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {transaction.notes ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={e => {
+                            e.stopPropagation(); // Prevent row click
+                            handleViewNotes(transaction);
+                          }}
+                          className="h-6 px-2"
+                        >
+                          <span className="text-blue-600 text-sm">📝</span>
+                          <span className="text-xs text-gray-600 mr-1">
+                            ملاحظة
+                          </span>
+                        </Button>
+                      ) : (
+                        <>
+                          <span className="text-gray-400 text-lg">-</span>
+                          <span className="text-xs text-gray-400">لايوجد</span>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{getStatusChip(transaction.status)}</TableCell>
                   <TableCell>
                     <Button
@@ -401,6 +383,12 @@ export default function PendingTransactionsTable({
             })}
         </TableBody>
       </Table>
+
+      <NotesModal
+        isOpen={notesModalOpen}
+        onClose={handleCloseNotesModal}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 }

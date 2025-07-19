@@ -20,58 +20,24 @@ import { route } from 'ziggy-js';
 import { useNewTransactionNotification } from '@/Hooks/useNewTransactionNotification';
 import NewTransactionNotification from '@/Components/Casher/NewTransactionNotification';
 import { usePage } from '@inertiajs/react';
-import { Transaction as GlobalTransaction } from '@/types';
-
-interface Currency {
-  id: number;
-  name: string;
-  code: string;
-  rate_to_usd: string | number;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
-interface Customer {
-  id: number;
-  name: string;
-  phone?: string;
-}
-
-interface Transaction {
-  id: number;
-  customer_id: number | null;
-  user_id: number;
-  cash_session_id: number;
-  from_currency_id: number;
-  to_currency_id: number;
-  original_amount: number;
-  from_rate_to_usd: string | number;
-  to_rate_to_usd: string | number;
-  converted_amount: number;
-  status: 'pending' | 'completed' | 'canceled';
-  created_at: string;
-  updated_at: string;
-  from_currency: Currency;
-  to_currency: Currency;
-  created_by: User;
-  assigned_to: User;
-  customer: Customer;
-}
+import {
+  Transaction as GlobalTransaction,
+  User,
+  Currency,
+  Customer,
+} from '@/types';
+import NotesModal from '../NotesModal';
 
 interface PendingTransactionsResponse {
   status: boolean;
   message: string;
   data: {
-    transactions: Transaction[];
+    transactions: GlobalTransaction[];
   };
 }
 
 interface RecentTransactionsTableProps {
-  transactions: Transaction[];
+  transactions: GlobalTransaction[];
   isSessionActive?: boolean;
   isSessionPending?: boolean;
   isLoading?: boolean;
@@ -93,6 +59,9 @@ export default function RecentTransactionsTable({
   const [updatingTransactions, setUpdatingTransactions] = useState<Set<number>>(
     new Set(),
   );
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<GlobalTransaction | null>(null);
 
   // Use notification hook for new pending transactions
   const { showVisualNotification, hideVisualNotification } =
@@ -102,7 +71,7 @@ export default function RecentTransactionsTable({
     });
 
   // Helper functions defined first
-  const getStatusLabel = (status: Transaction['status']) => {
+  const getStatusLabel = (status: GlobalTransaction['status']) => {
     const labels = {
       pending: 'معلقة',
       completed: 'مكتملة',
@@ -112,7 +81,7 @@ export default function RecentTransactionsTable({
   };
 
   // Get status color and label
-  const getStatusChip = (status: Transaction['status']) => {
+  const getStatusChip = (status: GlobalTransaction['status']) => {
     const configs = {
       pending: { label: 'معلقة', color: 'warning' as const },
       completed: { label: 'مكتملة', color: 'success' as const },
@@ -215,6 +184,16 @@ export default function RecentTransactionsTable({
     router.get(route('transaction.show', { transaction: transactionId }));
   };
 
+  const handleOpenNotesModal = (transaction: GlobalTransaction) => {
+    setSelectedTransaction(transaction);
+    setShowNotesModal(true);
+  };
+
+  const handleCloseNotesModal = () => {
+    setShowNotesModal(false);
+    setSelectedTransaction(null);
+  };
+
   // No need for polling logic since parent handles unified status polling
   return (
     <>
@@ -268,6 +247,7 @@ export default function RecentTransactionsTable({
             <TableColumn>المبلغ المحول</TableColumn>
             <TableColumn>منشئ العملية</TableColumn>
             <TableColumn>مُعين إلى</TableColumn>
+            <TableColumn>ملاحظات</TableColumn>
             <TableColumn>الحالة</TableColumn>
             <TableColumn>الإجراءات</TableColumn>
           </TableHeader>
@@ -372,6 +352,31 @@ export default function RecentTransactionsTable({
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {transaction.notes ? (
+                          <Button
+                            size="sm"
+                            onClick={e => {
+                              e.stopPropagation();
+                              handleOpenNotesModal(transaction);
+                            }}
+                          >
+                            <span className="text-blue-600 text-lg">📝</span>
+                            <span className="text-xs text-gray-600">
+                              ملاحظة
+                            </span>
+                          </Button>
+                        ) : (
+                          <>
+                            <span className="text-gray-400 text-lg">-</span>
+                            <span className="text-xs text-gray-400">
+                              لايوجد
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{getStatusChip(transaction.status)}</TableCell>
                     <TableCell>
                       <Dropdown>
@@ -433,6 +438,13 @@ export default function RecentTransactionsTable({
         transactions={transactions as GlobalTransaction[]}
         isVisible={showVisualNotification}
         onClose={hideVisualNotification}
+      />
+
+      {/* Notes Modal */}
+      <NotesModal
+        isOpen={showNotesModal}
+        onClose={handleCloseNotesModal}
+        transaction={selectedTransaction}
       />
     </>
   );

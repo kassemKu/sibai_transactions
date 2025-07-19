@@ -23,6 +23,11 @@ class TransactionController extends Controller
     {
         $calc = $request->getCalc();
 
+        // Add notes to the calculation data if provided
+        if ($request->has('notes') && $request->notes) {
+            $calc['notes'] = $request->notes;
+        }
+
         $transaction = $this->transactionService->createTransaction($calc, $request->cash_session);
 
         return $this->success('Transaction created successfully.', [

@@ -29,9 +29,13 @@ class RolePermissionSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // Create roles
-        $roles = ['super_admin', 'admin', 'casher'];
-        foreach ($roles as $r) {
-            Role::create(['name' => $r]);
+        $roles = [
+            ['name' => 'super_admin', 'display_name' => 'مدير النظام'],
+            ['name' => 'admin', 'display_name' => 'مدير'],
+            ['name' => 'casher', 'display_name' => 'كاشير'],
+        ];
+        foreach ($roles as $role) {
+            Role::create($role);
         }
 
         // Create permissions

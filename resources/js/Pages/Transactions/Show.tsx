@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Transaction, Currency, User } from '@/types';
 import RootLayout from '@/Layouts/RootLayout';
 import {
@@ -7,6 +7,9 @@ import {
   FiUser,
   FiCalendar,
   FiRepeat,
+  FiFileText,
+  FiChevronDown,
+  FiChevronUp,
 } from 'react-icons/fi';
 import { IoCalculatorSharp } from 'react-icons/io5';
 import { formatDateTime, formatCurrency } from '@/utils';
@@ -44,6 +47,18 @@ export default function Show({ transaction }: Props) {
   const isManuallyAdjusted = transaction.calculated_converted_amount
     ? transaction.converted_amount !== transaction.calculated_converted_amount
     : false;
+
+  // State for notes expansion
+  const [isNotesExpanded, setIsNotesExpanded] = useState(false);
+  const NOTES_PREVIEW_LENGTH = 200; // Show first 200 characters
+
+  // Check if notes should be truncated
+  const shouldTruncateNotes =
+    transaction.notes && transaction.notes.length > NOTES_PREVIEW_LENGTH;
+  const notesToShow =
+    shouldTruncateNotes && !isNotesExpanded
+      ? transaction.notes?.substring(0, NOTES_PREVIEW_LENGTH) + '...'
+      : transaction.notes || '';
   return (
     <RootLayout
       title={`تفاصيل المعاملة #${transaction.id}`}
@@ -116,7 +131,7 @@ export default function Show({ transaction }: Props) {
               <h2 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">
                 معلومات المعاملة
               </h2>
-              <div className=" grid grid-cols-2 gap-4">
+              <div className=" grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start">
                   <FiUser className="w-5 h-5 text-gray-400 ml-3 mt-1" />
                   <div className="flex-1">
@@ -204,6 +219,40 @@ export default function Show({ transaction }: Props) {
                     )}
                   </div>
                 </div>
+
+                {transaction.notes && (
+                  <div className="flex items-start col-span-1 md:col-span-2">
+                    <FiFileText className="w-5 h-5 text-gray-400 ml-3 mt-1 flex-shrink-0" />
+                    <div className="flex-1 min-w-0 w-full">
+                      <span className="text-sm text-gray-500 block mb-3 font-medium">
+                        ملاحظات
+                      </span>
+                      <div className="w-full p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm">
+                        <div className="text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed w-full">
+                          {notesToShow}
+                        </div>
+                        {shouldTruncateNotes && (
+                          <button
+                            onClick={() => setIsNotesExpanded(!isNotesExpanded)}
+                            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 mt-4 transition-colors font-medium"
+                          >
+                            {isNotesExpanded ? (
+                              <>
+                                <FiChevronUp className="w-4 h-4" />
+                                إخفاء المزيد
+                              </>
+                            ) : (
+                              <>
+                                <FiChevronDown className="w-4 h-4" />
+                                عرض المزيد
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

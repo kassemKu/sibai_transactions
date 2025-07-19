@@ -108,6 +108,7 @@ class TransactionService
             'converted_amount' => $data['converted_amount'],
             'assigned_to' => $assignedTo,
             'status' => TransactionStatusEnum::PENDING->value,
+            'notes' => $data['notes'] ?? null,
             'profit_from_usd' => $data['profit_from_usd'],
             'profit_to_usd' => $data['profit_to_usd'],
             'total_profit_usd' => $data['total_profit_usd'],
