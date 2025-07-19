@@ -34,6 +34,11 @@ class TransactionController extends Controller
             $calc['profit_to_usd'] = $profits['profit_to_usd'];
             $calc['total_profit_usd'] = $profits['total_profit_usd'];
 
+            // Add notes to the calculation data if provided
+            if ($request->has('notes') && $request->notes) {
+                $calc['notes'] = $request->notes;
+            }
+
             $result = array_merge($calc, ['assigned_to' => $request->assigned_to]);
             $transaction = $this->transactionService->createTransaction($result, $request->session);
 

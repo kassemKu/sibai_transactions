@@ -31,6 +31,7 @@ import DialogModal from '@/Components/DialogModal';
 import { FiUsers, FiEye, FiDollarSign, FiClock } from 'react-icons/fi';
 import { Chip } from '@heroui/react';
 import CashierBoxModal from '@/Components/Casher/CashierBoxModal';
+import UnifiedFormComponent from '@/Components/Dashboard/UnifiedFormComponent';
 
 interface DashboardProps {
   currencies: CurrenciesResponse;
@@ -589,53 +590,16 @@ export default function Dashboard({
 
       {/* Always show TransactionForm with overlay when session is not active */}
       <div id="transaction-form">
-        {/* Form Type Toggle - Admin Only */}
+        {/* Unified Form Component - Admin Only */}
         {isAdmin && (
-          <div className="mb-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-center space-x-2 space-x-reverse">
-                <button
-                  type="button"
-                  onClick={() => setFormType('transaction')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    formType === 'transaction'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  عملية جديدة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormType('transfer')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    formType === 'transfer'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  تحويل جديد
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Show appropriate form based on toggle */}
-        {formType === 'transaction' ? (
-          <TransactionForm
-            currencies={currenciesState}
-            isSessionOpen={!!isSessionOpen}
-            isSessionPending={!!isSessionPending}
-            onStartSession={isAdmin ? handleOpenSession : undefined}
-          />
-        ) : (
-          <TransferForm
+          <UnifiedFormComponent
+            formType={formType}
+            setFormType={setFormType}
             currencies={currenciesState}
             companies={companies}
             isSessionOpen={!!isSessionOpen}
             isSessionPending={!!isSessionPending}
-            onStartSession={isAdmin ? handleOpenSession : undefined}
+            onStartSession={handleOpenSession}
           />
         )}
       </div>

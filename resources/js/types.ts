@@ -146,6 +146,7 @@ export interface Transaction {
   status: 'pending' | 'completed' | 'canceled';
   created_at: string;
   updated_at: string;
+  notes?: string;
   from_currency: Currency;
   to_currency: Currency;
   created_by: User;

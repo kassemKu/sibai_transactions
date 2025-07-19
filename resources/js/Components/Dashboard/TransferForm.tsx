@@ -98,165 +98,152 @@ export default function TransferForm({
 
   return (
     <div className="relative">
-      <Card className="bg-white shadow-sm border border-gray-200">
-        <CardContent className="p-6">
-          <div
-            className={`flex flex-col gap-6 ${!isSessionOpen || isSessionPending ? 'blur-sm opacity-60' : ''}`}
-          >
-            <div className="flex flex-col gap-2">
-              <div className="text-bold-x18 text-text-black">تحويل جديد</div>
-              <div className="text-med-x14 text-text-grey-light">
-                إنشاء تحويل جديد للشركات
+      <div
+        className={`flex flex-col gap-6 ${!isSessionOpen || isSessionPending ? 'blur-sm opacity-60' : ''}`}
+      >
+        <div className="space-y-6">
+          {/* Transfer Type */}
+          <div className="space-y-3">
+            <InputLabel className="mb-2">نوع التحويل</InputLabel>
+            <div className="flex gap-4">
+              <label className="flex items-center space-x-2 space-x-reverse cursor-pointer">
+                <input
+                  type="radio"
+                  name="transferType"
+                  value="in"
+                  checked={transferType === 'in'}
+                  onChange={e =>
+                    setTransferType(e.target.value as 'in' | 'out')
+                  }
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-900">
+                  تحويل إلى
+                </span>
+              </label>
+              <label className="flex items-center space-x-2 space-x-reverse cursor-pointer">
+                <input
+                  type="radio"
+                  name="transferType"
+                  value="out"
+                  checked={transferType === 'out'}
+                  onChange={e =>
+                    setTransferType(e.target.value as 'in' | 'out')
+                  }
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-900">
+                  تحويل من
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Currency and Amount */}
+            <div className="space-y-4">
+              <div className="text-bold-x16 text-text-black">
+                تفاصيل التحويل
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <InputLabel htmlFor="currency" className="mb-2">
+                    اختر العملة
+                  </InputLabel>
+                  <Select
+                    id="currency"
+                    aria-label="اختر العملة"
+                    placeholder="اختر العملة"
+                    value={currency}
+                    onChange={e => setCurrency(e.target.value)}
+                    className="border-blue-200 focus:border-blue-500"
+                  >
+                    <option value="">اختر العملة</option>
+                    {currencies.map(currency => (
+                      <option key={currency.id} value={currency.id}>
+                        {currency.name} ({currency.code})
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <InputLabel htmlFor="amount" className="mb-2">
+                    المبلغ
+                  </InputLabel>
+                  <NumberInput
+                    id="amount"
+                    placeholder="أدخل المبلغ"
+                    className="w-full text-right"
+                    value={amount}
+                    onValueChange={values => setAmount(values.value)}
+                    min={0}
+                    decimalScale={2}
+                    thousandSeparator={true}
+                    dir="rtl"
+                    aria-label="مبلغ التحويل"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              {/* Transfer Type */}
-              <div className="space-y-3">
-                <InputLabel className="mb-2">نوع التحويل</InputLabel>
-                <div className="flex gap-4">
-                  <label className="flex items-center space-x-2 space-x-reverse cursor-pointer">
-                    <input
-                      type="radio"
-                      name="transferType"
-                      value="in"
-                      checked={transferType === 'in'}
-                      onChange={e =>
-                        setTransferType(e.target.value as 'in' | 'out')
-                      }
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-900">
-                      تحويل إلى
-                    </span>
-                  </label>
-                  <label className="flex items-center space-x-2 space-x-reverse cursor-pointer">
-                    <input
-                      type="radio"
-                      name="transferType"
-                      value="out"
-                      checked={transferType === 'out'}
-                      onChange={e =>
-                        setTransferType(e.target.value as 'in' | 'out')
-                      }
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-900">
-                      تحويل من
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Currency and Amount */}
-                <div className="space-y-4">
-                  <div className="text-bold-x16 text-text-black">
-                    تفاصيل التحويل
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <InputLabel htmlFor="currency" className="mb-2">
-                        اختر العملة
-                      </InputLabel>
-                      <Select
-                        id="currency"
-                        aria-label="اختر العملة"
-                        placeholder="اختر العملة"
-                        value={currency}
-                        onChange={e => setCurrency(e.target.value)}
-                        className="border-blue-200 focus:border-blue-500"
-                      >
-                        <option value="">اختر العملة</option>
-                        {currencies.map(currency => (
-                          <option key={currency.id} value={currency.id}>
-                            {currency.name} ({currency.code})
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <InputLabel htmlFor="amount" className="mb-2">
-                        المبلغ
-                      </InputLabel>
-                      <NumberInput
-                        id="amount"
-                        placeholder="أدخل المبلغ"
-                        className="w-full text-right"
-                        value={amount}
-                        onValueChange={values => setAmount(values.value)}
-                        min={0}
-                        decimalScale={2}
-                        thousandSeparator={true}
-                        dir="rtl"
-                        aria-label="مبلغ التحويل"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Company Selection */}
-                <div className="space-y-4">
-                  <div className="text-bold-x16 text-text-black">الشركة</div>
-                  <div className="space-y-2">
-                    <InputLabel htmlFor="company" className="mb-2">
-                      اختر الشركة
-                    </InputLabel>
-                    <Select
-                      id="company"
-                      aria-label="اختر الشركة"
-                      placeholder="اختر الشركة"
-                      value={company}
-                      onChange={e => setCompany(e.target.value)}
-                      className="border-blue-200 focus:border-blue-500"
-                    >
-                      <option value="">اختر الشركة</option>
-                      {companies.map(company => (
-                        <option key={company.id} value={company.id}>
-                          {company.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl">
-                <div className="text-med-x14 flex flex-col items-start gap-2">
-                  <span className="text-[#6B7280] text-med-x14">
-                    {transferType === 'in'
-                      ? 'سيتم تحويل مبلغ'
-                      : 'سيتم سحب مبلغ'}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-bold-x20 text-[#10B981] font-bold">
-                      {amount
-                        ? `${formatDisplayAmount(amount)} ${currencies.find(c => c.id.toString() === currency)?.code || ''}`
-                        : '0.00'}
-                    </span>
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                      {transferType === 'in' ? 'تحويل إلى' : 'تحويل من'}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <SecondaryButton onClick={() => resetForm(true)}>
-                    <FiRefreshCw className="w-4 h-4 ml-2" />
-                    اعاده التعيين
-                  </SecondaryButton>
-                  <PrimaryButton
-                    disabled={!currency || !amount || !company || isSubmitting}
-                    onClick={handleSubmit}
-                  >
-                    <FiSave className="w-4 h-4 ml-2" />
-                    {isSubmitting ? 'جاري التنفيذ...' : 'تنفيذ التحويل'}
-                  </PrimaryButton>
-                </div>
+            {/* Company Selection */}
+            <div className="space-y-4">
+              <div className="text-bold-x16 text-text-black">الشركة</div>
+              <div className="space-y-2">
+                <InputLabel htmlFor="company" className="mb-2">
+                  اختر الشركة
+                </InputLabel>
+                <Select
+                  id="company"
+                  aria-label="اختر الشركة"
+                  placeholder="اختر الشركة"
+                  value={company}
+                  onChange={e => setCompany(e.target.value)}
+                  className="border-blue-200 focus:border-blue-500"
+                >
+                  <option value="">اختر الشركة</option>
+                  {companies.map(company => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </Select>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl">
+            <div className="text-med-x14 flex flex-col items-start gap-2">
+              <span className="text-[#6B7280] text-med-x14">
+                {transferType === 'in' ? 'سيتم تحويل مبلغ' : 'سيتم سحب مبلغ'}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-bold-x20 text-[#10B981] font-bold">
+                  {amount
+                    ? `${formatDisplayAmount(amount)} ${currencies.find(c => c.id.toString() === currency)?.code || ''}`
+                    : '0.00'}
+                </span>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                  {transferType === 'in' ? 'تحويل إلى' : 'تحويل من'}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <SecondaryButton onClick={() => resetForm(true)}>
+                <FiRefreshCw className="w-4 h-4 ml-2" />
+                اعاده التعيين
+              </SecondaryButton>
+              <PrimaryButton
+                disabled={!currency || !amount || !company || isSubmitting}
+                onClick={handleSubmit}
+              >
+                <FiSave className="w-4 h-4 ml-2" />
+                {isSubmitting ? 'جاري التنفيذ...' : 'تنفيذ التحويل'}
+              </PrimaryButton>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Overlay when session is closed or pending */}
       {(!isSessionOpen || isSessionPending) && (
@@ -284,17 +271,8 @@ export default function TransferForm({
                   الجلسة النقدية معلقة
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  الجلسة الحالية معلقة، يتم الآن جرد الأرصدة ولا يمكن تنفيذ
-                  تحويلات جديدة.
+                  يرجى الانتظار حتى يتم تأكيد الجلسة من قبل المشرف
                 </p>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-4">
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse flex-shrink-0"></div>
-                    <span className="text-xs text-orange-800">
-                      يرجى انتظار انتهاء عملية جرد الأرصدة لإكمال إغلاق الجلسة
-                    </span>
-                  </div>
-                </div>
               </>
             ) : (
               // Closed session message

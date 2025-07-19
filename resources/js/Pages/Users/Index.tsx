@@ -36,7 +36,7 @@ export default function UsersIndex({ users }: UsersIndexProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editUserId, setEditUserId] = useState<number | null>(null);
-
+  console.log(users);
   const filteredUsers = users.filter(
     user =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -120,9 +120,9 @@ export default function UsersIndex({ users }: UsersIndexProps) {
                   {user.roles.map(role => (
                     <span
                       key={role.id}
-                      className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1"
+                      className="inline-block bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full mr-1 min-w-[80px] text-center"
                     >
-                      {role.display_name}
+                      {role.display_name || role.name}
                     </span>
                   ))}
                 </TableCell>
