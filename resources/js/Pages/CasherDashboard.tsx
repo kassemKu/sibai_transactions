@@ -68,10 +68,10 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
   // Check if user is admin (Admin Cashier)
   const isAdmin =
     roles && Array.isArray(roles) && (roles as string[]).includes('admin');
-  // Admin users can perform transactions even without active cashier session
-  // Regular cashiers need active session
-  const canPerformTransactions =
-    isSessionOpen && (isAdmin || hasActiveCashierSession);
+
+  // Both Admin and Regular Cashiers need active session to perform transactions
+  // Admin users are treated the same as regular cashiers for session management
+  const canPerformTransactions = isSessionOpen && hasActiveCashierSession;
 
   // Use notification hook for new pending transactions
   const { showVisualNotification, hideVisualNotification } =
@@ -106,7 +106,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
           </span>
         </div>
       )}
-      {isSessionOpen && !hasActiveCashierSession && !isAdmin ? (
+      {isSessionOpen && !hasActiveCashierSession ? (
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
           <span className="text-sm text-orange-600 font-medium">
@@ -114,7 +114,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
           </span>
         </div>
       ) : null}
-      {isSessionOpen && (hasActiveCashierSession || isAdmin) ? (
+      {isSessionOpen && hasActiveCashierSession ? (
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
           <span className="text-sm text-green-600 font-medium">
@@ -209,7 +209,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       </div>
 
       {/* Session Status Alert */}
-      {isSessionOpen && !hasActiveCashierSession && !isAdmin ? (
+      {isSessionOpen && !hasActiveCashierSession ? (
         <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
@@ -224,8 +224,24 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
         </div>
       ) : null}
 
+      {/* Session Closed Alert */}
+      {!isSessionOpen && !isSessionPending ? (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span className="text-sm font-medium text-red-800">
+              الجلسة النقدية مغلقة
+            </span>
+          </div>
+          <p className="text-sm text-red-700">
+            لا يمكن إجراء معاملات جديدة لأن الجلسة النقدية مغلقة. يرجى التواصل
+            مع المشرف لفتح جلسة جديدة.
+          </p>
+        </div>
+      ) : null}
+
       {/* Admin Cashier Info Alert */}
-      {isAdmin && isSessionOpen ? (
+      {isAdmin && isSessionOpen && hasActiveCashierSession ? (
         <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>

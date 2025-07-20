@@ -248,11 +248,21 @@ export default function TransactionForm({
     }
   }, [currencies, fromCurrency, isAdmin]);
 
-  // Get available currencies based on user role
+  // Reset "To" currency if it becomes invalid when "From" currency changes
+  useEffect(() => {
+    if (fromCurrency && toCurrency && fromCurrency === toCurrency) {
+      setToCurrency('');
+      setCalculatedAmount('');
+    }
+  }, [fromCurrency, toCurrency]);
+
+  // Get available currencies based on user role and current selection
   const sypCurrency = currencies.find(c => c.code === 'SYP');
   const availableToCurrencies = isAdmin
-    ? currencies // Admin can choose any currency
-    : currencies.filter(c => c.code !== 'SYP'); // Regular cashiers exclude SYP from "To" options
+    ? currencies.filter(c => c.id.toString() !== fromCurrency) // Admin can choose any currency except the selected "From" currency
+    : currencies.filter(
+        c => c.code !== 'SYP' && c.id.toString() !== fromCurrency,
+      ); // Regular cashiers exclude SYP and selected "From" currency
 
   // Reset form
   const resetForm = useCallback(
@@ -347,6 +357,12 @@ export default function TransactionForm({
   const handleExecuteTransaction = useCallback(async () => {
     if (!fromCurrency || !toCurrency || !amount || !calculatedAmount) {
       toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    // Check if same currency is selected in both fields
+    if (fromCurrency === toCurrency) {
+      toast.error('لا يمكن اختيار نفس العملة في الحقلين');
       return;
     }
 
@@ -807,21 +823,34 @@ export default function TransactionForm({
 
             <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl">
               <div className="text-med-x14 flex flex-col items-start gap-2">
-                <span className="text-[#6B7280] text-med-x14">
-                  يتم تسليم العميل مبلغ
-                </span>
-                <span className="text-bold-x20 text-[#10B981] font-bold">
-                  {calculatedAmount
-                    ? `${formatDisplayAmount(calculatedAmount)} ${currencies.find(c => c.id.toString() === toCurrency)?.code || ''}`
-                    : '0.00'}
-                </span>
+                {fromCurrency === toCurrency && fromCurrency && toCurrency ? (
+                  <div className="text-red-600 text-sm font-medium">
+                    ⚠️ لا يمكن اختيار نفس العملة في الحقلين
+                  </div>
+                ) : (
+                  <>
+                    <span className="text-[#6B7280] text-med-x14">
+                      يتم تسليم العميل مبلغ
+                    </span>
+                    <span className="text-bold-x20 text-[#10B981] font-bold">
+                      {calculatedAmount
+                        ? `${formatDisplayAmount(calculatedAmount)} ${currencies.find(c => c.id.toString() === toCurrency)?.code || ''}`
+                        : '0.00'}
+                    </span>
+                  </>
+                )}
               </div>
               <div className="flex gap-3">
                 <SecondaryButton onClick={() => resetForm(true, false)}>
                   اعاده التعيين
                 </SecondaryButton>
                 <PrimaryButton
-                  disabled={!calculatedAmount || isCalculating || isSubmitting}
+                  disabled={
+                    !calculatedAmount ||
+                    isCalculating ||
+                    isSubmitting ||
+                    fromCurrency === toCurrency
+                  }
                   onClick={handleExecuteTransaction}
                 >
                   {isSubmitting ? 'جاري التنفيذ...' : 'تنفيذ العملية'}
