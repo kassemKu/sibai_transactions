@@ -45,6 +45,7 @@ class DashboardController extends Controller
                 $query->whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value]);
             });
 
+        // Admin users can see all pending transactions, not just those assigned to them
         if (! Auth::user()->hasRole(['super_admin', 'admin'])) {
             $transactionsQuery->where('assigned_to', Auth::id());
         }
@@ -54,9 +55,9 @@ class DashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Get all cashiers with their system balances and session status
+        // Get all cashiers AND admin users with their system balances and session status
         $allCashiers = User::whereHas('roles', function ($query) {
-            $query->where('name', 'casher');
+            $query->whereIn('name', ['casher', 'admin']);
         })->get();
 
         $currencies = Currency::get();
@@ -117,9 +118,9 @@ class DashboardController extends Controller
             ];
         });
 
-        // Always include the logged-in cashier, even if not in the above list
+        // Always include the logged-in user (cashier or admin), even if not in the above list
         $currentUser = Auth::user();
-        if ($currentUser->hasRole('casher') && ! $cashiers->contains('id', $currentUser->id)) {
+        if (($currentUser->hasRole('casher') || $currentUser->hasRole('admin')) && ! $cashiers->contains('id', $currentUser->id)) {
             // Get the current user's most recent session and system balances
             $currentUserSession = $currentUser->casherCashSessions()
                 ->orderBy('created_at', 'desc')

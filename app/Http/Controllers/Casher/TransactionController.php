@@ -28,6 +28,12 @@ class TransactionController extends Controller
             $calc['notes'] = $request->notes;
         }
 
+        // Add assigned_to for admin users
+        $user = auth()->user();
+        if ($user->hasRole('admin') && $request->has('assigned_to')) {
+            $calc['assigned_to'] = $request->assigned_to;
+        }
+
         $transaction = $this->transactionService->createTransaction($calc, $request->cash_session);
 
         return $this->success('Transaction created successfully.', [
@@ -51,6 +57,23 @@ class TransactionController extends Controller
         $this->transactionService->confirmCasherCashMovement($transaction);
 
         return $this->success('Transaction status changed to completed.', [
+            'transaction' => $transaction,
+        ]);
+    }
+
+    public function cancelStatus(Transaction $transaction, Request $request)
+    {
+        // Only admin users can cancel transactions
+        if (!auth()->user()->hasRole('admin')) {
+            return $this->failed('غير مصرح لك بإلغاء المعاملات.');
+        }
+
+        $transaction->update([
+            'status' => TransactionStatusEnum::CANCELED->value,
+            'closed_by' => auth()->id(),
+        ]);
+
+        return $this->success('تم إلغاء المعاملة بنجاح.', [
             'transaction' => $transaction,
         ]);
     }

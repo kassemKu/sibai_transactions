@@ -32,7 +32,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::get('/status', [DashboardController::class, 'getStatus'])->name('status');
 
     Route::group(['middleware' => ['role:super_admin|admin'], 'prefix' => 'admin'], function () {
+        Route::get('/get-users', [UserController::class, 'getUsers']);
         Route::put('/transactions/{transaction}/cancel', [TransactionController::class, 'cancelStatus'])->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
+    
     });
 
     Route::group(['middleware' => ['role:super_admin'], 'prefix' => 'admin'], function () {
@@ -83,7 +85,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::controller(UserController::class)->group(function () {
             Route::get('/users-roles', 'getRoles');
             Route::resource('/users', UserController::class);
-            Route::get('/get-users', 'getUsers');
+        
             Route::get('/users/get-user/{user}', 'getUser');
         });
 
@@ -107,5 +109,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::get('/', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
         Route::post('/transactions', [CasherTransactionController::class, 'store'])->middleware(EnsureIsActiveCasherCashSession::class);
         Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware([EnsurePendingTransaction::class, EnsureIsActiveCasherCashSession::class]);
+
+        // Admin users can cancel transactions
+        Route::put('/transactions/{transaction}/cancel', [CasherTransactionController::class, 'cancelStatus'])->middleware([EnsurePendingTransaction::class, EnsureIsActiveCasherCashSession::class]);
     });
 });
