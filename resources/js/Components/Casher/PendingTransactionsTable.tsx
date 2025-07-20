@@ -32,6 +32,7 @@ interface PendingTransactionsTableProps {
   isPolling?: boolean;
   lastUpdated?: Date | null;
   onRefetch?: () => void;
+  isAdmin?: boolean; // Add admin prop
 }
 
 export default function PendingTransactionsTable({
@@ -42,6 +43,7 @@ export default function PendingTransactionsTable({
   isPolling = false,
   lastUpdated = null,
   onRefetch,
+  isAdmin = false,
 }: PendingTransactionsTableProps) {
   const [updatingTransactions, setUpdatingTransactions] = useState<Set<number>>(
     new Set(),
@@ -117,7 +119,7 @@ export default function PendingTransactionsTable({
   // Update transaction status
   const updateTransactionStatus = async (
     transactionId: number,
-    status: 'confirm',
+    status: 'confirm' | 'cancel',
   ) => {
     // Don't update if session is not active or is pending
     if (!isSessionActive || isSessionPending) {
@@ -136,7 +138,7 @@ export default function PendingTransactionsTable({
       const response = await axios.put(endpoint);
 
       if (response.data.status) {
-        toast.success('تم تأكيد المعاملة بنجاح');
+        toast.success(`تم ${status} المعاملة بنجاح`);
         // Refresh the data immediately
         if (onRefetch) {
           await onRefetch();
@@ -221,7 +223,7 @@ export default function PendingTransactionsTable({
       >
         <TableHeader>
           <TableColumn>التاريخ والوقت</TableColumn>
-          <TableColumn>العميل</TableColumn>
+
           <TableColumn>من</TableColumn>
           <TableColumn>إلى</TableColumn>
           <TableColumn>المبلغ الأصلي</TableColumn>
@@ -230,7 +232,7 @@ export default function PendingTransactionsTable({
           <TableColumn>مُعين إلى</TableColumn>
           <TableColumn>ملاحظات</TableColumn>
           <TableColumn>الحالة</TableColumn>
-          <TableColumn>الإجراءات</TableColumn>
+          <TableColumn>{isAdmin ? 'الإجراءات' : 'الإجراءات'}</TableColumn>
         </TableHeader>
         <TableBody
           emptyContent={
@@ -261,16 +263,7 @@ export default function PendingTransactionsTable({
                       <div className="text-gray-500">{dateTime.time}</div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{transaction.customer?.name || 'غير محدد'}</div>
-                      {transaction.customer?.phone && (
-                        <div className="text-gray-500">
-                          {transaction.customer.phone}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
+
                   <TableCell>
                     <div className="text-sm">
                       <div>{transaction.from_currency?.name || 'غير محدد'}</div>
@@ -358,25 +351,50 @@ export default function PendingTransactionsTable({
                   </TableCell>
                   <TableCell>{getStatusChip(transaction.status)}</TableCell>
                   <TableCell>
-                    <Button
-                      color="success"
-                      size="sm"
-                      isLoading={isUpdating}
-                      isDisabled={
-                        isUpdating || !isSessionActive || isSessionPending
-                      }
-                      onClick={() =>
-                        updateTransactionStatus(transaction.id, 'confirm')
-                      }
-                    >
-                      {isUpdating
-                        ? 'جاري التأكيد...'
-                        : isSessionPending
-                          ? 'جلسة معلقة'
-                          : !isSessionActive
-                            ? 'غير متاح'
-                            : 'تأكيد'}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        color="success"
+                        size="sm"
+                        isLoading={isUpdating}
+                        isDisabled={
+                          isUpdating || !isSessionActive || isSessionPending
+                        }
+                        onClick={() =>
+                          updateTransactionStatus(transaction.id, 'confirm')
+                        }
+                      >
+                        {isUpdating
+                          ? 'جاري التأكيد...'
+                          : isSessionPending
+                            ? 'جلسة معلقة'
+                            : !isSessionActive
+                              ? 'غير متاح'
+                              : 'تأكيد'}
+                      </Button>
+
+                      {/* Show cancel button for admin users */}
+                      {isAdmin && (
+                        <Button
+                          color="danger"
+                          size="sm"
+                          isLoading={isUpdating}
+                          isDisabled={
+                            isUpdating || !isSessionActive || isSessionPending
+                          }
+                          onClick={() =>
+                            updateTransactionStatus(transaction.id, 'cancel')
+                          }
+                        >
+                          {isUpdating
+                            ? 'جاري الإلغاء...'
+                            : isSessionPending
+                              ? 'جلسة معلقة'
+                              : !isSessionActive
+                                ? 'غير متاح'
+                                : 'إلغاء'}
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
