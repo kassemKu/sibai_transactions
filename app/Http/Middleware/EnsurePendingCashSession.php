@@ -11,7 +11,7 @@ class EnsurePendingCashSession
 {
     public function handle(Request $request, Closure $next)
     {
-        $session = CashSession::where('status', CashSessionEnum::PENDING->value)->first();
+        $session = CashSession::where('status', CashSessionEnum::PENDING->value)->latest()->first();
 
         if (! $session) {
             if ($request->expectsJson()) {
