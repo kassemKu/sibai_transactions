@@ -122,6 +122,7 @@ export default function CurrencyCardsSlider({
               <SwiperSlide key={currency.id}>
                 <CurrencyCard
                   currency={currency}
+                  currencies={currencies}
                   onEdit={onEditCurrency}
                   isEditable={isEditable}
                 />

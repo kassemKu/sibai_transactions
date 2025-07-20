@@ -1,16 +1,18 @@
 import React from 'react';
 import { Card, CardContent } from '@/Components/UI/Card';
-import { Currency } from '@/types';
+import { Currency, CurrenciesResponse } from '@/types';
 import { FiArrowUp, FiArrowDown, FiEdit3, FiDollarSign } from 'react-icons/fi';
 
 interface CurrencyCardProps {
   currency: Currency;
+  currencies?: CurrenciesResponse; // Add currencies prop to access SYP rates
   onEdit?: (currency: Currency) => void;
   isEditable?: boolean;
 }
 
 export default function CurrencyCard({
   currency,
+  currencies = [],
   onEdit,
   isEditable = false,
 }: CurrencyCardProps) {
@@ -20,6 +22,35 @@ export default function CurrencyCard({
       onEdit(currency);
     }
   };
+
+  // Calculate SYP equivalent
+  const calculateSYPEquivalent = () => {
+    if (!currencies || currencies.length === 0) return null;
+
+    const sypCurrency = currencies.find(c => c.code === 'SYP');
+    if (!sypCurrency) return null;
+
+    // Calculate: (1 / currency_rate_to_usd) * syp_rate_to_usd
+    const currencyRate = parseFloat(currency.rate_to_usd);
+    const sypRate = parseFloat(sypCurrency.rate_to_usd);
+
+    if (currencyRate === 0 || !isFinite(currencyRate) || !isFinite(sypRate)) return null;
+
+    const sypEquivalent = (1 / currencyRate) * sypRate;
+
+    if (!isFinite(sypEquivalent) || sypEquivalent <= 0) return null;
+
+    return {
+      value: sypEquivalent,
+      formatted: new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+        useGrouping: true,
+      }).format(sypEquivalent)
+    };
+  };
+
+  const sypEquivalent = calculateSYPEquivalent();
 
   return (
     <Card
@@ -114,6 +145,13 @@ export default function CurrencyCard({
           <div className="text-xs text-gray-500 text-center bg-gray-100 px-2 py-1 rounded-full">
             مقابل 1 دولار أمريكي
           </div>
+
+          {/* SYP Equivalent Line */}
+          {sypEquivalent && currency.code !== 'SYP' && (
+            <div className="text-xs text-center bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-200">
+              1 {currency.name} ≈ {sypEquivalent.formatted} ليرة سورية
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

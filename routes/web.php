@@ -31,10 +31,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::get('/transactions/calc', [TransactionController::class, 'calc'])->name('transactions.calc')->middleware(EnsureOpenCashSession::class);
     Route::get('/status', [DashboardController::class, 'getStatus'])->name('status');
 
-    Route::group(['middleware' => ['role:super_admin|admin'], 'prefix' => 'admin'], function () {
+    Route::group(['middleware' => ['role:super_admin'], 'prefix' => 'admin'], function () {
         Route::get('/get-users', [UserController::class, 'getUsers']);
         Route::put('/transactions/{transaction}/cancel', [TransactionController::class, 'cancelStatus'])->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
-    
+
     });
 
     Route::group(['middleware' => ['role:super_admin'], 'prefix' => 'admin'], function () {
@@ -85,7 +85,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::controller(UserController::class)->group(function () {
             Route::get('/users-roles', 'getRoles');
             Route::resource('/users', UserController::class);
-        
+
             Route::get('/users/get-user/{user}', 'getUser');
         });
 

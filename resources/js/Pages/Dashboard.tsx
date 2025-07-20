@@ -230,7 +230,9 @@ export default function Dashboard({
       }
     } catch (error) {
       console.error('Error opening cash session:', error);
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (axios.isAxiosError(error) && error.response?.data?.error) {
         toast.error(error.response.data.error);
       } else {
         toast.error('حدث خطأ أثناء فتح الجلسة');
@@ -385,9 +387,26 @@ export default function Dashboard({
   // Handle open cashier box modal
   const handleOpenCashierBoxModal = (casherSession: any) => {
     setSelectedCashierSession(casherSession);
-    setCashierBoxModalStage(
-      casherSession.status === 'pending' ? 'closing' : 'pending',
-    );
+
+    // Set the appropriate modal stage based on cashier session status
+    let modalStage: 'view' | 'pending' | 'closing';
+
+    switch (casherSession.status) {
+      case 'active':
+        modalStage = 'pending'; // Show pending confirmation for active sessions
+        break;
+      case 'pending':
+        modalStage = 'closing'; // Show closing form for pending sessions
+        break;
+      case 'closed':
+        modalStage = 'view'; // Show final balances for closed sessions
+        break;
+      default:
+        modalStage = 'view'; // Default to view stage
+        break;
+    }
+
+    setCashierBoxModalStage(modalStage);
     setIsCashierBoxModalOpen(true);
   };
 
@@ -424,7 +443,9 @@ export default function Dashboard({
       }
     } catch (error) {
       console.error('Error setting cashier session to pending:', error);
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (axios.isAxiosError(error) && error.response?.data?.error) {
         toast.error(error.response.data.error);
       } else {
         toast.error('حدث خطأ أثناء تحضير صندوق الصراف للإغلاق');
@@ -670,21 +691,6 @@ export default function Dashboard({
                             ? 'إغلاق الصندوق'
                             : 'عرض التفاصيل'}
                         </SecondaryButton>
-                        {cashier.status === 'active' && (
-                          <SecondaryButton
-                            onClick={() => {
-                              handleOpenCashierBoxModal({
-                                ...cashier,
-                                status: 'pending',
-                              });
-                              setShowQuickView(false);
-                            }}
-                            className="text-green-600"
-                          >
-                            <FiDollarSign className="w-4 h-4 ml-1" />
-                            تحويل للإغلاق
-                          </SecondaryButton>
-                        )}
                       </div>
                     </div>
                   );
