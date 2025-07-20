@@ -27,6 +27,7 @@ class EnsureNotActiveCasherCashSession
 
         $casherSession = CasherCashSession::where('cash_session_id', $session->id)
             ->where('casher_id', $request->casher_id)
+            ->latest()
             ->first();
 
         if ($casherSession) {

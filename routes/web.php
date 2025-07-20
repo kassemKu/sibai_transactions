@@ -31,77 +31,79 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::get('/transactions/calc', [TransactionController::class, 'calc'])->name('transactions.calc')->middleware(EnsureOpenCashSession::class);
     Route::get('/status', [DashboardController::class, 'getStatus'])->name('status');
 
-    Route::group(['middleware' => ['role:super_admin|superadministrator|administrator'], 'prefix' => 'admin'], function () {
+    Route::group(['middleware' => ['role:super_admin|admin'], 'prefix' => 'admin'], function () {
+        Route::put('/transactions/{transaction}/cancel', [TransactionController::class, 'cancelStatus'])->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
+    });
+
+    Route::group(['middleware' => ['role:super_admin'], 'prefix' => 'admin'], function () {
+        // Dashboard
         Route::get('/', [DashboardController::class, 'AdminDashboard'])->name('admin.dashboard');
 
-        Route::resource('/currencies', CurrencyController::class)->except(['destroy', 'store']);
+        // CurrencyController
+        Route::controller(CurrencyController::class)->group(function () {
+            Route::resource('/currencies', CurrencyController::class)->except(['destroy', 'store']);
+            Route::post('/currencies', 'store')->middleware([EnsureOpenCashSession::class]);
+        });
+        Route::get('/get-session-closing-balances', [CashSessionController::class, 'getClosingBalances'])->middleware([EnsureOpenCashSession::class]);
 
-        Route::middleware([EnsureOpenCashSession::class])->group(function () {
-            Route::post('/currencies', [CurrencyController::class, 'store']);
-            Route::get('/get-session-closing-balances', [CashSessionController::class, 'getClosingBalances']);
+        // TransactionController
+        Route::controller(TransactionController::class)->group(function () {
+            Route::post('/transactions', 'store')->middleware([EnsureActiveCashSession::class]);
+            Route::put('/transactions/{transaction}/complete', 'completeStatus')->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
+            Route::put('/transactions/{transaction}/cancel', 'cancelStatus')->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
+            Route::get('/transactions/{transaction}', 'show')->name('transaction.show');
+        });
+        Route::post('/cash-sessions/pending', [CashSessionController::class, 'pending'])->middleware([EnsureActiveCashSession::class]);
+        Route::get('/get-cash-sessions-available-cashers', [CashSessionController::class, 'getAvailableCashers'])->middleware([EnsureActiveCashSession::class]);
+
+        // CashSessionController
+        Route::controller(CashSessionController::class)->group(function () {
+            Route::post('/cash-sessions/open', 'open')->middleware([EnsureNoOpenCashSession::class]);
+            Route::post('/cash-sessions/close', 'close')->middleware([EnsurePendingCashSession::class]);
+            Route::get('/cash-sessions', 'index')->name('cash_sessions.index');
+            Route::post('/cash-sessions/latest', 'latest');
+            Route::get('/cash-sessions/{cashSession}', 'show')->name('cash_sessions.show');
+            Route::get('/cash-sessions/{cashSession}/transactions', 'getCashSessionTransactions')->name('cash_sessions.transactions');
+            Route::get('/cash-balances', 'balances')->name('cash_balances.index');
         });
 
-        Route::middleware([EnsureActiveCashSession::class])->group(function () {
-            Route::post('/transactions', [TransactionController::class, 'store']);
-            Route::post('/cash-sessions/pending', [CashSessionController::class, 'pending']);
-            Route::get('/get-cash-sessions-available-cashers', [CashSessionController::class, 'getAvailableCashers']);
+        // CasherCashSessionController
+        Route::controller(CasherCashSessionController::class)->group(function () {
+            Route::post('/open-casher-session', 'open')->middleware([EnsureNotActiveCasherCashSession::class]);
+            Route::post('/casher-cash-session/{casherCashSession}/pending', 'pending')->middleware([EnsureActiveCasherCashSession::class]);
+            Route::post('/casher-close-cash-session/{casherCashSession}/close', 'close')->middleware([EnsureCasherPendingCashSession::class]);
+            Route::get('/casher-cash-sessions/{casherCashSession}', 'show')->name('casher_cash_sessions.show');
+            Route::get('/get-closing-balances/{casherCashSession}', 'getClosingBalances');
         });
 
-        Route::middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class])->group(function () {
-            Route::put('/transactions/{transaction}/complete', [TransactionController::class, 'completeStatus']);
-            Route::put('/transactions/{transaction}/cancel', [TransactionController::class, 'cancelStatus']);
-        });
-
-        Route::middleware([EnsureNoOpenCashSession::class])->group(function () {
-            Route::post('/cash-sessions/open', [CashSessionController::class, 'open']);
-        });
-
-        Route::middleware([EnsurePendingCashSession::class])->group(function () {
-            Route::post('/cash-sessions/close', [CashSessionController::class, 'close']);
-        });
-
-        Route::middleware([EnsureNotActiveCasherCashSession::class])->group(function () {
-            Route::post('/open-casher-session', [CasherCashSessionController::class, 'open']);
-        });
-
-        Route::middleware([EnsureActiveCasherCashSession::class])->group(function () {
-            Route::post('/casher-cash-session/{casherCashSession}/pending', [CasherCashSessionController::class, 'pending']);
-        });
-
-        Route::middleware([EnsureCasherPendingCashSession::class])->group(function () {
-            Route::post('/casher-close-cash-session/{casherCashSession}/close', [CasherCashSessionController::class, 'close']);
-        });
-
-        Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transaction.show');
-
-        Route::get('/cash-sessions', [CashSessionController::class, 'index'])->name('cash_sessions.index');
-        Route::post('/cash-sessions/latest', [CashSessionController::class, 'latest']);
-        Route::get('/cash-sessions/{cashSession}', [CashSessionController::class, 'show'])->name('cash_sessions.show');
-        Route::get('/cash-sessions/{cashSession}/transactions', [CashSessionController::class, 'getCashSessionTransactions'])->name('cash_sessions.transactions');
-        Route::get('/cash-balances', [CashSessionController::class, 'balances'])->name('cash_balances.index');
-
-        Route::get('/casher-cash-sessions/{casherCashSession}', [CasherCashSessionController::class, 'show'])->name('casher_cash_sessions.show');
-        Route::get('/get-closing-balances/{casherCashSession}', [CasherCashSessionController::class, 'getClosingBalances']);
-
+        // CashMovementController
         Route::get('/casher-cash-movements', [CashMovementController::class, 'getCasherCashMovements']);
 
-        Route::get('/users-roles', [UserController::class, 'getRoles']);
-        Route::resource('/users', UserController::class);
-        Route::get('/get-users', [UserController::class, 'getUsers']);
-        Route::get('/users/get-user/{user}', [UserController::class, 'getUser']);
+        // UserController
+        Route::controller(UserController::class)->group(function () {
+            Route::get('/users-roles', 'getRoles');
+            Route::resource('/users', UserController::class);
+            Route::get('/get-users', 'getUsers');
+            Route::get('/users/get-user/{user}', 'getUser');
+        });
 
+        // EmployeeController
         Route::resource('/employees', EmployeeController::class, [
             'parameters' => ['' => 'employee'],
             'name' => 'employees',
         ]);
 
-        Route::resource('/companies', CompanyController::class);
+        // CompanyController
+        Route::controller(CompanyController::class)->group(function () {
+            Route::resource('/companies', CompanyController::class);
+            Route::get('/companies/get-company/{company}', 'getCompany');
+        });
 
-        Route::get('/companies/get-company/{company}', [CompanyController::class, 'getCompany']);
+        // TransferController
         Route::resource('/transfers', TransferController::class);
     });
 
-    Route::group(['middleware' => ['role:casher'], 'prefix' => 'casher'], function () {
+    Route::group(['middleware' => ['role:casher|admin'], 'prefix' => 'casher'], function () {
         Route::get('/', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
         Route::post('/transactions', [CasherTransactionController::class, 'store'])->middleware(EnsureIsActiveCasherCashSession::class);
         Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware([EnsurePendingTransaction::class, EnsureIsActiveCasherCashSession::class]);

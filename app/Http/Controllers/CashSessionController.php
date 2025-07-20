@@ -183,8 +183,12 @@ class CashSessionController extends Controller
     public function getAvailableCashers(Request $request): JsonResponse
     {
         $availableCashers = User::whereDoesntHave('casherCashSessions', function ($q) use ($request) {
-            $q->where('cash_session_id', $request->session_id);
-        })->get();
+            $q->where('cash_session_id', $request->session->id);
+        })
+            ->whereDoesntHave('roles', function ($q) {
+                $q->where('name', 'super_admin');
+            })
+            ->get();
 
         return $this->success('تم جلب مستخدمي الجلسة بنجاح.', [
             'users' => $availableCashers,
