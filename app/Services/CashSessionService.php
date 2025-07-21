@@ -9,6 +9,8 @@ use App\Models\CashBalance;
 use App\Models\CashMovement;
 use App\Models\CashSession;
 use App\Models\Currency;
+use App\Models\Transaction;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class CashSessionService
@@ -59,12 +61,14 @@ class CashSessionService
             $totalIn = CashMovement::where('currency_id', $currency->id)
                 ->where('type', CashMovementTypeEnum::IN->value)
                 ->where('cash_session_id', $session->id)
+                ->where('sub', false)
                 ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->sum('amount');
 
             $totalOut = CashMovement::where('currency_id', $currency->id)
                 ->where('type', CashMovementTypeEnum::OUT->value)
                 ->where('cash_session_id', $session->id)
+                ->where('sub', false)
                 ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->sum('amount');
 
@@ -149,5 +153,19 @@ class CashSessionService
                 'balances' => $balances,
             ];
         });
+    }
+
+    public function getSessionUsers($sessionId)
+    {
+        $userIds = Transaction::where('cash_session_id', $sessionId)
+            ->pluck('created_by')
+            ->merge(
+                Transaction::where('cash_session_id', $sessionId)->pluck('closed_by')
+            )
+            ->unique()
+            ->filter() // Remove nulls
+            ->values();
+
+        return User::whereIn('id', $userIds)->get();
     }
 }

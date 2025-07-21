@@ -34,6 +34,11 @@ class TransactionController extends Controller
             $calc['profit_to_usd'] = $profits['profit_to_usd'];
             $calc['total_profit_usd'] = $profits['total_profit_usd'];
 
+            // Add notes to the calculation data if provided
+            if ($request->has('notes') && $request->notes) {
+                $calc['notes'] = $request->notes;
+            }
+
             $result = array_merge($calc, ['assigned_to' => $request->assigned_to]);
             $transaction = $this->transactionService->createTransaction($result, $request->session);
 
@@ -53,12 +58,13 @@ class TransactionController extends Controller
             if ($this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id) < $transaction->converted_amount) {
                 return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
             }
-            $this->transactionService->confirmCashMovement($transaction);
 
             $transaction->update([
                 'status' => TransactionStatusEnum::COMPLETED->value,
                 'closed_by' => auth()->id(),
             ]);
+
+            $this->transactionService->confirmCashMovement($transaction);
 
             return $this->success('تم تغيير حالة المعاملة إلى مكتملة.', [
                 'transaction' => $transaction->refresh(),

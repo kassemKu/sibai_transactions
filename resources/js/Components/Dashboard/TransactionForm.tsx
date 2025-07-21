@@ -16,12 +16,24 @@ import {
   FiInfo,
   FiLock,
   FiUnlock,
+  FiSettings,
+  FiTrash2,
+  FiPlus,
 } from 'react-icons/fi';
 import { IoCalculatorSharp } from 'react-icons/io5';
+
 interface User {
   id: number;
   name: string;
   email: string;
+}
+
+interface AssignmentRule {
+  id: string;
+  currency_id: number;
+  direction: 'receive' | 'spend';
+  user_id: number;
+  user_name: string;
 }
 
 interface TransactionFormProps {
@@ -53,6 +65,20 @@ export default function TransactionForm({
   const [isCalculating, setIsCalculating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [notes, setNotes] = useState('');
+
+  // Assignment settings state
+  const [showSettings, setShowSettings] = useState(false);
+  const [assignmentRules, setAssignmentRules] = useState<AssignmentRule[]>([]);
+  const [newRule, setNewRule] = useState<{
+    currency_id: string;
+    direction: 'receive' | 'spend';
+    user_id: string;
+  }>({
+    currency_id: '',
+    direction: 'receive',
+    user_id: '',
+  });
 
   // Ref to track the last calculation parameters to prevent unnecessary API calls
   const lastCalculationRef = useRef<{
@@ -61,6 +87,26 @@ export default function TransactionForm({
     amount: string;
   } | null>(null);
 
+  // Load assignment rules from localStorage
+  useEffect(() => {
+    const savedRules = localStorage.getItem('transactionAssignmentRules');
+    if (savedRules) {
+      try {
+        setAssignmentRules(JSON.parse(savedRules));
+      } catch (error) {
+        console.error('Error loading assignment rules:', error);
+      }
+    }
+  }, []);
+
+  // Save assignment rules to localStorage
+  useEffect(() => {
+    localStorage.setItem(
+      'transactionAssignmentRules',
+      JSON.stringify(assignmentRules),
+    );
+  }, [assignmentRules]);
+
   // Get the final amount to use (manual if enabled, otherwise calculated)
   const getFinalAmount = useCallback(() => {
     if (isAdmin && isManualAmountEnabled && manualAmount) {
@@ -68,6 +114,48 @@ export default function TransactionForm({
     }
     return calculatedAmount;
   }, [isAdmin, isManualAmountEnabled, manualAmount, calculatedAmount]);
+
+  // Check if current transaction matches any assignment rule
+  const getMatchingAssignment = useCallback(() => {
+    if (!fromCurrency || !toCurrency) return null;
+
+    // Determine direction based on currency flow
+    const fromCurrencyObj = currencies.find(
+      c => c.id.toString() === fromCurrency,
+    );
+    const toCurrencyObj = currencies.find(c => c.id.toString() === toCurrency);
+
+    if (!fromCurrencyObj || !toCurrencyObj) return null;
+
+    // Find matching rule
+    const matchingRule = assignmentRules.find(rule => {
+      // For spend: match when the currency is in "to" field (we're spending this currency)
+      // For receive: match when the currency is in "from" field (we're receiving this currency)
+      if (rule.direction === 'spend') {
+        return rule.currency_id.toString() === toCurrency;
+      } else {
+        return rule.currency_id.toString() === fromCurrency;
+      }
+    });
+
+    return matchingRule;
+  }, [fromCurrency, toCurrency, assignmentRules, currencies]);
+
+  // Auto-assign user based on rules
+  useEffect(() => {
+    if (isAdmin && fromCurrency && toCurrency) {
+      const matchingRule = getMatchingAssignment();
+      if (matchingRule) {
+        setAssignedTo(matchingRule.user_id.toString());
+      }
+    }
+  }, [
+    fromCurrency,
+    toCurrency,
+    assignmentRules,
+    isAdmin,
+    getMatchingAssignment,
+  ]);
 
   // Reset form
   const resetForm = useCallback(
@@ -78,6 +166,7 @@ export default function TransactionForm({
       setCalculatedAmount('');
       setManualAmount('');
       setIsManualAmountEnabled(false);
+      setNotes('');
 
       // Clear the last calculation reference
       lastCalculationRef.current = null;
@@ -100,7 +189,7 @@ export default function TransactionForm({
       const fetchUsers = async () => {
         setIsLoadingUsers(true);
         try {
-          const response = await axios.get('/admin/users');
+          const response = await axios.get('/admin/get-users');
           setUsers(response.data.data.users || []);
         } catch (error) {
           console.error('Error fetching users:', error);
@@ -133,6 +222,72 @@ export default function TransactionForm({
       }
     }
   }, [isAdmin, currencies, fromCurrency, toCurrency]);
+
+  // Reset "To" currency if it becomes invalid when "From" currency changes
+  useEffect(() => {
+    if (fromCurrency && toCurrency && fromCurrency === toCurrency) {
+      setToCurrency('');
+      setCalculatedAmount('');
+      setManualAmount('');
+    }
+  }, [fromCurrency, toCurrency]);
+
+  // Assignment settings handlers
+  const handleAddRule = () => {
+    if (!newRule.currency_id || !newRule.user_id) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    const selectedUser = users.find(u => u.id.toString() === newRule.user_id);
+    if (!selectedUser) {
+      toast.error('المستخدم المحدد غير موجود');
+      return;
+    }
+
+    const selectedCurrency = currencies.find(
+      c => c.id.toString() === newRule.currency_id,
+    );
+    if (!selectedCurrency) {
+      toast.error('العملة المحددة غير موجودة');
+      return;
+    }
+
+    // Check if rule already exists
+    const existingRule = assignmentRules.find(
+      rule =>
+        rule.currency_id.toString() === newRule.currency_id &&
+        rule.direction === newRule.direction,
+    );
+
+    if (existingRule) {
+      toast.error('قاعدة التعيين موجودة بالفعل لهذه العملة والاتجاه');
+      return;
+    }
+
+    const newAssignmentRule: AssignmentRule = {
+      id: Date.now().toString(),
+      currency_id: parseInt(newRule.currency_id),
+      direction: newRule.direction,
+      user_id: parseInt(newRule.user_id),
+      user_name: selectedUser.name,
+    };
+
+    setAssignmentRules(prev => [...prev, newAssignmentRule]);
+    setNewRule({ currency_id: '', direction: 'receive', user_id: '' });
+    toast.success('تم إضافة قاعدة التعيين بنجاح');
+  };
+
+  const handleRemoveRule = (ruleId: string) => {
+    setAssignmentRules(prev => prev.filter(rule => rule.id !== ruleId));
+    toast.success('تم حذف قاعدة التعيين');
+  };
+
+  const handleClearAllSettings = () => {
+    setAssignmentRules([]);
+    localStorage.removeItem('transactionAssignmentRules');
+    toast.success('تم مسح جميع إعدادات التعيين');
+  };
 
   // Calculate currency conversion
   const calculateCurrency = useCallback(async () => {
@@ -256,6 +411,12 @@ export default function TransactionForm({
       return;
     }
 
+    // Check if same currency is selected in both fields
+    if (fromCurrency === toCurrency) {
+      toast.error('لا يمكن اختيار نفس العملة في الحقلين');
+      return;
+    }
+
     if (!isSessionOpen) {
       if (isSessionPending) {
         toast.error('لا يمكن تنفيذ عمليات جديدة أثناء جرد الأرصدة');
@@ -274,6 +435,7 @@ export default function TransactionForm({
         converted_amount: parseFloat(finalAmount), // Use the correct value (manual or calculated)
         customer_name: '', // You can add a customer name field later
         ...(isAdmin && assignedTo ? { assigned_to: parseInt(assignedTo) } : {}),
+        ...(notes.trim() ? { notes: notes.trim() } : {}),
       };
 
       const response = await axios.post('/admin/transactions', transactionData);
@@ -333,6 +495,7 @@ export default function TransactionForm({
     resetForm,
     currencies,
     users,
+    notes,
   ]);
 
   // Helper function to format amount for display
@@ -350,240 +513,354 @@ export default function TransactionForm({
   };
 
   return (
-    <div className="w-full mb-8 relative">
-      <Card>
-        <CardContent className="p-2">
-          <div
-            className={`flex flex-col gap-6 ${!isSessionOpen || isSessionPending ? 'blur-sm opacity-60' : ''}`}
-          >
-            <div className="flex flex-col gap-2">
-              <div className="text-bold-x18 text-text-black">عملية جديدة</div>
-              <div className="text-med-x14 text-text-grey-light">
-                إنشاء عملية تحويل جديدة
+    <div className="w-full relative">
+      <div
+        className={`flex flex-col gap-6 ${!isSessionOpen || isSessionPending ? 'blur-sm opacity-60' : ''}`}
+      >
+        {/* Admin User Assignment Section */}
+        {isAdmin && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="text-bold-x16 text-blue-900">تعيين المسؤول</div>
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                >
+                  <FiSettings className="w-4 h-4" />
+                  إعدادات التعيين
+                </button>
               </div>
-            </div>
 
-            {/* Admin User Assignment Section */}
-            {isAdmin && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex flex-col gap-3">
-                  <div className="text-bold-x16 text-blue-900">
-                    تعيين المسؤول
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="space-y-2">
-                      <InputLabel
-                        htmlFor="assigned_to"
-                        className="mb-2 text-blue-800"
+              {/* Assignment Settings Panel */}
+              {showSettings && (
+                <div className="bg-white border border-blue-200 rounded-lg p-4 mt-3">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-gray-900">
+                        قواعد التعيين التلقائي
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={handleClearAllSettings}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                       >
-                        تعيين العملية إلى
-                      </InputLabel>
-                      <Select
-                        id="assigned_to"
-                        aria-label="تعيين العملية إلى"
-                        value={assignedTo}
-                        onChange={e => setAssignedTo(e.target.value)}
-                        className="border-blue-300 focus:border-blue-500"
-                        disabled={isLoadingUsers}
-                      >
-                        {isLoadingUsers ? (
-                          <option value="">جاري التحميل...</option>
-                        ) : (
-                          <>
-                            {users.map(user => (
-                              <option key={user.id} value={user.id}>
-                                {user.name} ({user.email})
-                              </option>
-                            ))}
-                          </>
-                        )}
-                      </Select>
-                      {isLoadingUsers && (
-                        <div className="text-xs text-blue-600 mt-1">
-                          جاري تحميل قائمة المستخدمين...
-                        </div>
-                      )}
+                        <FiTrash2 className="w-3 h-3" />
+                        مسح الكل
+                      </button>
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="text-bold-x16 text-text-black">من</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <InputLabel htmlFor="from_currency" className="mb-2">
-                      اختر العملة
-                    </InputLabel>
-                    <Select
-                      id="from_currency"
-                      aria-label="اختر العملة المصدر"
-                      placeholder="اختر العملة"
-                      value={fromCurrency}
-                      onChange={e => setFromCurrency(e.target.value)}
-                      className="border-blue-200 focus:border-blue-500"
-                    >
-                      {currencies.map(currency => (
-                        <option key={currency.id} value={currency.id}>
-                          {currency.name} ({currency.code})
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <InputLabel htmlFor="from_amount" className="mb-2">
-                      المبلغ
-                    </InputLabel>
-                    <NumberInput
-                      id="from_amount"
-                      placeholder="أدخل المبلغ"
-                      className="w-full text-right"
-                      value={amount}
-                      onValueChange={values => setAmount(values.value)}
-                      min={0}
-                      decimalScale={2}
-                      thousandSeparator={true}
-                      dir="rtl"
-                      aria-label="مبلغ التحويل"
-                    />
-                  </div>
-                </div>
-              </div>
+                    {/* Add New Rule */}
+                    <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Select
+                        value={newRule.currency_id}
+                        onChange={e =>
+                          setNewRule(prev => ({
+                            ...prev,
+                            currency_id: e.target.value,
+                          }))
+                        }
+                        className="text-sm"
+                      >
+                        <option value="">اختر العملة</option>
+                        {currencies.map(currency => (
+                          <option key={currency.id} value={currency.id}>
+                            {currency.name} ({currency.code})
+                          </option>
+                        ))}
+                      </Select>
 
-              <div className="space-y-4">
-                <div className="text-bold-x16 text-text-black">إلى</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <InputLabel htmlFor="to_currency" className="mb-2">
-                      اختر العملة
-                    </InputLabel>
-                    <Select
-                      id="to_currency"
-                      aria-label="اختر العملة الهدف"
-                      placeholder="اختر العملة"
-                      value={toCurrency}
-                      onChange={e => setToCurrency(e.target.value)}
-                      className="border-blue-200 focus:border-blue-500"
-                    >
-                      {currencies.map(currency => (
-                        <option key={currency.id} value={currency.id}>
-                          {currency.name} ({currency.code})
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between mb-2">
-                      <InputLabel htmlFor="to_amount">
-                        المبلغ المحسوب
-                      </InputLabel>
-                      {isAdmin && (
+                      <Select
+                        value={newRule.direction}
+                        onChange={e =>
+                          setNewRule(prev => ({
+                            ...prev,
+                            direction: e.target.value as 'receive' | 'spend',
+                          }))
+                        }
+                        className="text-sm"
+                      >
+                        <option value="receive">استلام</option>
+                        <option value="spend">صرف</option>
+                      </Select>
+
+                      <div className="flex gap-2">
+                        <Select
+                          value={newRule.user_id}
+                          onChange={e =>
+                            setNewRule(prev => ({
+                              ...prev,
+                              user_id: e.target.value,
+                            }))
+                          }
+                          className="text-sm flex-1"
+                        >
+                          <option value="">اختر المستخدم</option>
+                          {users.map(user => (
+                            <option key={user.id} value={user.id}>
+                              {user.name}
+                            </option>
+                          ))}
+                        </Select>
                         <button
                           type="button"
-                          onClick={handleManualAmountToggle}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                            isManualAmountEnabled
-                              ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                          }`}
-                          disabled={isCalculating || !calculatedAmount}
+                          onClick={handleAddRule}
+                          className="px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                          title="إضافة قاعدة تعيين"
                         >
-                          {isManualAmountEnabled ? (
-                            <>
-                              <FiUnlock className="w-3 h-3" />
-                              تعديل يدوي
-                            </>
-                          ) : (
-                            <>
-                              <FiLock className="w-3 h-3" />
-                              حساب تلقائي
-                            </>
-                          )}
+                          <FiPlus className="w-3 h-3" />
                         </button>
-                      )}
+                      </div>
                     </div>
-                    <div className="relative">
-                      <NumberInput
-                        id="to_amount"
-                        placeholder={
-                          isCalculating
-                            ? 'جاري الحساب...'
-                            : isManualAmountEnabled
-                              ? 'أدخل المبلغ يدوياً'
-                              : 'سيتم الحساب تلقائياً'
-                        }
-                        className={`w-full text-right ${
-                          isManualAmountEnabled
-                            ? 'bg-orange-50 border-orange-300 focus:border-orange-500 focus:ring-orange-500 ring-2 ring-orange-200 pr-12'
-                            : 'bg-gray-50 border-gray-200'
-                        }`}
-                        value={
-                          isCalculating
-                            ? ''
-                            : isManualAmountEnabled
-                              ? manualAmount
-                              : calculatedAmount
-                        }
-                        onValueChange={
-                          isManualAmountEnabled
-                            ? values => setManualAmount(values.value)
-                            : undefined
-                        }
-                        readOnly={!isManualAmountEnabled}
-                        thousandSeparator={true}
-                        decimalScale={2}
-                        dir="rtl"
-                        aria-label="المبلغ المحسوب"
-                      />
-                      {isCalculating && (
-                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primaryBlue"></div>
+
+                    {/* Existing Rules */}
+                    {assignmentRules.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium text-gray-600">
+                          القواعد المحددة:
                         </div>
-                      )}
-                      {isAdmin && isManualAmountEnabled && (
-                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1 pointer-events-none">
-                          <FiEdit3 className="w-4 h-4 text-orange-500" />
-                        </div>
-                      )}
-                    </div>
-                    {isAdmin && calculatedAmount && (
-                      <div className="text-xs text-gray-600 mt-1 flex items-center gap-1">
-                        <IoCalculatorSharp className="w-3 h-3" />
-                        <span>
-                          المبلغ المحسوب تلقائياً:{' '}
-                          {formatDisplayAmount(calculatedAmount)}{' '}
-                          {currencies.find(c => c.id.toString() === toCurrency)
-                            ?.code || ''}
-                        </span>
+                        {assignmentRules.map(rule => {
+                          const currency = currencies.find(
+                            c => c.id === rule.currency_id,
+                          );
+                          return (
+                            <div
+                              key={rule.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">
+                                  {currency?.name}
+                                </span>
+                                <span className="text-gray-500">
+                                  (
+                                  {rule.direction === 'receive'
+                                    ? 'استلام'
+                                    : 'صرف'}
+                                  )
+                                </span>
+                                <span className="text-blue-600">
+                                  → {rule.user_name}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveRule(rule.id)}
+                                className="text-red-500 hover:text-red-700"
+                                title="حذف القاعدة"
+                              >
+                                <FiX className="w-4 h-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
+              )}
 
-            {/* Admin Manual Override Info */}
-            {isAdmin && isManualAmountEnabled && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <FiInfo className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="text-sm font-medium text-orange-900 mb-1">
-                      تم تفعيل التعديل اليدوي
+              <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-2">
+                  <InputLabel
+                    htmlFor="assigned_to"
+                    className="mb-2 text-blue-800"
+                  >
+                    تعيين العملية إلى
+                  </InputLabel>
+                  <Select
+                    id="assigned_to"
+                    aria-label="تعيين العملية إلى"
+                    value={assignedTo}
+                    onChange={e => setAssignedTo(e.target.value)}
+                    className="border-blue-300 focus:border-blue-500"
+                    disabled={isLoadingUsers}
+                  >
+                    {isLoadingUsers ? (
+                      <option value="">جاري التحميل...</option>
+                    ) : (
+                      <>
+                        {users.map(user => (
+                          <option key={user.id} value={user.id}>
+                            {user.name} ({user.email})
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </Select>
+                  {isLoadingUsers && (
+                    <div className="text-xs text-blue-600 mt-1">
+                      جاري تحميل قائمة المستخدمين...
                     </div>
-                    <div className="text-xs text-orange-700">
-                      يمكنك الآن تعديل المبلغ المحسوب يدوياً. سيتم استخدام
-                      المبلغ المدخل بدلاً من المبلغ المحسوب تلقائياً.
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+        )}
 
-            <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl">
-              <div className="text-med-x14 flex flex-col items-start gap-2">
+        {/* Currency Exchange Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* From Currency */}
+          <div className="space-y-4">
+            <div className="text-bold-x16 text-text-black">من</div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <InputLabel htmlFor="from_currency" className="mb-2">
+                  أختر العمله
+                </InputLabel>
+                <Select
+                  id="from_currency"
+                  aria-label="اختر العملة المصدر"
+                  placeholder="اختر العملة"
+                  value={fromCurrency}
+                  onChange={e => setFromCurrency(e.target.value)}
+                  className="border-blue-200 focus:border-blue-500"
+                >
+                  <option value="">اختر العملة</option>
+                  {currencies.map(currency => (
+                    <option key={currency.id} value={currency.id}>
+                      {currency.name} ({currency.code})
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <InputLabel htmlFor="from_amount" className="mb-2">
+                  المبلغ
+                </InputLabel>
+                <NumberInput
+                  id="from_amount"
+                  placeholder="أدخل المبلغ"
+                  className="w-full text-right"
+                  value={amount}
+                  onValueChange={values => setAmount(values.value)}
+                  min={0}
+                  decimalScale={2}
+                  thousandSeparator={true}
+                  dir="rtl"
+                  aria-label="مبلغ العملية"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* To Currency */}
+          <div className="space-y-4">
+            <div className="text-bold-x16 text-text-black">إلى</div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <InputLabel htmlFor="to_currency" className="mb-2">
+                  اختر العملة
+                </InputLabel>
+                <Select
+                  id="to_currency"
+                  aria-label="اختر العملة الهدف"
+                  placeholder="اختر العملة"
+                  value={toCurrency}
+                  onChange={e => setToCurrency(e.target.value)}
+                  className="border-blue-200 focus:border-blue-500"
+                >
+                  <option value="">اختر العملة</option>
+                  {currencies
+                    .filter(currency => currency.id.toString() !== fromCurrency)
+                    .map(currency => (
+                      <option key={currency.id} value={currency.id}>
+                        {currency.name} ({currency.code})
+                      </option>
+                    ))}
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <InputLabel htmlFor="to_amount" className="mb-2">
+                  المبلغ المحسوب
+                </InputLabel>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <NumberInput
+                      id="to_amount"
+                      placeholder="سيتم الحساب تلقائياً"
+                      className="w-full text-right bg-gray-50"
+                      value={
+                        isManualAmountEnabled ? manualAmount : calculatedAmount
+                      }
+                      onValueChange={values => setManualAmount(values.value)}
+                      min={0}
+                      decimalScale={2}
+                      thousandSeparator={true}
+                      dir="rtl"
+                      disabled={!isManualAmountEnabled}
+                      aria-label="المبلغ المحسوب"
+                    />
+                  </div>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={handleManualAmountToggle}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                        isManualAmountEnabled
+                          ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      }`}
+                      disabled={isCalculating || !calculatedAmount}
+                    >
+                      {isManualAmountEnabled ? (
+                        <>
+                          <FiUnlock className="w-3 h-3" />
+                          تعديل يدوي
+                        </>
+                      ) : (
+                        <>
+                          <FiLock className="w-3 h-3" />
+                          حساب تلقائي
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                {isCalculating && (
+                  <div className="text-xs text-blue-600 mt-1">
+                    جاري حساب المبلغ...
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Notes Section */}
+        <div className="space-y-4">
+          <div className="text-bold-x16 text-text-black">ملاحظات</div>
+          <div className="space-y-2">
+            <InputLabel htmlFor="notes" className="mb-2">
+              ملاحظة (اختيارية)
+            </InputLabel>
+            <textarea
+              id="notes"
+              placeholder="أضف ملاحظة للعملية (اختياري)"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              rows={3}
+              maxLength={255}
+              dir="rtl"
+            />
+            <div className="text-xs text-gray-500 text-left">
+              {notes.length}/255 حرف
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl">
+          <div className="text-med-x14 flex flex-col items-start gap-2">
+            {fromCurrency === toCurrency && fromCurrency && toCurrency ? (
+              <div className="text-red-600 text-sm font-medium">
+                ⚠️ لا يمكن اختيار نفس العملة في الحقلين
+              </div>
+            ) : (
+              <>
                 <span className="text-[#6B7280] text-med-x14">
                   يتم تسليم العميل مبلغ
                 </span>
@@ -599,22 +876,27 @@ export default function TransactionForm({
                     </span>
                   )}
                 </div>
-              </div>
-              <div className="flex gap-3">
-                <SecondaryButton onClick={() => resetForm(true, false)}>
-                  اعاده التعيين
-                </SecondaryButton>
-                <PrimaryButton
-                  disabled={!getFinalAmount() || isCalculating || isSubmitting}
-                  onClick={handleExecuteTransaction}
-                >
-                  {isSubmitting ? 'جاري التنفيذ...' : 'تنفيذ العملية'}
-                </PrimaryButton>
-              </div>
-            </div>
+              </>
+            )}
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex gap-3">
+            <SecondaryButton onClick={() => resetForm(true, false)}>
+              اعاده التعيين
+            </SecondaryButton>
+            <PrimaryButton
+              disabled={
+                !getFinalAmount() ||
+                isCalculating ||
+                isSubmitting ||
+                fromCurrency === toCurrency
+              }
+              onClick={handleExecuteTransaction}
+            >
+              {isSubmitting ? 'جاري التنفيذ...' : 'تنفيذ العملية'}
+            </PrimaryButton>
+          </div>
+        </div>
+      </div>
 
       {/* Overlay when session is closed or pending */}
       {(!isSessionOpen || isSessionPending) && (
@@ -642,17 +924,8 @@ export default function TransactionForm({
                   الجلسة النقدية معلقة
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  الجلسة الحالية معلقة، يتم الآن جرد الأرصدة ولا يمكن تنفيذ
-                  عمليات جديدة.
+                  يرجى الانتظار حتى يتم تأكيد الجلسة من قبل المشرف
                 </p>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-4">
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse flex-shrink-0"></div>
-                    <span className="text-xs text-orange-800">
-                      يرجى انتظار انتهاء عملية جرد الأرصدة لإكمال إغلاق الجلسة
-                    </span>
-                  </div>
-                </div>
               </>
             ) : (
               // Closed session message

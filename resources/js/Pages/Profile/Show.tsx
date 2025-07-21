@@ -4,6 +4,7 @@ import LogoutOtherBrowserSessions from '@/Pages/Profile/Partials/LogoutOtherBrow
 import TwoFactorAuthenticationForm from '@/Pages/Profile/Partials/TwoFactorAuthenticationForm';
 import UpdatePasswordForm from '@/Pages/Profile/Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from '@/Pages/Profile/Partials/UpdateProfileInformationForm';
+import NotificationSettingsForm from '@/Pages/Profile/Partials/NotificationSettingsForm';
 import useTypedPage from '@/Hooks/useTypedPage';
 import SectionBorder from '@/Components/SectionBorder';
 import AppLayout from '@/Layouts/AppLayout';
@@ -56,6 +57,12 @@ export default function Show({
               <SectionBorder />
             </div>
           ) : null}
+
+          <div className="mt-10 sm:mt-0">
+            <NotificationSettingsForm />
+
+            <SectionBorder />
+          </div>
 
           <div className="mt-10 sm:mt-0">
             <LogoutOtherBrowserSessions sessions={sessions} />

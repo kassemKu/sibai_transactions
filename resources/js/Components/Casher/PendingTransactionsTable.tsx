@@ -8,55 +8,13 @@ import {
   TableHeader,
   TableColumn,
   Table,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
   Button,
   Chip,
 } from '@heroui/react';
 import { router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
-
-interface Currency {
-  id: number;
-  name: string;
-  code: string;
-  rate_to_usd: string | number;
-}
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
-interface Customer {
-  id: number;
-  name: string;
-  phone?: string;
-}
-
-interface Transaction {
-  id: number;
-  customer_id: number | null;
-  user_id: number;
-  cash_session_id: number;
-  from_currency_id: number;
-  to_currency_id: number;
-  original_amount: number;
-  from_rate_to_usd: string | number;
-  to_rate_to_usd: string | number;
-  converted_amount: number;
-  status: 'pending' | 'completed' | 'canceled';
-  created_at: string;
-  updated_at: string;
-  from_currency: Currency;
-  to_currency: Currency;
-  created_by: User;
-  assigned_to: User;
-  customer: Customer;
-}
+import NotesModal from '../NotesModal';
+import type { Transaction, User, Currency, Customer } from '../../types';
 
 interface PendingTransactionsResponse {
   status: boolean;
@@ -74,6 +32,7 @@ interface PendingTransactionsTableProps {
   isPolling?: boolean;
   lastUpdated?: Date | null;
   onRefetch?: () => void;
+  isAdmin?: boolean; // Add admin prop
 }
 
 export default function PendingTransactionsTable({
@@ -84,10 +43,14 @@ export default function PendingTransactionsTable({
   isPolling = false,
   lastUpdated = null,
   onRefetch,
+  isAdmin = false,
 }: PendingTransactionsTableProps) {
   const [updatingTransactions, setUpdatingTransactions] = useState<Set<number>>(
     new Set(),
   );
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
 
   // Helper functions defined first
   const getStatusLabel = (status: Transaction['status']) => {
@@ -156,7 +119,7 @@ export default function PendingTransactionsTable({
   // Update transaction status
   const updateTransactionStatus = async (
     transactionId: number,
-    status: 'confirm',
+    status: 'confirm' | 'cancel',
   ) => {
     // Don't update if session is not active or is pending
     if (!isSessionActive || isSessionPending) {
@@ -175,7 +138,7 @@ export default function PendingTransactionsTable({
       const response = await axios.put(endpoint);
 
       if (response.data.status) {
-        toast.success('تم تأكيد المعاملة بنجاح');
+        toast.success(`تم ${status} المعاملة بنجاح`);
         // Refresh the data immediately
         if (onRefetch) {
           await onRefetch();
@@ -203,6 +166,16 @@ export default function PendingTransactionsTable({
     router.get(
       route('admin.transactions.show', { transaction: transactionId }),
     );
+  };
+
+  const handleViewNotes = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setNotesModalOpen(true);
+  };
+
+  const handleCloseNotesModal = () => {
+    setNotesModalOpen(false);
+    setSelectedTransaction(null);
   };
 
   return (
@@ -250,15 +223,16 @@ export default function PendingTransactionsTable({
       >
         <TableHeader>
           <TableColumn>التاريخ والوقت</TableColumn>
-          <TableColumn>العميل</TableColumn>
+
           <TableColumn>من</TableColumn>
           <TableColumn>إلى</TableColumn>
           <TableColumn>المبلغ الأصلي</TableColumn>
           <TableColumn>المبلغ المحول</TableColumn>
           <TableColumn>منشئ العملية</TableColumn>
           <TableColumn>مُعين إلى</TableColumn>
+          <TableColumn>ملاحظات</TableColumn>
           <TableColumn>الحالة</TableColumn>
-          <TableColumn>الإجراءات</TableColumn>
+          <TableColumn>{isAdmin ? 'الإجراءات' : 'الإجراءات'}</TableColumn>
         </TableHeader>
         <TableBody
           emptyContent={
@@ -289,16 +263,7 @@ export default function PendingTransactionsTable({
                       <div className="text-gray-500">{dateTime.time}</div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{transaction.customer?.name || 'غير محدد'}</div>
-                      {transaction.customer?.phone && (
-                        <div className="text-gray-500">
-                          {transaction.customer.phone}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
+
                   <TableCell>
                     <div className="text-sm">
                       <div>{transaction.from_currency?.name || 'غير محدد'}</div>
@@ -359,33 +324,89 @@ export default function PendingTransactionsTable({
                       </div>
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {transaction.notes ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={e => {
+                            e.stopPropagation(); // Prevent row click
+                            handleViewNotes(transaction);
+                          }}
+                          className="h-6 px-2"
+                        >
+                          <span className="text-blue-600 text-sm">📝</span>
+                          <span className="text-xs text-gray-600 mr-1">
+                            ملاحظة
+                          </span>
+                        </Button>
+                      ) : (
+                        <>
+                          <span className="text-gray-400 text-lg">-</span>
+                          <span className="text-xs text-gray-400">لايوجد</span>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{getStatusChip(transaction.status)}</TableCell>
                   <TableCell>
-                    <Button
-                      color="success"
-                      size="sm"
-                      isLoading={isUpdating}
-                      isDisabled={
-                        isUpdating || !isSessionActive || isSessionPending
-                      }
-                      onClick={() =>
-                        updateTransactionStatus(transaction.id, 'confirm')
-                      }
-                    >
-                      {isUpdating
-                        ? 'جاري التأكيد...'
-                        : isSessionPending
-                          ? 'جلسة معلقة'
-                          : !isSessionActive
-                            ? 'غير متاح'
-                            : 'تأكيد'}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        color="success"
+                        size="sm"
+                        isLoading={isUpdating}
+                        isDisabled={
+                          isUpdating || !isSessionActive || isSessionPending
+                        }
+                        onClick={() =>
+                          updateTransactionStatus(transaction.id, 'confirm')
+                        }
+                      >
+                        {isUpdating
+                          ? 'جاري التأكيد...'
+                          : isSessionPending
+                            ? 'جلسة معلقة'
+                            : !isSessionActive
+                              ? 'غير متاح'
+                              : 'تأكيد'}
+                      </Button>
+
+                      {/* Show cancel button for admin users */}
+                      {isAdmin && (
+                        <Button
+                          color="danger"
+                          size="sm"
+                          isLoading={isUpdating}
+                          isDisabled={
+                            isUpdating || !isSessionActive || isSessionPending
+                          }
+                          onClick={() =>
+                            updateTransactionStatus(transaction.id, 'cancel')
+                          }
+                        >
+                          {isUpdating
+                            ? 'جاري الإلغاء...'
+                            : isSessionPending
+                              ? 'جلسة معلقة'
+                              : !isSessionActive
+                                ? 'غير متاح'
+                                : 'إلغاء'}
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
             })}
         </TableBody>
       </Table>
+
+      <NotesModal
+        isOpen={notesModalOpen}
+        onClose={handleCloseNotesModal}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 }

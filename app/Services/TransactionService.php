@@ -96,7 +96,12 @@ class TransactionService
     public function createTransaction(array $data, $currentSession)
     {
         $user = Auth::user();
-        $assignedTo = $user->hasRole('super_admin') ? $data['assigned_to'] : null;
+        $assignedTo = null;
+
+        // Handle assigned_to for admin users (both super_admin and admin roles)
+        if ($user->hasRole(['super_admin', 'admin']) && isset($data['assigned_to'])) {
+            $assignedTo = $data['assigned_to'];
+        }
 
         $transaction = Transaction::create([
             'customer_id' => null,
@@ -108,6 +113,7 @@ class TransactionService
             'converted_amount' => $data['converted_amount'],
             'assigned_to' => $assignedTo,
             'status' => TransactionStatusEnum::PENDING->value,
+            'notes' => $data['notes'] ?? null,
             'profit_from_usd' => $data['profit_from_usd'],
             'profit_to_usd' => $data['profit_to_usd'],
             'total_profit_usd' => $data['total_profit_usd'],
@@ -122,6 +128,7 @@ class TransactionService
     public function confirmCashMovement(Transaction $transaction)
     {
         DB::transaction(function () use ($transaction) {
+
             CashMovement::create([
                 'transaction_id' => $transaction->id,
                 'currency_id' => $transaction->from_currency_id,
@@ -129,8 +136,8 @@ class TransactionService
                 'amount' => $transaction->original_amount,
                 'cash_session_id' => $transaction->cash_session_id,
                 'exchange_rate' => $transaction->from_currency_rates_snapshot['buy_rate_to_usd'],
-                'by' => $transaction->closed_by,
-                'cash_session_id' => $transaction->cash_session_id,
+                'by' => $transaction->created_by,
+                'sub' => $transaction->created_by != $transaction->closed_by, // Only mark as sub if created and closed by different users
             ]);
 
             CashMovement::create([
@@ -140,8 +147,33 @@ class TransactionService
                 'amount' => $transaction->converted_amount,
                 'cash_session_id' => $transaction->cash_session_id,
                 'exchange_rate' => $transaction->to_currency_rates_snapshot['sell_rate_to_usd'],
-                'by' => $transaction->created_by,
+                'by' => $transaction->closed_by,
+            ]);
+        });
+    }
+
+    public function confirmCasherCashMovement(Transaction $transaction)
+    {
+        DB::transaction(function () use ($transaction) {
+            CashMovement::create([
+                'transaction_id' => $transaction->id,
+                'currency_id' => $transaction->from_currency_id,
+                'type' => CashMovementTypeEnum::IN->value,
+                'amount' => $transaction->original_amount,
                 'cash_session_id' => $transaction->cash_session_id,
+                'exchange_rate' => $transaction->from_currency_rates_snapshot['buy_rate_to_usd'],
+                'by' => $transaction->created_by,
+            ]);
+
+            CashMovement::create([
+                'transaction_id' => $transaction->id,
+                'currency_id' => $transaction->to_currency_id,
+                'type' => CashMovementTypeEnum::OUT->value,
+                'amount' => $transaction->converted_amount,
+                'cash_session_id' => $transaction->cash_session_id,
+                'exchange_rate' => $transaction->to_currency_rates_snapshot['sell_rate_to_usd'],
+                'by' => $transaction->closed_by,
+                'sub' => true,
             ]);
         });
     }

@@ -116,15 +116,21 @@ export default function RootLayout({
   const isCasher =
     roles && Array.isArray(roles) && (roles as string[]).includes('casher');
   const isAdmin =
+    roles && Array.isArray(roles) && (roles as string[]).includes('admin');
+  const isSuperAdmin =
     roles &&
     Array.isArray(roles) &&
-    (roles as string[]).includes('super_admin') || (roles as string[]).includes('superadministrator') || (roles as string[]).includes('administrator');
+    (roles as string[]).includes('super_admin');
 
   // All navigation items
   const allNavigation: NavItem[] = [
     {
       name: 'الرئيسية',
-      href: route('home'),
+      href: isSuperAdmin
+        ? route('admin.dashboard')
+        : (isCasher || isAdmin)
+          ? route('casher.dashboard')
+          : route('home'),
       icon: <FaChartLine className="h-5 w-5" />,
       current: route().current('admin.*') || route().current('casher.*'),
     },
@@ -142,9 +148,9 @@ export default function RootLayout({
     },
     {
       name: 'الموظفين',
-      href: route('employees.index'),
+      href: route('users.index'), // Point to Users module
       icon: <FaUsers className="h-5 w-5" />,
-      current: route().current('employees.*'),
+      current: route().current('users.*'), // Highlight when on users pages
     },
     {
       name: 'العملات',
@@ -152,12 +158,20 @@ export default function RootLayout({
       icon: <FaCoins className="h-5 w-5" />,
       current: route().current('currencies.*'),
     },
+    {
+      name: 'الشركات',
+      href: route('companies.index'), // Point to Companies module
+      icon: <FaUsers className="h-5 w-5" />,
+      current: route().current('companies.*'), // Highlight when on companies pages
+    },
   ];
 
   // Filter navigation based on user role
-  const navigation = isCasher
-    ? allNavigation.filter(item => item.name === 'الرئيسية') // Cashers only see الرئيسية
-    : allNavigation; // Admins see all navigation items
+  const navigation = isSuperAdmin
+    ? allNavigation // Super Admin sees all navigation items
+    : isCasher || isAdmin
+      ? allNavigation.filter(item => item.name === 'الرئيسية') // Cashers and Admins only see الرئيسية
+      : allNavigation; // Other users see all navigation items
 
   const handleLogout = (e: React.FormEvent) => {
     e.preventDefault();

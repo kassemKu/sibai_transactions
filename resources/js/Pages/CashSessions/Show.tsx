@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 import RootLayout from '@/Layouts/RootLayout';
@@ -14,6 +14,8 @@ import {
   CardBody,
   Button,
   Pagination,
+  Accordion,
+  AccordionItem,
 } from '@heroui/react';
 import {
   FiCalendar,
@@ -22,10 +24,16 @@ import {
   FiArrowLeft,
   FiDollarSign,
   FiLoader,
+  FiEye,
+  FiChevronDown,
+  FiChevronUp,
 } from 'react-icons/fi';
 import SecondaryButton from '@/Components/SecondaryButton';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TransactionDetailModal from '@/Components/TransactionDetailModal';
+import AddCashboxModal from '@/Components/AddCashboxModal';
+import DialogModal from '@/Components/DialogModal';
+import CashierBoxModal from '@/Components/Casher/CashierBoxModal';
 import {
   Currency,
   CashSession,
@@ -33,8 +41,12 @@ import {
   Transaction,
   SessionOpeningBalance,
   CashBalance,
+  CurrenciesResponse,
+  CasherCashSession,
 } from '@/types';
 import { route } from 'ziggy-js';
+import toast from 'react-hot-toast';
+import NumberInput from '@/Components/NumberInput';
 
 interface PaginatedTransactions {
   data: Transaction[];
@@ -46,10 +58,17 @@ interface PaginatedTransactions {
 
 interface CashSessionShowProps {
   cashSession: CashSession;
+  currencies?: CurrenciesResponse;
 }
 
-export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
+export default function CashSessionShow({
+  cashSession,
+  currencies,
+}: CashSessionShowProps) {
   console.log(cashSession);
+
+  // State for add cashbox modal
+  const [showAddCashboxModal, setShowAddCashboxModal] = useState(false);
 
   // State for transaction modal
   const [selectedTransactionId, setSelectedTransactionId] = useState<
@@ -63,11 +82,41 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // State for cashier boxes balances
+  const [loadingBalances, setLoadingBalances] = useState<
+    Record<number, boolean>
+  >({});
+  const [cashierBalances, setCashierBalances] = useState<Record<number, any>>(
+    {},
+  );
+
+  // State for cashier details modal
+  const [isCashierBoxModalOpen, setIsCashierBoxModalOpen] = useState(false);
+  const [selectedCashierSession, setSelectedCashierSession] =
+    useState<CasherCashSession | null>(null);
+  const [cashierBoxModalStage, setCashierBoxModalStage] = useState<
+    'view' | 'pending' | 'closing'
+  >('view');
+  const [isCashierBoxSubmitting, setIsCashierBoxSubmitting] = useState(false);
+
+  // State to track updated casher sessions for UI updates
+  const [updatedCasherSessions, setUpdatedCasherSessions] = useState<
+    CasherCashSession[]
+  >(cashSession.casher_cash_sessions || []);
+  const [cashierClosingBalances, setCashierClosingBalances] = useState<any[]>(
+    [],
+  );
+  const [cashierActualAmounts, setCashierActualAmounts] = useState<
+    Record<number, string>
+  >({});
+  const [isCashierClosingLoading, setIsCashierClosingLoading] = useState(false);
+  const [isCashierClosingSubmitting, setIsCashierClosingSubmitting] =
+    useState(false);
+
   // Handle transaction row click
   const handleTransactionClick = (transactionId: number) => {
     router.get(route('transaction.show', { transaction: transactionId }));
   };
-
   // Fetch transactions from API
   const fetchTransactions = async (page: number = 1) => {
     setIsLoadingTransactions(true);
@@ -92,10 +141,326 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
     fetchTransactions(page);
   };
 
+  // Handle add cashbox modal
+  const handleAddCashboxModalClose = () => {
+    setShowAddCashboxModal(false);
+  };
+
+  // Handle add cashbox success
+  const handleAddCashboxSuccess = () => {
+    // Refresh the page to show updated data
+    window.location.reload();
+  };
+
+  // Fetch cashier box balances API - MEMOIZED to prevent unnecessary re-renders
+  const fetchCashierBoxBalances = useCallback(
+    async (casherCashSessionId: number) => {
+      const response = await axios.get(
+        `/admin/get-closing-balances/${casherCashSessionId}`,
+      );
+      return response.data.data.balances.system_closing_balances || [];
+    },
+    [],
+  );
+
+  // Fetch cashier balances
+  const fetchCashierBalances = async (casherCashSessionId: number) => {
+    setLoadingBalances(prev => ({ ...prev, [casherCashSessionId]: true }));
+    try {
+      const response = await axios.get(
+        `/admin/get-closing-balances/${casherCashSessionId}`,
+      );
+      setCashierBalances(prev => ({
+        ...prev,
+        [casherCashSessionId]:
+          response.data.data.balances.system_closing_balances,
+      }));
+      console.log(response.data.data.balances.system_closing_balances);
+    } catch (error) {
+      console.error('Error fetching cashier balances:', error);
+    } finally {
+      setLoadingBalances(prev => ({ ...prev, [casherCashSessionId]: false }));
+    }
+  };
+
+  // Handle view cashier details
+  const handleViewCashierDetails = (casherCashSession: CasherCashSession) => {
+    setSelectedCashierSession(casherCashSession);
+
+    // Check session status and set appropriate modal stage
+    if (casherCashSession.status === 'pending') {
+      // Show closing stage for pending sessions
+      setCashierBoxModalStage('closing');
+      // Fetch closing balances immediately for pending sessions
+      fetchCashierClosingBalances(casherCashSession.id);
+    } else if (casherCashSession.status === 'active') {
+      // Show pending stage for active sessions
+      setCashierBoxModalStage('pending');
+      // Fetch balances for display in pending confirmation
+      fetchCashierClosingBalances(casherCashSession.id);
+    } else if (casherCashSession.status === 'closed') {
+      // Show view stage for closed sessions (read-only)
+      setCashierBoxModalStage('view');
+      // Fetch balances when modal opens for closed sessions
+      if (!cashierBalances[casherCashSession.id]) {
+        fetchCashierBalances(casherCashSession.id);
+      }
+    }
+
+    setIsCashierBoxModalOpen(true);
+  };
+
+  // Handle modal close
+  const handleCashierModalClose = () => {
+    setIsCashierBoxModalOpen(false);
+    setSelectedCashierSession(null);
+    setCashierBoxModalStage('view');
+    setCashierClosingBalances([]);
+    setCashierActualAmounts({});
+    setIsCashierClosingLoading(false);
+    setIsCashierClosingSubmitting(false);
+
+    // Only reset if the session was in pending state but not completed
+    // This allows the UI to show the updated pending status
+    if (selectedCashierSession?.status === 'pending') {
+      // Keep the pending status visible in the UI
+      // The user can see that the session is pending and can continue later
+    }
+  };
+
+  // Handle confirm close (stage 1 to 2)
+  const handleConfirmClose = async () => {
+    if (!selectedCashierSession) return;
+
+    setIsCashierClosingLoading(true);
+    try {
+      const response = await axios.post(
+        `/admin/casher-cash-session/${selectedCashierSession.id}/pending`,
+      );
+      if (response.data.status || response.data.success) {
+        // Update the local session status to pending
+        setSelectedCashierSession(prev =>
+          prev
+            ? {
+                ...prev,
+                status: 'pending',
+              }
+            : null,
+        );
+
+        // Update the cash session's casher sessions to reflect the new status
+        setUpdatedCasherSessions(prev =>
+          prev.map(session =>
+            session.id === selectedCashierSession.id
+              ? { ...session, status: 'pending' }
+              : session,
+          ),
+        );
+
+        // Fetch closing balances for the next stage
+        await fetchCashierClosingBalances(selectedCashierSession.id);
+        setCashierBoxModalStage('closing');
+        toast.success('تم تحويل صندوق الصراف إلى وضع الإغلاق');
+      }
+    } catch (error) {
+      console.error('Error setting cashier session to pending:', error);
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error('حدث خطأ أثناء تحضير صندوق الصراف للإغلاق');
+      }
+    } finally {
+      setIsCashierClosingLoading(false);
+    }
+  };
+
+  // Handle cashier actual amount change
+  const handleCashierActualAmountChange = (
+    currencyId: number,
+    value: string,
+  ) => {
+    setCashierActualAmounts(prev => ({
+      ...prev,
+      [currencyId]: value,
+    }));
+  };
+
+  // Handle cashier submit (stage 3)
+  const handleCashierSubmit = async () => {
+    if (!selectedCashierSession || isCashierClosingSubmitting) return;
+
+    setIsCashierClosingSubmitting(true);
+    try {
+      const actualClosingBalances = cashierClosingBalances.map(balance => ({
+        currency_id: balance.currency_id,
+        amount: parseFloat(cashierActualAmounts[balance.currency_id] || '0'),
+      }));
+
+      const response = await axios.post(
+        `/admin/casher-close-cash-session/${selectedCashierSession.id}/close`,
+        {
+          actual_closing_balances: actualClosingBalances,
+        },
+      );
+
+      if (response.data.status || response.data.success) {
+        // Update the local session status to closed
+        setSelectedCashierSession(prev =>
+          prev
+            ? {
+                ...prev,
+                status: 'closed',
+              }
+            : null,
+        );
+
+        // Update the casher sessions list to reflect the closed status
+        setUpdatedCasherSessions(prev =>
+          prev.map(session =>
+            session.id === selectedCashierSession.id
+              ? { ...session, status: 'closed' }
+              : session,
+          ),
+        );
+
+        toast.success('تم إغلاق صندوق الصراف بنجاح');
+
+        // Clean up modal state
+        setCashierClosingBalances([]);
+        setCashierActualAmounts({});
+        setIsCashierBoxModalOpen(false);
+        setCashierBoxModalStage('view');
+        setSelectedCashierSession(null);
+      }
+    } catch (error) {
+      console.error('Error closing cashier session:', error);
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error('حدث خطأ أثناء إغلاق صندوق الصراف');
+      }
+    } finally {
+      setIsCashierClosingSubmitting(false);
+    }
+  };
+
+  // Handle submit close for cashier box modal (shared component)
+  const handleSubmitCashierBoxClose = async (
+    actualClosingBalances: { currency_id: number; amount: number }[],
+  ) => {
+    if (!selectedCashierSession) return;
+    setIsCashierBoxSubmitting(true);
+    try {
+      await axios.post(
+        `/admin/casher-close-cash-session/${selectedCashierSession.id}/close`,
+        {
+          actual_closing_balances: actualClosingBalances,
+        },
+      );
+      toast.success('تم إغلاق صندوق الصراف بنجاح');
+      setIsCashierBoxModalOpen(false);
+      setSelectedCashierSession(null);
+      setCashierBoxModalStage('view');
+      setIsCashierBoxSubmitting(false);
+
+      // Update the casher sessions list to reflect the closed status
+      setUpdatedCasherSessions(prev =>
+        prev.map(session =>
+          session.id === selectedCashierSession.id
+            ? { ...session, status: 'closed' }
+            : session,
+        ),
+      );
+    } catch (error) {
+      toast.error('حدث خطأ أثناء إغلاق صندوق الصراف');
+      setIsCashierBoxSubmitting(false);
+    }
+  };
+
+  // Handle pending confirmation (step 1 to 2)
+  const handleConfirmPending = async () => {
+    if (!selectedCashierSession) return;
+    setIsCashierBoxSubmitting(true);
+    try {
+      const response = await axios.post(
+        `/admin/casher-cash-session/${selectedCashierSession.id}/pending`,
+      );
+      if (response.data.status || response.data.success) {
+        // Update the local session status to pending
+        setSelectedCashierSession(prev =>
+          prev
+            ? {
+                ...prev,
+                status: 'pending',
+              }
+            : null,
+        );
+
+        // Update the casher sessions list to reflect the new status
+        setUpdatedCasherSessions(prev =>
+          prev.map(session =>
+            session.id === selectedCashierSession.id
+              ? { ...session, status: 'pending' }
+              : session,
+          ),
+        );
+
+        // Move to closing stage
+        setCashierBoxModalStage('closing');
+        toast.success('تم تحويل صندوق الصراف إلى وضع الإغلاق');
+      }
+    } catch (error) {
+      console.error('Error setting cashier session to pending:', error);
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error('حدث خطأ أثناء تحضير صندوق الصراف للإغلاق');
+      }
+    } finally {
+      setIsCashierBoxSubmitting(false);
+    }
+  };
+
+  // Fetch cashier closing balances
+  const fetchCashierClosingBalances = async (casherCashSessionId: number) => {
+    setIsCashierClosingLoading(true);
+    try {
+      const response = await axios.get(
+        `/admin/get-closing-balances/${casherCashSessionId}`,
+      );
+      if (response.data.status || response.data.success) {
+        const balancesData =
+          response.data.data.balances.system_closing_balances || [];
+        setCashierClosingBalances(balancesData);
+
+        // Initialize actual amounts with system balances
+        const initialAmounts: Record<number, string> = {};
+        balancesData.forEach((balance: any) => {
+          initialAmounts[balance.currency_id] =
+            balance.system_balance.toString();
+        });
+        setCashierActualAmounts(initialAmounts);
+      }
+    } catch (error) {
+      console.error('Error fetching cashier closing balances:', error);
+    } finally {
+      setIsCashierClosingLoading(false);
+    }
+  };
+
   // Load transactions on component mount
   useEffect(() => {
     fetchTransactions(1);
   }, [cashSession.id]);
+
+  // Initialize updated casher sessions when component mounts
+  useEffect(() => {
+    setUpdatedCasherSessions(cashSession.casher_cash_sessions || []);
+  }, [cashSession.casher_cash_sessions]);
 
   // Format date and time
   const formatDateTime = (dateString: string) => {
@@ -160,11 +525,11 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
   ) => {
     try {
       if (!currency || !amount) {
-        return 'غير متاح';
+        return '0.00';
       }
       const numAmount = parseFloat(amount);
       if (isNaN(numAmount)) {
-        return 'غير متاح';
+        return '0.00';
       }
       const formattedAmount = new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 2,
@@ -173,7 +538,7 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
       }).format(numAmount);
       return `${formattedAmount}`;
     } catch (error) {
-      return 'غير متاح';
+      return '0.00';
     }
   };
 
@@ -205,13 +570,23 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
         { label: `جلسة #${cashSession.id}` },
       ]}
       headerActions={
-        <SecondaryButton
-          onClick={() => router.get(route('cash_sessions.index'))}
-          className="text-sm"
-        >
-          <FiArrowLeft className="w-4 h-4 ml-1" />
-          العودة للقائمة
-        </SecondaryButton>
+        <div className="flex items-center space-x-3 space-x-reverse">
+          <SecondaryButton
+            onClick={() => router.get(route('cash_sessions.index'))}
+            className="text-sm"
+          >
+            <FiArrowLeft className="w-4 h-4 ml-1" />
+            العودة للقائمة
+          </SecondaryButton>
+          {cashSession.status === 'active' && currencies && (
+            <PrimaryButton
+              className="text-sm"
+              onClick={() => setShowAddCashboxModal(true)}
+            >
+              إضافة صندوق للجلسة
+            </PrimaryButton>
+          )}
+        </div>
       }
     >
       {/* Session Header */}
@@ -496,6 +871,120 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
         )}
       </div>
 
+      {/* Cashier Boxes */}
+      {updatedCasherSessions && updatedCasherSessions.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            صناديق الصرافين في هذه الجلسة
+          </h2>
+          <Table aria-label="صناديق الصرافين" selectionMode="single">
+            <TableHeader>
+              <TableColumn>الصراف</TableColumn>
+              <TableColumn>البريد الإلكتروني</TableColumn>
+              <TableColumn>الحالة</TableColumn>
+              <TableColumn>عدد العملات</TableColumn>
+              <TableColumn>تاريخ الفتح</TableColumn>
+              <TableColumn>تاريخ الإغلاق</TableColumn>
+              <TableColumn>المدة</TableColumn>
+              <TableColumn>الإجراءات</TableColumn>
+            </TableHeader>
+            <TableBody>
+              {updatedCasherSessions.map(casherSession => {
+                const openedDateTime = formatDateTime(casherSession.opened_at);
+                const closedDateTime = casherSession.closed_at
+                  ? formatDateTime(casherSession.closed_at)
+                  : null;
+                const duration = calculateDuration(
+                  casherSession.opened_at,
+                  casherSession.closed_at,
+                );
+
+                return (
+                  <TableRow key={casherSession.id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <FiUser className="w-5 h-5 text-blue-600" />
+                        <div className="text-right">
+                          <div className="font-medium text-gray-900">
+                            {casherSession.casher.name}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-600 text-right">
+                        {casherSession.casher.email}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusChip(casherSession.status)}</TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-900 text-center">
+                        {casherSession?.opening_balances?.length || 0}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-right">
+                        <div className="font-medium text-gray-900">
+                          {openedDateTime.date}
+                        </div>
+                        <div className="text-gray-500">
+                          {openedDateTime.time}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {closedDateTime ? (
+                        <div className="text-sm text-right">
+                          <div className="font-medium text-gray-900">
+                            {closedDateTime.date}
+                          </div>
+                          <div className="text-gray-500">
+                            {closedDateTime.time}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-400 text-right">
+                          -
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-600 text-center">
+                        {duration}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="light"
+                        onClick={() => handleViewCashierDetails(casherSession)}
+                        className="text-blue-600"
+                      >
+                        <FiEye className="w-4 h-4 ml-1" />
+                        عرض التفاصيل
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Cashier Box Modal (shared) */}
+      <CashierBoxModal
+        isOpen={isCashierBoxModalOpen}
+        onClose={handleCashierModalClose}
+        cashierSession={selectedCashierSession}
+        currencies={currencies || []}
+        fetchBalancesApi={fetchCashierBoxBalances}
+        stage={cashierBoxModalStage}
+        onSubmitClose={handleSubmitCashierBoxClose}
+        isSubmitting={isCashierBoxSubmitting}
+        onConfirmPending={handleConfirmPending}
+      />
+
       {/* Closing Balances */}
       {cashSession.cash_balances &&
         cashSession.cash_balances.length > 0 &&
@@ -552,7 +1041,7 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
                           className={`font-medium ${
                             parseFloat(balance.difference) === 0
                               ? 'text-green-600'
-                              : 'text-red-600'
+                              : 'text-red'
                           }`}
                         >
                           {formatAmount(balance.difference, balance.currency)}
@@ -572,6 +1061,16 @@ export default function CashSessionShow({ cashSession }: CashSessionShowProps) {
         onClose={() => setIsTransactionModalOpen(false)}
         transactionId={selectedTransactionId}
       />
+
+      {/* Add Cashbox Modal */}
+      {currencies && (
+        <AddCashboxModal
+          isOpen={showAddCashboxModal}
+          onClose={handleAddCashboxModalClose}
+          onSuccess={handleAddCashboxSuccess}
+          currencies={currencies}
+        />
+      )}
     </RootLayout>
   );
 }

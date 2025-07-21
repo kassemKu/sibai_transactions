@@ -37,7 +37,7 @@ class TransactionCalculateRequest extends FormRequest
                 'required',
                 'numeric',
                 'min:0.01',
-                new SufficientBalance($calc),
+                // new SufficientBalance($calc),
             ],
         ];
     }

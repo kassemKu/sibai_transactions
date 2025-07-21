@@ -204,7 +204,9 @@ export default function CloseSessionModal({
       }
     } catch (error) {
       console.error('Error setting session to pending:', error);
-      if (axios.isAxiosError(error) && error.response?.data?.error) {
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else if (axios.isAxiosError(error) && error.response?.data?.error) {
         toast.error(error.response.data.error);
       } else {
         toast.error('حدث خطأ أثناء تحضير الجلسة للإغلاق');

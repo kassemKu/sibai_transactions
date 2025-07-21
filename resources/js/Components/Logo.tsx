@@ -18,15 +18,17 @@ const Logo = ({ showText = true, className = '' }: LogoProps) => {
   const isCasher =
     roles && Array.isArray(roles) && (roles as string[]).includes('casher');
   const isAdmin =
+    roles && Array.isArray(roles) && (roles as string[]).includes('admin');
+  const isSuperAdmin =
     roles &&
     Array.isArray(roles) &&
     (roles as string[]).includes('super_admin');
 
   // Determine home route based on user role
-  const homeRoute = isCasher
-    ? route('casher.dashboard')
-    : isAdmin
-      ? route('admin.dashboard')
+  const homeRoute = isSuperAdmin
+    ? route('admin.dashboard') // Super Admin goes to admin dashboard
+    : isCasher || isAdmin
+      ? route('casher.dashboard') // Cashers and Admins go to casher dashboard
       : route('dashboard');
 
   return (

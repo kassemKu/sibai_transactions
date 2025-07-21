@@ -17,6 +17,7 @@ class CashMovement extends Model
         'exchange_rate',
         'cash_session_id',
         'by',
+        'sub', // Indicates if this movement is a sub-movement (e.g., created by a casher)
     ];
 
     public function transaction()

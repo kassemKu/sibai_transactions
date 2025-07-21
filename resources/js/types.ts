@@ -146,6 +146,7 @@ export interface Transaction {
   status: 'pending' | 'completed' | 'canceled';
   created_at: string;
   updated_at: string;
+  notes?: string;
   from_currency: Currency;
   to_currency: Currency;
   created_by: User;
@@ -193,6 +194,20 @@ export interface CashBalance {
   currency: Currency; // ✅ Now loaded from backend
 }
 
+export interface CashierBalance {
+  currency_id: number;
+  amount: number;
+  currency?: Currency;
+}
+
+export interface Cashier {
+  id: number;
+  name: string;
+  email: string;
+  system_balances: CashierBalance[];
+  has_active_session: boolean;
+}
+
 export interface CashSession {
   id: number;
   opened_at: string;
@@ -207,6 +222,39 @@ export interface CashSession {
   opening_balances: SessionOpeningBalance[];
   cash_balances: CashBalance[];
   transactions: Transaction[];
+  casher_cash_sessions?: CasherCashSession[];
+}
+
+export interface CasherCashSession {
+  id: number;
+  opened_at: string;
+  closed_at: Nullable<string>;
+  opened_by: User;
+  closed_by: Nullable<User>;
+  opening_balances: Array<{
+    currency_id: number;
+    amount: string;
+    currency?: Currency;
+  }>;
+  system_balances?: Array<{
+    currency_id: number;
+    name: string;
+    code: string;
+    opening_balance: string;
+    total_in: string;
+    total_out: string;
+    system_balance: string;
+  }>;
+  actual_closing_balances?: Array<{
+    currency_id: number;
+    amount: string;
+  }>;
+  cash_session_id: number;
+  casher_id: number;
+  status: 'active' | 'pending' | 'closed';
+  created_at: string;
+  updated_at: string;
+  casher: User;
 }
 
 export interface CashSessionsResponse {

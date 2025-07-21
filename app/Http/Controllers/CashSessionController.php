@@ -6,6 +6,8 @@ use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\CloseCashSessionRequest;
 use App\Models\CashSession;
+use App\Models\Currency;
+use App\Models\User;
 use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,9 +52,12 @@ class CashSessionController extends Controller
                 'transactions.assignedTo',
                 'transactions.fromCurrency',
                 'transactions.toCurrency',
+                'casherCashSessions',
+                'casherCashSessions.casher',
                 'openedBy',
                 'closedBy',
             ]),
+            'currencies' => Currency::all(),
             'totalUsdProfits' => $cashSession->transactions()
                 ->where('status', TransactionStatusEnum::COMPLETED->value)
                 ->sum('total_profit_usd'),
@@ -92,6 +97,11 @@ class CashSessionController extends Controller
     public function pending(Request $request): JsonResponse
     {
         try {
+            $activeSubSession = $request->session->casherCashSessions()->where('status', CashSessionEnum::ACTIVE->value)->exists();
+            if ($activeSubSession) {
+                return $this->failed('لا يمكن تحويل الجلسة إلى قيد الإغلاق لوجود جلسة فرعية نشطة.');
+            }
+
             $request->session->update([
                 'status' => CashSessionEnum::PENDING->value,
             ]);
@@ -156,7 +166,7 @@ class CashSessionController extends Controller
         // Return JSON for API/AJAX requests
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
-                'data' => $transactions
+                'data' => $transactions,
             ]);
         }
 
@@ -167,6 +177,21 @@ class CashSessionController extends Controller
                 'closedBy',
             ]),
             'transactions' => $transactions,
+        ]);
+    }
+
+    public function getAvailableCashers(Request $request): JsonResponse
+    {
+        $availableCashers = User::whereDoesntHave('casherCashSessions', function ($q) use ($request) {
+            $q->where('cash_session_id', $request->session->id);
+        })
+            ->whereDoesntHave('roles', function ($q) {
+                $q->where('name', 'super_admin');
+            })
+            ->get();
+
+        return $this->success('تم جلب مستخدمي الجلسة بنجاح.', [
+            'users' => $availableCashers,
         ]);
     }
 }

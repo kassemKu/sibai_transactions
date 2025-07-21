@@ -29,17 +29,27 @@ class TransactionRequest extends FormRequest
     public function rules()
     {
         $calc = $this->calc;
+        $user = auth()->user();
+        $isAdmin = $user->hasRole('admin');
 
-        return [
+        $rules = [
             'from_currency_id' => 'required|exists:currencies,id',
             'to_currency_id' => 'required|exists:currencies,id',
             'original_amount' => [
                 'required',
                 'numeric',
                 'min:0.01',
-                new SufficientBalance($calc),
+                // new SufficientBalance($calc),
             ],
+            'notes' => 'nullable|string|max:255',
         ];
+
+        // Only require assigned_to for admin users
+        if ($isAdmin) {
+            $rules['assigned_to'] = 'required|exists:users,id';
+        }
+
+        return $rules;
     }
 
     public function getCalc()
