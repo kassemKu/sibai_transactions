@@ -48,7 +48,7 @@ export default function CurrencyCard({
     };
   };
 
-  // New SYP buy/sell calculation logic
+  // New SYP buy/sell calculation logic (business-correct)
   const calculateSYPBuySell = () => {
     if (!currencies || currencies.length === 0) return null;
     const sypCurrency = currencies.find(c => c.code === 'SYP');
@@ -66,8 +66,11 @@ export default function CurrencyCard({
       curSell === 0
     )
       return null;
-    const buyValue = sypBuy / curBuy;
-    const sellValue = sypSell / curSell;
+    // Business-correct formulas:
+    // Buy: sypSell / curBuy
+    // Sell: sypBuy / curSell
+    const buyValue = sypSell / curBuy;
+    const sellValue = sypBuy / curSell;
     return {
       buy: buyValue,
       sell: sellValue,
@@ -160,7 +163,7 @@ export default function CurrencyCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FiArrowDown className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-green-700">شراء</span>
+              <span className="text-sm font-medium text-green-700">بيع</span>
             </div>
             <span className="text-lg font-bold text-green-600">
               {formatRate(parseFloat(currency.buy_rate_to_usd), currency.code)}
@@ -171,7 +174,7 @@ export default function CurrencyCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FiArrowUp className="w-4 h-4 text-red-600" />
-              <span className="text-sm font-medium text-red-700">بيع</span>
+              <span className="text-sm font-medium text-red-700">شراء</span>
             </div>
             <span className="text-lg font-bold text-red-600">
               {formatRate(parseFloat(currency.sell_rate_to_usd), currency.code)}
@@ -186,10 +189,10 @@ export default function CurrencyCard({
           {sypBuySell && currency.code !== 'SYP' && (
             <div className="text-xs text-center bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-200 mt-2 flex flex-col gap-1">
               <span>
-                1 {currency.name} ≈ {sypBuySell.buyFormatted} ل.س (شراء)
+                1 {currency.name} ≈ {sypBuySell.buyFormatted} ل.س (بيع)
               </span>
               <span>
-                1 {currency.name} ≈ {sypBuySell.sellFormatted} ل.س (بيع)
+                1 {currency.name} ≈ {sypBuySell.sellFormatted} ل.س (شراء)
               </span>
             </div>
           )}

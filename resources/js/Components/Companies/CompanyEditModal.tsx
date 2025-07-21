@@ -23,12 +23,22 @@ interface CompanyEditModalProps {
 }
 
 export default function CompanyEditModal({ isOpen, onClose, company, onSuccess }: CompanyEditModalProps) {
-  const [data, setData] = React.useState({ name: company.name });
+  const [data, setData] = React.useState({
+    name: company.name,
+    address: company.address || '',
+    phone: company.phone || '',
+    email: company.email || '',
+  });
   const [processing, setProcessing] = React.useState(false);
-  const [errors, setErrors] = React.useState<{ name?: string }>({});
+  const [errors, setErrors] = React.useState<{ name?: string; address?: string; phone?: string; email?: string }>({});
 
   React.useEffect(() => {
-    setData({ name: company.name });
+    setData({
+      name: company.name,
+      address: company.address || '',
+      phone: company.phone || '',
+      email: company.email || '',
+    });
     setErrors({});
   }, [company.id, isOpen]);
 
@@ -76,6 +86,39 @@ export default function CompanyEditModal({ isOpen, onClose, company, onSuccess }
               autoFocus
             />
             <InputError message={errors.name} className="mt-2" />
+          </div>
+          <div>
+            <InputLabel htmlFor="address" value="العنوان" />
+            <TextInput
+              id="address"
+              type="text"
+              className="mt-1 block w-full"
+              value={data.address}
+              onChange={e => setData({ ...data, address: e.target.value })}
+            />
+            <InputError message={errors.address} className="mt-2" />
+          </div>
+          <div>
+            <InputLabel htmlFor="phone" value="الهاتف" />
+            <TextInput
+              id="phone"
+              type="text"
+              className="mt-1 block w-full"
+              value={data.phone}
+              onChange={e => setData({ ...data, phone: e.target.value })}
+            />
+            <InputError message={errors.phone} className="mt-2" />
+          </div>
+          <div>
+            <InputLabel htmlFor="email" value="البريد الإلكتروني" />
+            <TextInput
+              id="email"
+              type="email"
+              className="mt-1 block w-full"
+              value={data.email}
+              onChange={e => setData({ ...data, email: e.target.value })}
+            />
+            <InputError message={errors.email} className="mt-2" />
           </div>
         </form>
       </DialogModal.Content>
