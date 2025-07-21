@@ -314,7 +314,7 @@ export default function AddCashboxModal({
             disabled={
               isSubmitting ||
               !casherId ||
-              openingBalances.some(b => !b.currency_id || !b.amount)
+              openingBalances.some(b => !b.currency_id || b.amount === '')
             }
           >
             {isSubmitting ? 'جاري الإضافة...' : 'إضافة الصندوق'}
