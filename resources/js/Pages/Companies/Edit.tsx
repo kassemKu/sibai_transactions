@@ -87,3 +87,4 @@ export default function CompaniesEdit({ company }: CompaniesEditProps) {
     </RootLayout>
   );
 }
+

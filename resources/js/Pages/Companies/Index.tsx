@@ -112,7 +112,25 @@ export default function CompaniesIndex({ companies }: CompaniesIndexProps) {
             {filteredCompanies.map((company, idx) => (
               <TableRow key={company.id}>
                 <TableCell>{idx + 1}</TableCell>
-                <TableCell>{company.name}</TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-bold">{company.name}</div>
+                    <div className="text-xs text-gray-600 mt-1 space-y-1">
+                      <div>
+                        <span className="font-medium">العنوان:</span>{' '}
+                        {company.address || '—'}
+                      </div>
+                      <div>
+                        <span className="font-medium">الهاتف:</span>{' '}
+                        {company.phone || '—'}
+                      </div>
+                      <div>
+                        <span className="font-medium">البريد الإلكتروني:</span>{' '}
+                        {company.email || '—'}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
                 <TableCell>
                   {new Date(company.created_at).toLocaleDateString('ar-EG')}
                 </TableCell>

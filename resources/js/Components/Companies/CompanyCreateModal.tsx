@@ -19,12 +19,22 @@ export default function CompanyCreateModal({
   onClose,
   onSuccess,
 }: CompanyCreateModalProps) {
-  const [data, setData] = React.useState({ name: '' });
+  const [data, setData] = React.useState({
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+  });
   const [processing, setProcessing] = React.useState(false);
-  const [errors, setErrors] = React.useState<{ name?: string }>({});
+  const [errors, setErrors] = React.useState<{
+    name?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+  }>({});
 
   const reset = () => {
-    setData({ name: '' });
+    setData({ name: '', address: '', phone: '', email: '' });
     setErrors({});
   };
 
@@ -68,25 +78,60 @@ export default function CompanyCreateModal({
             />
             <InputError message={errors.name} className="mt-2" />
           </div>
+          <div>
+            <InputLabel htmlFor="address" value="العنوان" />
+            <TextInput
+              id="address"
+              type="text"
+              className="mt-1 block w-full"
+              value={data.address}
+              onChange={e => setData({ ...data, address: e.target.value })}
+            />
+            <InputError message={errors.address} className="mt-2" />
+          </div>
+          <div>
+            <InputLabel htmlFor="phone" value="الهاتف" />
+            <TextInput
+              id="phone"
+              type="text"
+              className="mt-1 block w-full"
+              value={data.phone}
+              onChange={e => setData({ ...data, phone: e.target.value })}
+            />
+            <InputError message={errors.phone} className="mt-2" />
+          </div>
+          <div>
+            <InputLabel htmlFor="email" value="البريد الإلكتروني" />
+            <TextInput
+              id="email"
+              type="email"
+              className="mt-1 block w-full"
+              value={data.email}
+              onChange={e => setData({ ...data, email: e.target.value })}
+            />
+            <InputError message={errors.email} className="mt-2" />
+          </div>
         </form>
       </DialogModal.Content>
       <DialogModal.Footer>
-        <SecondaryButton
-          type="button"
-          onClick={handleClose}
-          disabled={processing}
-        >
-          إلغاء
-        </SecondaryButton>
-        <PrimaryButton
-          type="submit"
-          onClick={handleSubmit}
-          disabled={processing}
-          className="ml-2"
-        >
-          <FiSave className="w-4 h-4 ml-2" />
-          {processing ? 'جاري الحفظ...' : 'حفظ الشركة'}
-        </PrimaryButton>
+        <div className="flex items-center space-x-3 space-x-reverse">
+          <SecondaryButton
+            type="button"
+            onClick={handleClose}
+            disabled={processing}
+          >
+            إلغاء
+          </SecondaryButton>
+          <PrimaryButton
+            type="submit"
+            onClick={handleSubmit}
+            disabled={processing}
+            className="ml-2"
+          >
+            <FiSave className="w-4 h-4 ml-2" />
+            {processing ? 'جاري الحفظ...' : 'حفظ الشركة'}
+          </PrimaryButton>
+        </div>
       </DialogModal.Footer>
     </DialogModal>
   );

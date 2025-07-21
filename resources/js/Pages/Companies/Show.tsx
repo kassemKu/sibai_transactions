@@ -49,6 +49,9 @@ interface Company {
   updated_at: string;
   deleted_at: string | null;
   transfers?: Transfer[];
+  address?: string;
+  phone?: string;
+  email?: string;
 }
 
 interface PaginatedTransfers {
@@ -175,6 +178,20 @@ export default function CompaniesShow({
                     })}
                   </p>
                 </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">العنوان</p>
+                <p className="text-gray-900">{company.address || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">الهاتف</p>
+                <p className="text-gray-900">{company.phone || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  البريد الإلكتروني
+                </p>
+                <p className="text-gray-900">{company.email || '—'}</p>
               </div>
             </div>
           </div>
