@@ -23,34 +23,78 @@ export default function CurrencyCard({
     }
   };
 
-  // Calculate SYP equivalent
+  // Calculate SYP equivalent (old logic, kept for reference)
   const calculateSYPEquivalent = () => {
     if (!currencies || currencies.length === 0) return null;
-
     const sypCurrency = currencies.find(c => c.code === 'SYP');
     if (!sypCurrency) return null;
-
-    // Calculate: (1 / currency_rate_to_usd) * syp_rate_to_usd
-    const currencyRate = parseFloat(currency.rate_to_usd);
-    const sypRate = parseFloat(sypCurrency.rate_to_usd);
-
-    if (currencyRate === 0 || !isFinite(currencyRate) || !isFinite(sypRate)) return null;
-
-    const sypEquivalent = (1 / currencyRate) * sypRate;
-
+    const currencyBuyRate = parseFloat(currency.buy_rate_to_usd);
+    const sypBuyRate = parseFloat(sypCurrency.buy_rate_to_usd);
+    if (
+      currencyBuyRate === 0 ||
+      !isFinite(currencyBuyRate) ||
+      !isFinite(sypBuyRate)
+    )
+      return null;
+    const sypEquivalent = (1 / currencyBuyRate) * sypBuyRate;
     if (!isFinite(sypEquivalent) || sypEquivalent <= 0) return null;
-
     return {
       value: sypEquivalent,
       formatted: new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
         useGrouping: true,
-      }).format(sypEquivalent)
+      }).format(sypEquivalent),
     };
   };
 
+  // New SYP buy/sell calculation logic
+  const calculateSYPBuySell = () => {
+    if (!currencies || currencies.length === 0) return null;
+    const sypCurrency = currencies.find(c => c.code === 'SYP');
+    if (!sypCurrency) return null;
+    const sypBuy = parseFloat(sypCurrency.buy_rate_to_usd);
+    const sypSell = parseFloat(sypCurrency.sell_rate_to_usd);
+    const curBuy = parseFloat(currency.buy_rate_to_usd);
+    const curSell = parseFloat(currency.sell_rate_to_usd);
+    if (
+      !isFinite(sypBuy) ||
+      !isFinite(sypSell) ||
+      !isFinite(curBuy) ||
+      !isFinite(curSell) ||
+      curBuy === 0 ||
+      curSell === 0
+    )
+      return null;
+    const buyValue = sypBuy / curBuy;
+    const sellValue = sypSell / curSell;
+    return {
+      buy: buyValue,
+      sell: sellValue,
+      buyFormatted: new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 0,
+        useGrouping: true,
+      }).format(buyValue),
+      sellFormatted: new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 0,
+        useGrouping: true,
+      }).format(sellValue),
+    };
+  };
+
+  // Helper to format buy/sell price for strong currencies
+  const formatRate = (rate: number, code: string) => {
+    if (rate < 1 && rate > 0) {
+      // Show inverse for strong currencies
+      const inverse = 1 / rate;
+      return `${inverse.toFixed(4)} دولار`;
+    }
+    // Normal display for weaker currencies
+    return `${rate.toFixed(4)}`;
+  };
+
   const sypEquivalent = calculateSYPEquivalent();
+  const sypBuySell = calculateSYPBuySell();
 
   return (
     <Card
@@ -119,11 +163,7 @@ export default function CurrencyCard({
               <span className="text-sm font-medium text-green-700">شراء</span>
             </div>
             <span className="text-lg font-bold text-green-600">
-              {new Intl.NumberFormat('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 6,
-                useGrouping: true,
-              }).format(parseFloat(currency.buy_rate_to_usd))}
+              {formatRate(parseFloat(currency.buy_rate_to_usd), currency.code)}
             </span>
           </div>
 
@@ -134,11 +174,7 @@ export default function CurrencyCard({
               <span className="text-sm font-medium text-red-700">بيع</span>
             </div>
             <span className="text-lg font-bold text-red-600">
-              {new Intl.NumberFormat('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 6,
-                useGrouping: true,
-              }).format(parseFloat(currency.sell_rate_to_usd))}
+              {formatRate(parseFloat(currency.sell_rate_to_usd), currency.code)}
             </span>
           </div>
 
@@ -146,10 +182,15 @@ export default function CurrencyCard({
             مقابل 1 دولار أمريكي
           </div>
 
-          {/* SYP Equivalent Line */}
-          {sypEquivalent && currency.code !== 'SYP' && (
-            <div className="text-xs text-center bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-200">
-              1 {currency.name} ≈ {sypEquivalent.formatted} ليرة سورية
+          {/* SYP Equivalent Line (new logic) */}
+          {sypBuySell && currency.code !== 'SYP' && (
+            <div className="text-xs text-center bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-200 mt-2 flex flex-col gap-1">
+              <span>
+                1 {currency.name} ≈ {sypBuySell.buyFormatted} ل.س (شراء)
+              </span>
+              <span>
+                1 {currency.name} ≈ {sypBuySell.sellFormatted} ل.س (بيع)
+              </span>
             </div>
           )}
         </div>
