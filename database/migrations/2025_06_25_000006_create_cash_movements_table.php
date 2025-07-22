@@ -13,6 +13,7 @@ return new class extends Migration
             $table->enum('type', ['in', 'out'])->index();
             $table->decimal('amount', 18, 2);
             $table->decimal('exchange_rate', 18, 6)->nullable();
+            $table->boolean('sub')->default(false);
 
             $table->foreignId('transaction_id')->nullable()->constrained('transactions')->onUpdate('cascade')->onDelete('set null');
             $table->foreignId('currency_id')->nullable()->constrained('currencies')->onUpdate('cascade')->onDelete('set null');

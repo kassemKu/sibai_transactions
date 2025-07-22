@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laratrust\Contracts\LaratrustUser;
@@ -18,12 +19,14 @@ class User extends Authenticatable implements LaratrustUser
     use HasProfilePhoto;
     use HasRolesAndPermissions;
     use Notifiable;
+    use SoftDeletes;
     use TwoFactorAuthenticatable;
 
     protected $fillable = [
         'name',
         'email',
         'password',
+        'is_active',
     ];
 
     protected $hidden = [

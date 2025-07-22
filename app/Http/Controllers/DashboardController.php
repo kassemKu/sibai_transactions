@@ -175,11 +175,20 @@ class DashboardController extends Controller
             ]);
         }
 
+        $availableCashers = User::whereHas('casherCashSessions', function ($q) use ($session) {
+            $q->where('cash_session_id', $session->id);
+        })
+            ->whereHas('roles', function ($q) {
+                $q->where('name', 'super_admin');
+            })
+            ->get();
+
         return $this->success('تم جلب بيانات الجلسة النقدية الحالية بنجاح.', [
             'current_session' => $session,
             'currencies' => $currencies,
             'transactions' => $transactions,
             'cashiers' => $cashiers->values(),
+            'available_cashers' => $availableCashers,
         ]);
     }
 }
