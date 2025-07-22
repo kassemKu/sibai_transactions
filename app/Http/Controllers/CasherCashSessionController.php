@@ -54,7 +54,7 @@ class CasherCashSessionController extends Controller
                 }
             }
 
-            $cashSession = $this->service->openCashSession($request->casher_id, $request->opening_balances, $request->session);
+            $cashSession = $this->service->openCashSession($request);
 
             return $this->success('تم فتح الجلسة النقدية بنجاح.', [
                 'cash_session' => $cashSession,

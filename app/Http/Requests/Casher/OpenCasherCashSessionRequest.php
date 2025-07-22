@@ -18,6 +18,7 @@ class OpenCasherCashSessionRequest extends FormRequest
             'opening_balances' => 'required|array|min:1',
             'opening_balances.*.currency_id' => 'required|exists:currencies,id|distinct',
             'opening_balances.*.amount' => 'required|numeric|min:0',
+            'transfers' => 'required|boolean',
         ];
     }
 

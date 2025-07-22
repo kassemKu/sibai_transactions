@@ -76,6 +76,19 @@ class TransactionController extends Controller
         }
     }
 
+    public function getTransaction(Transaction $transaction)
+    {
+        try {
+            return $this->success('تم تغيير حالة المعاملة إلى مكتملة.', [
+                'transaction' => $transaction,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransactionController@completeStatus');
+
+            return $this->failed('حدث خطأ أثناء إكمال المعاملة');
+        }
+    }
+
     public function cancelStatus(Transaction $transaction)
     {
         try {
@@ -91,6 +104,21 @@ class TransactionController extends Controller
             $this->errorLog($e, 'TransactionController@cancelStatus');
 
             return $this->failed('حدث خطأ أثناء إلغاء المعاملة');
+        }
+    }
+
+    public function update(TransactionRequest $request, Transaction $transaction)
+    {
+        try {
+            $transaction->update($request->validated());
+
+            return $this->success('تم تعديل المعاملة بنجاح.', [
+                'transaction' => $transaction->refresh(),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransactionController@cancelStatus');
+
+            return $this->failed('حدث خطأ أثناء تعديل المعاملة');
         }
     }
 

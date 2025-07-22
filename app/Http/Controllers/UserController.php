@@ -39,6 +39,39 @@ class UserController extends Controller
         }
     }
 
+    public function casherChangeStatus()
+    {
+        try {
+            $user = auth()->user();
+            $user->is_active = ! $user->is_active;
+            $user->save();
+
+            return $this->success('تم تغيير حالة التفعيل بنجاح.', [
+                'user' => $user,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'UserController@CasherChangeStatus');
+
+            return $this->failed('حدث خطأ أثناء تغيير حالة التفعيل');
+        }
+    }
+
+    public function adminChangeStatus(User $user)
+    {
+        try {
+            $user->is_active = ! $user->is_active;
+            $user->save();
+
+            return $this->success('تم تغيير حالة التفعيل بنجاح.', [
+                'user' => $user,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'UserController@CasherChangeStatus');
+
+            return $this->failed('حدث خطأ أثناء تغيير حالة التفعيل');
+        }
+    }
+
     public function getUser(User $user)
     {
         try {

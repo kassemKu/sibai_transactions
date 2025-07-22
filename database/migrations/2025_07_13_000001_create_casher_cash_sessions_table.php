@@ -20,6 +20,7 @@ return new class extends Migration
             $table->json('actual_closing_balances')->nullable();
             $table->foreignId('cash_session_id')->nullable()->constrained('cash_sessions')->onUpdate('cascade')->onDelete('set null');
             $table->foreignId('casher_id')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('set null');
+            $table->boolean('transfers')->default(false);
             $table->string('status')->default('active'); // 'active', 'closed', 'pending'
             $table->timestamps();
         });

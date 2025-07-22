@@ -53,13 +53,13 @@ class CasherCashSessionService
         });
     }
 
-    public function openCashSession($casherId, $openingBalances, $session)
+    public function openCashSession($data)
     {
         // Subtract amounts from CashBalance opening_balance for each currency
-        foreach ($openingBalances as $balance) {
+        foreach ($data->opening_balances as $balance) {
             $currencyId = $balance['currency_id'];
             $amount = $balance['amount'];
-            $cashBalance = CashBalance::where('cash_session_id', $session->id)
+            $cashBalance = CashBalance::where('cash_session_id', $data->session->id)
                 ->where('currency_id', $currencyId)
                 ->first();
             if ($cashBalance) {
@@ -69,12 +69,13 @@ class CasherCashSessionService
         }
 
         $session = CasherCashSession::create([
-            'cash_session_id' => $session->id,
+            'cash_session_id' => $data->session->id,
             'opened_at' => now(),
             'opened_by' => Auth::id(),
-            'opening_balances' => json_encode($openingBalances),
-            'casher_id' => $casherId,
+            'opening_balances' => json_encode($data->opening_balances),
+            'casher_id' => $data->casher_id,
             'status' => CashSessionEnum::ACTIVE->value,
+            'transfers' => true,
         ]);
 
         return $session;
