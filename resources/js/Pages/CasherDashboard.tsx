@@ -64,12 +64,19 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
     (cashier: Cashier) => cashier.email === auth?.user?.email,
   );
   const hasActiveCashierSession = currentUserCashier?.has_active_session;
+
+  // Check if user is admin (Admin Cashier)
+  const isAdmin =
+    roles && Array.isArray(roles) && (roles as string[]).includes('admin');
+
+  // Both Admin and Regular Cashiers need active session to perform transactions
+  // Admin users are treated the same as regular cashiers for session management
   const canPerformTransactions = isSessionOpen && hasActiveCashierSession;
 
   // Use notification hook for new pending transactions
   const { showVisualNotification, hideVisualNotification } =
     useNewTransactionNotification(transactions, {
-      enabled: canPerformTransactions, // Only enable when session is active and cashier has session
+      enabled: !!canPerformTransactions, // Only enable when session is active and user can perform transactions
       currentUserEmail: auth?.user?.email, // Pass current user email to filter self-created transactions
     });
 
@@ -99,28 +106,30 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
           </span>
         </div>
       )}
-      {isSessionOpen && !hasActiveCashierSession && (
+      {isSessionOpen && !hasActiveCashierSession ? (
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
           <span className="text-sm text-orange-600 font-medium">
             لا توجد جلسة صراف نشطة
           </span>
         </div>
-      )}
-      {isSessionOpen && hasActiveCashierSession && (
+      ) : null}
+      {isSessionOpen && hasActiveCashierSession ? (
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span className="text-sm text-green-600 font-medium">جلسة نشطة</span>
+          <span className="text-sm text-green-600 font-medium">
+            {isAdmin ? 'جلسة نشطة (مدير صراف)' : 'جلسة نشطة'}
+          </span>
         </div>
-      )}
-      {!isSessionOpen && !isSessionPending && (
+      ) : null}
+      {!isSessionOpen && !isSessionPending ? (
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className="w-2 h-2 bg-red-500 rounded-full"></div>
           <span className="text-sm text-red-600 font-medium">
             لا توجد جلسة نشطة
           </span>
         </div>
-      )}
+      ) : null}
 
       {/* Balance Button - Show if cashier has system balances */}
       {currentUserCashier?.system_balances &&
@@ -132,7 +141,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
           </SecondaryButton>
         )}
 
-      {/* New Transaction Button - only show if session is open and cashier has active session */}
+      {/* New Transaction Button - only show if session is open and user can perform transactions */}
       {canPerformTransactions && (
         <PrimaryButton
           className="text-sm"
@@ -189,12 +198,18 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
     >
       {/* Header Content Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">لوحة الصراف</h1>
-        <p className="text-gray-600">إدارة المعاملات وتأكيد العمليات</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {isAdmin ? 'لوحة مدير الصراف' : 'لوحة الصراف'}
+        </h1>
+        <p className="text-gray-600">
+          {isAdmin
+            ? 'إدارة المعاملات وتأكيد العمليات - صلاحيات مدير الصراف'
+            : 'إدارة المعاملات وتأكيد العمليات'}
+        </p>
       </div>
 
       {/* Session Status Alert */}
-      {isSessionOpen && !hasActiveCashierSession && (
+      {isSessionOpen && !hasActiveCashierSession ? (
         <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
@@ -207,7 +222,39 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
             التواصل مع المشرف لفتح جلسة صراف جديدة.
           </p>
         </div>
-      )}
+      ) : null}
+
+      {/* Session Closed Alert */}
+      {!isSessionOpen && !isSessionPending ? (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span className="text-sm font-medium text-red-800">
+              الجلسة النقدية مغلقة
+            </span>
+          </div>
+          <p className="text-sm text-red-700">
+            لا يمكن إجراء معاملات جديدة لأن الجلسة النقدية مغلقة. يرجى التواصل
+            مع المشرف لفتح جلسة جديدة.
+          </p>
+        </div>
+      ) : null}
+
+      {/* Admin Cashier Info Alert */}
+      {isAdmin && isSessionOpen && hasActiveCashierSession ? (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-sm font-medium text-blue-800">
+              مدير الصراف - صلاحيات متقدمة
+            </span>
+          </div>
+          <p className="text-sm text-blue-700">
+            يمكنك عرض وتأكيد جميع المعاملات المعلقة، بغض النظر عن تعيينها. كما
+            يمكنك استقبال معاملات بأي عملة.
+          </p>
+        </div>
+      ) : null}
 
       {/* Currency Cards Slider */}
       <CurrencyCardsSlider currencies={currenciesState} />
@@ -230,6 +277,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
         isPolling={isPolling}
         lastUpdated={lastUpdated}
         onRefetch={refetch}
+        isAdmin={!!isAdmin}
       />
 
       {/* New Transaction Notification */}

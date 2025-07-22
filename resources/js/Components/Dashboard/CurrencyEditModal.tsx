@@ -186,8 +186,8 @@ export default function CurrencyEditModal({
       const payload = {
         name: formData.name.trim(),
         rate_to_usd: parseFloat(formData.rate_to_usd),
-        buy_rate_to_usd: parseFloat(formData.buy_rate_to_usd),
-        sell_rate_to_usd: parseFloat(formData.sell_rate_to_usd),
+        buy_rate_to_usd: parseFloat(formData.sell_rate_to_usd),
+        sell_rate_to_usd: parseFloat(formData.buy_rate_to_usd),
       };
 
       await axios.put(`/admin/currencies/${currency.id}`, payload);
@@ -317,7 +317,7 @@ export default function CurrencyEditModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <InputLabel htmlFor="modal-buy-rate">
-                  سعر الشراء مقابل الدولار *
+                  سعر المبيع مقابل الدولار *
                 </InputLabel>
                 <input
                   id="modal-buy-rate"
@@ -349,9 +349,6 @@ export default function CurrencyEditModal({
                     </button>
                   </div>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
-                  سعر شراء العملة مقابل الدولار
-                </p>
                 {errors.buy_rate_to_usd && (
                   <InputError
                     message={errors.buy_rate_to_usd}
@@ -362,7 +359,7 @@ export default function CurrencyEditModal({
 
               <div>
                 <InputLabel htmlFor="modal-sell-rate">
-                  سعر البيع مقابل الدولار *
+                  سعر الشراء مقابل الدولار *
                 </InputLabel>
                 <input
                   id="modal-sell-rate"
@@ -394,9 +391,6 @@ export default function CurrencyEditModal({
                     </button>
                   </div>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
-                  سعر بيع العملة مقابل الدولار
-                </p>
                 {errors.sell_rate_to_usd && (
                   <InputError
                     message={errors.sell_rate_to_usd}

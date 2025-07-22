@@ -14,7 +14,7 @@ export default function NotificationSettingsForm() {
   const [processing, setProcessing] = useState(false);
   const [status, setStatus] = useState('');
 
-  const { playNotification, setEnabled, setVolume } = useNotificationSound({
+  const { playNotification, setEnabled, setVolume: setNotificationVolume } = useNotificationSound({
     enabled: soundEnabled,
     volume: volume,
   });
@@ -53,8 +53,8 @@ export default function NotificationSettingsForm() {
   // Update notification sound settings
   useEffect(() => {
     setEnabled(soundEnabled);
-    setVolume(volume);
-  }, [soundEnabled, volume, setEnabled, setVolume]);
+    setNotificationVolume(volume);
+  }, [soundEnabled, volume, setEnabled, setNotificationVolume]);
 
   const testNotification = () => {
     playNotification();

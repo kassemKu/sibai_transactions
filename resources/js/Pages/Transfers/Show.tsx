@@ -4,7 +4,7 @@ import { route } from 'ziggy-js';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
-import { FiEdit2, FiArrowLeft, FiCalendar, FiDollarSign, FiBuilding } from 'react-icons/fi';
+import { FiEdit2, FiArrowLeft, FiCalendar, FiDollarSign, FiHome } from 'react-icons/fi';
 
 interface Company {
   id: number;
@@ -106,7 +106,7 @@ export default function TransfersShow({ transfer }: TransfersShowProps) {
 
               {/* Company */}
               <div className="flex items-start space-x-3 space-x-reverse">
-                <FiBuilding className="w-5 h-5 text-gray-400 mt-0.5" />
+                <FiHome className="w-5 h-5 text-gray-400 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-500">
                     الشركة
@@ -186,4 +186,4 @@ export default function TransfersShow({ transfer }: TransfersShowProps) {
       </div>
     </RootLayout>
   );
-} 
+}

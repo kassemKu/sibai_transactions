@@ -96,7 +96,12 @@ class TransactionService
     public function createTransaction(array $data, $currentSession)
     {
         $user = Auth::user();
-        $assignedTo = $user->hasRole('super_admin') ? $data['assigned_to'] : null;
+        $assignedTo = null;
+
+        // Handle assigned_to for admin users (both super_admin and admin roles)
+        if ($user->hasRole(['super_admin', 'admin']) && isset($data['assigned_to'])) {
+            $assignedTo = $data['assigned_to'];
+        }
 
         $transaction = Transaction::create([
             'customer_id' => null,

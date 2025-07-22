@@ -118,7 +118,7 @@ export default function TransferForm({
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-gray-900">
-                  تحويل إلى
+صادر
                 </span>
               </label>
               <label className="flex items-center space-x-2 space-x-reverse cursor-pointer">
@@ -133,7 +133,7 @@ export default function TransferForm({
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-gray-900">
-                  تحويل من
+             وارد
                 </span>
               </label>
             </div>
