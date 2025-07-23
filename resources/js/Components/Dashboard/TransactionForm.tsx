@@ -294,7 +294,7 @@ export default function TransactionForm({
 
   // Assignment settings handlers
   const handleAddRule = () => {
-    if (!newRule.currency_id || !newRule.user_id) {
+    if (!newRule.currency_id || !newRule.user_id || !newRule.direction) {
       toast.error('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
@@ -650,6 +650,7 @@ export default function TransactionForm({
                         }
                         className="text-sm"
                       >
+                        <option value="">اختر العملة</option>
                         {currencies.map(currency => (
                           <option key={currency.id} value={currency.id}>
                             {currency.name} ({currency.code})
@@ -682,6 +683,7 @@ export default function TransactionForm({
                           }
                           className="text-sm flex-1"
                         >
+                          <option value="">اختر المستخدم</option>
                           {availableCashers.map(user => (
                             <option key={user.id} value={user.id}>
                               {user.name}
