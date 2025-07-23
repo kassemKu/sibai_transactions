@@ -12,6 +12,8 @@ import {
   FiChevronRight,
 } from 'react-icons/fi';
 import CompanyEditModal from '@/Components/Companies/CompanyEditModal';
+import DialogModal from '@/Components/DialogModal';
+import axios from 'axios';
 
 interface Currency {
   id: number;
@@ -98,10 +100,25 @@ export default function CompaniesShow({
 }: CompaniesShowProps) {
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [currentCompany, setCurrentCompany] = React.useState(company);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   // Optionally, refresh company data after edit
   const handleEditSuccess = () => {
     window.location.reload(); // Or use Inertia reload if preferred
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await axios.delete(`/admin/companies/${company.id}`);
+      setDeleteModalOpen(false);
+      window.location.href = '/admin/companies';
+    } catch (e) {
+      // Optionally show an error toast here
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   console.log(company);
@@ -123,6 +140,12 @@ export default function CompaniesShow({
             <FiEdit2 className="w-4 h-4 ml-2" />
             تعديل
           </PrimaryButton>
+          <SecondaryButton
+            className="text-sm bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:text-red-900"
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            حذف الشركة
+          </SecondaryButton>
           <Link href={route('companies.index')}>
             <SecondaryButton className="text-sm">
               <FiArrowLeft className="w-4 h-4 ml-2" />
@@ -133,6 +156,42 @@ export default function CompaniesShow({
       }
     >
       <Head title={company.name} />
+
+      {/* Delete Confirmation Modal */}
+      <DialogModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        maxWidth="sm"
+      >
+        <DialogModal.Content title="تأكيد حذف الشركة">
+          <div className="text-center p-4">
+            <p className="text-lg font-semibold text-red-700 mb-4">
+              هل أنت متأكد أنك تريد حذف هذه الشركة؟
+            </p>
+            <p className="text-gray-600 mb-2">
+              سيتم حذف جميع بيانات الشركة ولا يمكن التراجع عن هذا الإجراء.
+            </p>
+          </div>
+        </DialogModal.Content>
+        <DialogModal.Footer>
+          <div className="flex justify-end gap-2">
+            <SecondaryButton
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              إلغاء
+            </SecondaryButton>
+            <PrimaryButton
+              className="bg-red-600 hover:bg-red-700 border-red-600"
+              onClick={handleDelete}
+              isLoading={isDeleting}
+              disabled={isDeleting}
+            >
+              حذف نهائي
+            </PrimaryButton>
+          </div>
+        </DialogModal.Footer>
+      </DialogModal>
 
       {/* Edit Modal */}
       <CompanyEditModal

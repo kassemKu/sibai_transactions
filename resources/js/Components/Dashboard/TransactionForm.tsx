@@ -41,6 +41,12 @@ interface TransactionFormProps {
   isSessionOpen?: boolean;
   isSessionPending?: boolean;
   onStartSession?: () => void;
+  availableCashers?: User[];
+  formData: any;
+  onChange: (field: string, value: string) => void;
+  onSubmit?: (formData: any) => void;
+  isEditing?: boolean;
+  externalIsSubmitting?: boolean;
 }
 
 export default function TransactionForm({
@@ -48,24 +54,42 @@ export default function TransactionForm({
   isSessionOpen = true,
   isSessionPending = false,
   onStartSession,
+  availableCashers = [],
+  formData,
+  onChange,
+  onSubmit,
+  isEditing,
+  externalIsSubmitting,
 }: TransactionFormProps) {
-  const { auth, roles } = usePage().props as any;
-  const isAdmin = roles && (roles as string[]).includes('super_admin');
+  // Defensive fallback for formData
+  formData = formData || {};
+  const { roles } = usePage().props as any;
+  const isAdmin =
+    roles &&
+    (roles as string[]).some(role => ['super_admin', 'admin'].includes(role));
 
-  const [fromCurrency, setFromCurrency] = useState('');
-  const [toCurrency, setToCurrency] = useState('');
-  const [amount, setAmount] = useState('');
-  const [calculatedAmount, setCalculatedAmount] = useState('');
+
+  
+  // For edit mode, always show admin features if availableCashers is provided
+  const shouldShowAdminSection = isAdmin || (isEditing && availableCashers && availableCashers.length > 0);
+
+  // Remove all useState for form fields
+  // Keep only internal state for things like isCalculating, isManualAmountEnabled, etc.
   const [manualAmount, setManualAmount] = useState('');
   const [isManualAmountEnabled, setIsManualAmountEnabled] = useState(false);
-  const [assignedTo, setAssignedTo] = useState(
-    auth?.user?.id?.toString() || '',
-  );
-  const [users, setUsers] = useState<User[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  const [notes, setNotes] = useState('');
+  const [internalIsSubmitting, setInternalIsSubmitting] = useState(false);
+  const [notes, setNotes] = useState(formData?.notes || '');
+  const [assignedTo, setAssignedTo] = useState(
+    formData?.assignedTo ||
+      (availableCashers.length > 0 ? availableCashers[0].id.toString() : ''),
+  );
+
+  // Use prop isSubmitting if provided, otherwise use internal state
+  const isSubmitting =
+    externalIsSubmitting !== undefined
+      ? externalIsSubmitting
+      : internalIsSubmitting;
 
   // Assignment settings state
   const [showSettings, setShowSettings] = useState(false);
@@ -107,23 +131,57 @@ export default function TransactionForm({
     );
   }, [assignmentRules]);
 
+  // Update assignedTo when availableCashers changes
+  useEffect(() => {
+    if (availableCashers.length > 0 && !assignedTo) {
+      setAssignedTo(availableCashers[0].id.toString());
+    }
+  }, [availableCashers, assignedTo]);
+
+  // Update manual amount when calculated amount changes in edit mode
+  useEffect(() => {
+    if (
+      isEditing &&
+      formData?.calculatedAmount &&
+      formData?.calculatedAmount !== 'خطأ في الحساب' &&
+      (!isManualAmountEnabled ||
+        manualAmount === '' ||
+        manualAmount === formData?.calculatedAmount)
+    ) {
+      setManualAmount(formData?.calculatedAmount);
+    }
+    // If manual mode is enabled and user has changed manualAmount, do not overwrite
+  }, [
+    formData?.calculatedAmount,
+    isEditing,
+    isManualAmountEnabled,
+    manualAmount,
+  ]);
+
   // Get the final amount to use (manual if enabled, otherwise calculated)
   const getFinalAmount = useCallback(() => {
     if (isAdmin && isManualAmountEnabled && manualAmount) {
       return manualAmount;
     }
-    return calculatedAmount;
-  }, [isAdmin, isManualAmountEnabled, manualAmount, calculatedAmount]);
+    return formData?.calculatedAmount;
+  }, [
+    isAdmin,
+    isManualAmountEnabled,
+    manualAmount,
+    formData?.calculatedAmount,
+  ]);
 
   // Check if current transaction matches any assignment rule
   const getMatchingAssignment = useCallback(() => {
-    if (!fromCurrency || !toCurrency) return null;
+    if (!formData?.fromCurrency || !formData?.toCurrency) return null;
 
     // Determine direction based on currency flow
     const fromCurrencyObj = currencies.find(
-      c => c.id.toString() === fromCurrency,
+      c => c.id.toString() === formData?.fromCurrency,
     );
-    const toCurrencyObj = currencies.find(c => c.id.toString() === toCurrency);
+    const toCurrencyObj = currencies.find(
+      c => c.id.toString() === formData?.toCurrency,
+    );
 
     if (!fromCurrencyObj || !toCurrencyObj) return null;
 
@@ -132,26 +190,31 @@ export default function TransactionForm({
       // For spend: match when the currency is in "to" field (we're spending this currency)
       // For receive: match when the currency is in "from" field (we're receiving this currency)
       if (rule.direction === 'spend') {
-        return rule.currency_id.toString() === toCurrency;
+        return rule.currency_id.toString() === formData?.toCurrency;
       } else {
-        return rule.currency_id.toString() === fromCurrency;
+        return rule.currency_id.toString() === formData?.fromCurrency;
       }
     });
 
     return matchingRule;
-  }, [fromCurrency, toCurrency, assignmentRules, currencies]);
+  }, [
+    formData?.fromCurrency,
+    formData?.toCurrency,
+    assignmentRules,
+    currencies,
+  ]);
 
   // Auto-assign user based on rules
   useEffect(() => {
-    if (isAdmin && fromCurrency && toCurrency) {
+    if (isAdmin && formData?.fromCurrency && formData?.toCurrency) {
       const matchingRule = getMatchingAssignment();
       if (matchingRule) {
         setAssignedTo(matchingRule.user_id.toString());
       }
     }
   }, [
-    fromCurrency,
-    toCurrency,
+    formData?.fromCurrency,
+    formData?.toCurrency,
     assignmentRules,
     isAdmin,
     getMatchingAssignment,
@@ -160,10 +223,10 @@ export default function TransactionForm({
   // Reset form
   const resetForm = useCallback(
     (showToast = false, preserveHandler = true) => {
-      setFromCurrency('');
-      setToCurrency('');
-      setAmount('');
-      setCalculatedAmount('');
+      onChange('fromCurrency', '');
+      onChange('toCurrency', '');
+      onChange('amount', '');
+      onChange('calculatedAmount', '');
       setManualAmount('');
       setIsManualAmountEnabled(false);
       setNotes('');
@@ -173,64 +236,56 @@ export default function TransactionForm({
 
       // Only reset assignedTo if preserveHandler is false
       if (!preserveHandler) {
-        setAssignedTo(auth?.user?.id?.toString() || '');
+        setAssignedTo(
+          availableCashers.length > 0 ? availableCashers[0].id.toString() : '',
+        );
       }
 
       if (showToast) {
         toast.success('تم إعادة تعيين النموذج');
       }
     },
-    [auth?.user?.id],
+    [onChange, availableCashers],
   );
-
-  // Fetch users for admin dropdown
-  useEffect(() => {
-    if (isAdmin) {
-      const fetchUsers = async () => {
-        setIsLoadingUsers(true);
-        try {
-          const response = await axios.get('/admin/get-users');
-          setUsers(response.data.data.users || []);
-        } catch (error) {
-          console.error('Error fetching users:', error);
-          toast.error('فشل في تحميل قائمة المستخدمين');
-        } finally {
-          setIsLoadingUsers(false);
-        }
-      };
-
-      fetchUsers();
-    }
-  }, [isAdmin]);
 
   // Set default currency values for admin
   useEffect(() => {
     if (isAdmin && currencies && currencies.length > 0) {
       // Only set defaults if no currencies are currently selected
-      if (!fromCurrency && !toCurrency) {
+      if (!formData?.fromCurrency && !formData?.toCurrency) {
         // Find USD currency for "From" default
         const usdCurrency = currencies.find(c => c.code === 'USD');
         if (usdCurrency) {
-          setFromCurrency(usdCurrency.id.toString());
+          onChange('fromCurrency', usdCurrency.id.toString());
         }
 
         // Find SYP currency for "To" default
         const sypCurrency = currencies.find(c => c.code === 'SYP');
         if (sypCurrency) {
-          setToCurrency(sypCurrency.id.toString());
+          onChange('toCurrency', sypCurrency.id.toString());
         }
       }
     }
-  }, [isAdmin, currencies, fromCurrency, toCurrency]);
+  }, [
+    isAdmin,
+    currencies,
+    formData?.fromCurrency,
+    formData?.toCurrency,
+    onChange,
+  ]);
 
   // Reset "To" currency if it becomes invalid when "From" currency changes
   useEffect(() => {
-    if (fromCurrency && toCurrency && fromCurrency === toCurrency) {
-      setToCurrency('');
-      setCalculatedAmount('');
+    if (
+      formData?.fromCurrency &&
+      formData?.toCurrency &&
+      formData?.fromCurrency === formData?.toCurrency
+    ) {
+      onChange('toCurrency', '');
+      onChange('calculatedAmount', '');
       setManualAmount('');
     }
-  }, [fromCurrency, toCurrency]);
+  }, [formData?.fromCurrency, formData?.toCurrency, onChange]);
 
   // Assignment settings handlers
   const handleAddRule = () => {
@@ -239,7 +294,9 @@ export default function TransactionForm({
       return;
     }
 
-    const selectedUser = users.find(u => u.id.toString() === newRule.user_id);
+    const selectedUser = availableCashers.find(
+      u => u.id.toString() === newRule.user_id,
+    );
     if (!selectedUser) {
       toast.error('المستخدم المحدد غير موجود');
       return;
@@ -291,18 +348,27 @@ export default function TransactionForm({
 
   // Calculate currency conversion
   const calculateCurrency = useCallback(async () => {
-    if (!fromCurrency || !toCurrency || !amount || parseFloat(amount) <= 0) {
-      setCalculatedAmount('');
+    if (
+      !formData?.fromCurrency ||
+      !formData?.toCurrency ||
+      !formData?.amount ||
+      parseFloat(formData?.amount) <= 0
+    ) {
+      onChange('calculatedAmount', '');
       return;
     }
 
     // Check if we're making the same calculation as before
-    const currentParams = { fromCurrency, toCurrency, amount };
+    const currentParams = {
+      fromCurrency: formData?.fromCurrency,
+      toCurrency: formData?.toCurrency,
+      amount: formData?.amount,
+    };
     if (
       lastCalculationRef.current &&
-      lastCalculationRef.current.fromCurrency === fromCurrency &&
-      lastCalculationRef.current.toCurrency === toCurrency &&
-      lastCalculationRef.current.amount === amount
+      lastCalculationRef.current.fromCurrency === formData?.fromCurrency &&
+      lastCalculationRef.current.toCurrency === formData?.toCurrency &&
+      lastCalculationRef.current.amount === formData?.amount
     ) {
       return; // Skip duplicate calculation
     }
@@ -312,38 +378,19 @@ export default function TransactionForm({
     try {
       const response = await axios.get('/transactions/calc', {
         params: {
-          from_currency_id: fromCurrency,
-          to_currency_id: toCurrency,
-          original_amount: amount,
+          from_currency_id: formData?.fromCurrency,
+          to_currency_id: formData?.toCurrency,
+          original_amount: formData?.amount,
         },
       });
 
       const newCalculatedAmount =
         response.data.data.calculation_result.converted_amount || '0';
 
-      setCalculatedAmount(prevCalculated => {
-        // Update manual amount only if conditions are met
-        setManualAmount(prevManual => {
-          // Only update manual amount if:
-          // 1. Manual mode is not enabled, OR
-          // 2. Manual amount is empty (first time calculation), OR
-          // 3. Manual amount equals the previous calculated amount (not manually edited)
-          if (
-            !isManualAmountEnabled ||
-            !prevManual ||
-            prevManual === prevCalculated
-          ) {
-            return newCalculatedAmount;
-          }
-          // Keep the existing manual amount if it was manually edited
-          return prevManual;
-        });
-
-        return newCalculatedAmount;
-      });
+      onChange('calculatedAmount', newCalculatedAmount);
     } catch (error) {
       console.error('Error calculating currency:', error);
-      setCalculatedAmount('خطأ في الحساب');
+      onChange('calculatedAmount', 'خطأ في الحساب');
 
       // Handle validation errors from backend
       if (axios.isAxiosError(error) && error.response?.data?.errors) {
@@ -370,7 +417,12 @@ export default function TransactionForm({
     } finally {
       setIsCalculating(false);
     }
-  }, [fromCurrency, toCurrency, amount, isManualAmountEnabled]);
+  }, [
+    formData?.fromCurrency,
+    formData?.toCurrency,
+    formData?.amount,
+    onChange,
+  ]);
 
   // Debounced calculation effect
   useEffect(() => {
@@ -385,15 +437,18 @@ export default function TransactionForm({
   const handleManualAmountToggle = () => {
     if (isManualAmountEnabled) {
       // Disabling manual mode - reset to calculated amount
-      setManualAmount(calculatedAmount);
+      setManualAmount(formData?.calculatedAmount);
       setIsManualAmountEnabled(false);
       toast.success('تم التبديل إلى الحساب التلقائي');
     } else {
       // Enabling manual mode - preserve current calculated amount as starting point
-      if (calculatedAmount && calculatedAmount !== 'خطأ في الحساب') {
+      if (
+        formData?.calculatedAmount &&
+        formData?.calculatedAmount !== 'خطأ في الحساب'
+      ) {
         // Always set the manual amount to the calculated amount when enabling manual mode
         // This ensures the input shows the current calculated value
-        setManualAmount(calculatedAmount);
+        setManualAmount(formData?.calculatedAmount);
         setIsManualAmountEnabled(true);
         toast.success('تم تفعيل التعديل اليدوي - يمكنك الآن تعديل المبلغ');
       } else {
@@ -406,13 +461,18 @@ export default function TransactionForm({
   const handleExecuteTransaction = useCallback(async () => {
     const finalAmount = getFinalAmount();
 
-    if (!fromCurrency || !toCurrency || !amount || !finalAmount) {
+    if (
+      !formData?.fromCurrency ||
+      !formData?.toCurrency ||
+      !formData?.amount ||
+      !finalAmount
+    ) {
       toast.error('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
 
     // Check if same currency is selected in both fields
-    if (fromCurrency === toCurrency) {
+    if (formData?.fromCurrency === formData?.toCurrency) {
       toast.error('لا يمكن اختيار نفس العملة في الحقلين');
       return;
     }
@@ -426,12 +486,27 @@ export default function TransactionForm({
       return;
     }
 
-    setIsSubmitting(true);
+    // If editing mode and onSubmit is provided, use it
+    if (isEditing && onSubmit) {
+      const formDataToSubmit = {
+        fromCurrency: formData?.fromCurrency,
+        toCurrency: formData?.toCurrency,
+        amount: formData?.amount,
+        calculatedAmount: finalAmount,
+        notes,
+        assignedTo,
+      };
+      onSubmit(formDataToSubmit);
+      return;
+    }
+
+    // Otherwise, handle create mode
+    setInternalIsSubmitting(true);
     try {
       const transactionData = {
-        from_currency_id: parseInt(fromCurrency),
-        to_currency_id: parseInt(toCurrency),
-        original_amount: parseFloat(amount),
+        from_currency_id: parseInt(formData?.fromCurrency),
+        to_currency_id: parseInt(formData?.toCurrency),
+        original_amount: parseFloat(formData?.amount),
         converted_amount: parseFloat(finalAmount), // Use the correct value (manual or calculated)
         customer_name: '', // You can add a customer name field later
         ...(isAdmin && assignedTo ? { assigned_to: parseInt(assignedTo) } : {}),
@@ -441,7 +516,9 @@ export default function TransactionForm({
       const response = await axios.post('/admin/transactions', transactionData);
 
       if (response.data) {
-        const selectedUser = users.find(u => u.id.toString() === assignedTo);
+        const selectedUser = availableCashers.find(
+          u => u.id.toString() === assignedTo,
+        );
         const handlerName = selectedUser
           ? selectedUser.name
           : 'المستخدم المحدد';
@@ -465,8 +542,8 @@ export default function TransactionForm({
           )
         ) {
           const fromCurrencyName =
-            currencies.find(c => c.id.toString() === fromCurrency)?.name ||
-            'العملة المحددة';
+            currencies.find(c => c.id.toString() === formData?.fromCurrency)
+              ?.name || 'العملة المحددة';
           toast.error(`رصيد ${fromCurrencyName} غير كافي لتنفيذ هذه العملية`);
         } else {
           // Handle other validation errors
@@ -481,12 +558,12 @@ export default function TransactionForm({
         toast.error('حدث خطأ أثناء تنفيذ العملية');
       }
     } finally {
-      setIsSubmitting(false);
+      setInternalIsSubmitting(false);
     }
   }, [
-    fromCurrency,
-    toCurrency,
-    amount,
+    formData?.fromCurrency,
+    formData?.toCurrency,
+    formData?.amount,
     getFinalAmount,
     assignedTo,
     isAdmin,
@@ -494,8 +571,10 @@ export default function TransactionForm({
     isSessionPending,
     resetForm,
     currencies,
-    users,
+    availableCashers,
     notes,
+    isEditing,
+    onSubmit,
   ]);
 
   // Helper function to format amount for display
@@ -512,13 +591,15 @@ export default function TransactionForm({
     }).format(numAmount);
   };
 
+  const isLoadingAvailableCashers = availableCashers == null;
+
   return (
     <div className="w-full relative">
       <div
         className={`flex flex-col gap-6 ${!isSessionOpen || isSessionPending ? 'blur-sm opacity-60' : ''}`}
       >
         {/* Admin User Assignment Section */}
-        {isAdmin && (
+        {shouldShowAdminSection && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
@@ -597,7 +678,7 @@ export default function TransactionForm({
                           className="text-sm flex-1"
                         >
                           <option value="">اختر المستخدم</option>
-                          {users.map(user => (
+                          {availableCashers.map(user => (
                             <option key={user.id} value={user.id}>
                               {user.name}
                             </option>
@@ -672,16 +753,21 @@ export default function TransactionForm({
                   <Select
                     id="assigned_to"
                     aria-label="تعيين العملية إلى"
-                    value={assignedTo}
-                    onChange={e => setAssignedTo(e.target.value)}
+                    value={formData.assignedTo || ''}
+                    onChange={e => onChange('assignedTo', e.target.value)}
                     className="border-blue-300 focus:border-blue-500"
-                    disabled={isLoadingUsers}
+                    disabled={
+                      isLoadingAvailableCashers || availableCashers.length === 0
+                    }
                   >
-                    {isLoadingUsers ? (
+                    {isLoadingAvailableCashers ? (
                       <option value="">جاري التحميل...</option>
+                    ) : availableCashers.length === 0 ? (
+                      <option value="">لا يوجد صرافون متاحون</option>
                     ) : (
                       <>
-                        {users.map(user => (
+                        <option value="">اختر المستخدم</option>
+                        {availableCashers.map(user => (
                           <option key={user.id} value={user.id}>
                             {user.name} ({user.email})
                           </option>
@@ -689,7 +775,7 @@ export default function TransactionForm({
                       </>
                     )}
                   </Select>
-                  {isLoadingUsers && (
+                  {availableCashers.length === 0 && (
                     <div className="text-xs text-blue-600 mt-1">
                       جاري تحميل قائمة المستخدمين...
                     </div>
@@ -714,8 +800,8 @@ export default function TransactionForm({
                   id="from_currency"
                   aria-label="اختر العملة المصدر"
                   placeholder="اختر العملة"
-                  value={fromCurrency}
-                  onChange={e => setFromCurrency(e.target.value)}
+                  value={formData?.fromCurrency}
+                  onChange={e => onChange('fromCurrency', e.target.value)}
                   className="border-blue-200 focus:border-blue-500"
                 >
                   <option value="">اختر العملة</option>
@@ -734,8 +820,8 @@ export default function TransactionForm({
                   id="from_amount"
                   placeholder="أدخل المبلغ"
                   className="w-full text-right"
-                  value={amount}
-                  onValueChange={values => setAmount(values.value)}
+                  value={formData?.amount}
+                  onValueChange={values => onChange('amount', values.value)}
                   min={0}
                   decimalScale={2}
                   thousandSeparator={true}
@@ -758,13 +844,16 @@ export default function TransactionForm({
                   id="to_currency"
                   aria-label="اختر العملة الهدف"
                   placeholder="اختر العملة"
-                  value={toCurrency}
-                  onChange={e => setToCurrency(e.target.value)}
+                  value={formData?.toCurrency}
+                  onChange={e => onChange('toCurrency', e.target.value)}
                   className="border-blue-200 focus:border-blue-500"
                 >
                   <option value="">اختر العملة</option>
                   {currencies
-                    .filter(currency => currency.id.toString() !== fromCurrency)
+                    .filter(
+                      currency =>
+                        currency.id.toString() !== formData?.fromCurrency,
+                    )
                     .map(currency => (
                       <option key={currency.id} value={currency.id}>
                         {currency.name} ({currency.code})
@@ -783,7 +872,9 @@ export default function TransactionForm({
                       placeholder="سيتم الحساب تلقائياً"
                       className="w-full text-right bg-gray-50"
                       value={
-                        isManualAmountEnabled ? manualAmount : calculatedAmount
+                        isManualAmountEnabled
+                          ? manualAmount
+                          : formData?.calculatedAmount
                       }
                       onValueChange={values => setManualAmount(values.value)}
                       min={0}
@@ -803,7 +894,7 @@ export default function TransactionForm({
                           ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                           : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                       }`}
-                      disabled={isCalculating || !calculatedAmount}
+                      disabled={isCalculating || !formData?.calculatedAmount}
                     >
                       {isManualAmountEnabled ? (
                         <>
@@ -839,15 +930,15 @@ export default function TransactionForm({
             <textarea
               id="notes"
               placeholder="أضف ملاحظة للعملية (اختياري)"
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
+              value={formData.notes || ''}
+              onChange={e => onChange('notes', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
               rows={3}
               maxLength={255}
               dir="rtl"
             />
             <div className="text-xs text-gray-500 text-left">
-              {notes.length}/255 حرف
+              {(formData.notes || '').length}/255 حرف
             </div>
           </div>
         </div>
@@ -855,7 +946,9 @@ export default function TransactionForm({
         {/* Action Buttons */}
         <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl">
           <div className="text-med-x14 flex flex-col items-start gap-2">
-            {fromCurrency === toCurrency && fromCurrency && toCurrency ? (
+            {formData?.fromCurrency === formData?.toCurrency &&
+            formData?.fromCurrency &&
+            formData?.toCurrency ? (
               <div className="text-red-600 text-sm font-medium">
                 ⚠️ لا يمكن اختيار نفس العملة في الحقلين
               </div>
@@ -867,7 +960,7 @@ export default function TransactionForm({
                 <div className="flex items-center gap-2">
                   <span className="text-bold-x20 text-[#10B981] font-bold">
                     {getFinalAmount()
-                      ? `${formatDisplayAmount(getFinalAmount())} ${currencies.find(c => c.id.toString() === toCurrency)?.code || ''}`
+                      ? `${formatDisplayAmount(getFinalAmount())} ${currencies.find(c => c.id.toString() === formData?.toCurrency)?.code || ''}`
                       : '0.00'}
                   </span>
                   {isAdmin && isManualAmountEnabled && (
@@ -888,11 +981,17 @@ export default function TransactionForm({
                 !getFinalAmount() ||
                 isCalculating ||
                 isSubmitting ||
-                fromCurrency === toCurrency
+                formData?.fromCurrency === formData?.toCurrency
               }
               onClick={handleExecuteTransaction}
             >
-              {isSubmitting ? 'جاري التنفيذ...' : 'تنفيذ العملية'}
+              {isSubmitting
+                ? isEditing
+                  ? 'جاري الحفظ...'
+                  : 'جاري التنفيذ...'
+                : isEditing
+                  ? 'حفظ التغييرات'
+                  : 'تنفيذ العملية'}
             </PrimaryButton>
           </div>
         </div>

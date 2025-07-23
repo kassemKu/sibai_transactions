@@ -85,22 +85,22 @@ export default function CurrenciesCreate() {
 
     const buyRateValue = formData.buy_rate_to_usd?.trim();
     if (!buyRateValue) {
-      newErrors.buy_rate_to_usd = 'سعر الشراء مطلوب';
+      newErrors.buy_rate_to_usd = 'سعر المبيع مطلوب';
     } else {
       const parsedBuyRate = parseFloat(buyRateValue);
       if (isNaN(parsedBuyRate) || parsedBuyRate <= 0) {
-        newErrors.buy_rate_to_usd = 'سعر الشراء يجب أن يكون رقم موجب';
+        newErrors.buy_rate_to_usd = 'سعر المبيع يجب أن يكون رقم موجب';
       }
     }
 
     const sellRateValue = formData.sell_rate_to_usd?.trim();
     if (!sellRateValue) {
-      newErrors.sell_rate_to_usd = 'سعر البيع مطلوب';
+      newErrors.sell_rate_to_usd = 'سعر الشراء مطلوب';
     } else {
       const parsedSellRate = parseFloat(sellRateValue);
       if (isNaN(parsedSellRate) || parsedSellRate <= 0) {
-        newErrors.sell_rate_to_usd = 'سعر البيع يجب أن يكون رقم موجب';
-      }
+        newErrors.sell_rate_to_usd = 'سعر الشراء يجب أن يكون رقم موجب';
+      }     
     }
 
     // Validate amount (optional, defaults to 0)
@@ -257,7 +257,7 @@ export default function CurrenciesCreate() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <InputLabel htmlFor="buy_rate_to_usd">
-                  سعر الشراء مقابل الدولار *
+                  سعر المبيع مقابل الدولار *
                 </InputLabel>
                 <NumberInput
                   id="buy_rate_to_usd"
@@ -270,9 +270,6 @@ export default function CurrenciesCreate() {
                   min={0}
                   className="mt-1 block w-full"
                 />
-                <p className="mt-1 text-sm text-gray-500">
-                  سعر شراء العملة مقابل الدولار
-                </p>
                 {errors.buy_rate_to_usd && (
                   <InputError
                     message={errors.buy_rate_to_usd}
@@ -283,7 +280,7 @@ export default function CurrenciesCreate() {
 
               <div>
                 <InputLabel htmlFor="sell_rate_to_usd">
-                  سعر البيع مقابل الدولار *
+                  سعر الشراء مقابل الدولار *
                 </InputLabel>
                 <NumberInput
                   id="sell_rate_to_usd"
@@ -296,9 +293,6 @@ export default function CurrenciesCreate() {
                   min={0}
                   className="mt-1 block w-full"
                 />
-                <p className="mt-1 text-sm text-gray-500">
-                  سعر بيع العملة مقابل الدولار
-                </p>
                 {errors.sell_rate_to_usd && (
                   <InputError
                     message={errors.sell_rate_to_usd}

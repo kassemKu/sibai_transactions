@@ -84,7 +84,16 @@ const CashierBalanceModal: React.FC<CashierBalanceModalProps> = ({
                         العملة
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        الرصيد
+                        الرصيد الافتتاحي
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        إجمالي الدخل
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        إجمالي الصرف
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        الرصيد الحالي
                       </th>
                     </tr>
                   </thead>
@@ -97,8 +106,23 @@ const CashierBalanceModal: React.FC<CashierBalanceModalProps> = ({
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className={`text-sm font-medium ${balance.amount > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                            {formatAmount(balance.amount, balance.currency)}
+                          <div className="text-sm font-medium text-gray-500">
+                            {balance.opening_balance ?? '0.00'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="text-sm font-medium text-green-600">
+                            {balance.total_in ?? '0.00'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="text-sm font-medium text-red-600">
+                            {balance.total_out ?? '0.00'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className={`text-sm font-bold ${Number(balance.system_balance ?? balance.amount ?? 0) > 0 ? 'text-green-600' : 'text-gray-500'}`}> 
+                            {balance.system_balance ?? balance.amount ?? '0.00'}
                           </div>
                         </td>
                       </tr>

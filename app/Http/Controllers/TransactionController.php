@@ -148,4 +148,40 @@ class TransactionController extends Controller
             ]),
         ]);
     }
+
+    public function getTransactionData(Transaction $transaction)
+    {
+        try {
+            $transaction->load([
+                'fromCurrency',
+                'toCurrency',
+                'createdBy',
+                'closedBy',
+                'assignedTo',
+            ]);
+
+            return $this->success('تم جلب بيانات المعاملة بنجاح.', [
+                'data' => [
+                    'id' => $transaction->id,
+                    'from_currency_id' => $transaction->from_currency_id,
+                    'to_currency_id' => $transaction->to_currency_id,
+                    'original_amount' => $transaction->original_amount,
+                    'converted_amount' => $transaction->converted_amount,
+                    'notes' => $transaction->notes,
+                    'status' => $transaction->status,
+                    'created_at' => $transaction->created_at,
+                    'updated_at' => $transaction->updated_at,
+                    'from_currency' => $transaction->fromCurrency,
+                    'to_currency' => $transaction->toCurrency,
+                    'created_by' => $transaction->createdBy,
+                    'closed_by' => $transaction->closedBy,
+                    'assigned_to' => $transaction->assignedTo,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransactionController@getTransactionData');
+
+            return $this->failed('حدث خطأ أثناء جلب بيانات المعاملة');
+        }
+    }
 }

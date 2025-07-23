@@ -186,8 +186,8 @@ export default function CurrencyEditModal({
       const payload = {
         name: formData.name.trim(),
         rate_to_usd: parseFloat(formData.rate_to_usd),
-        buy_rate_to_usd: parseFloat(formData.sell_rate_to_usd),
-        sell_rate_to_usd: parseFloat(formData.buy_rate_to_usd),
+        buy_rate_to_usd: parseFloat(formData.buy_rate_to_usd),
+        sell_rate_to_usd: parseFloat(formData.sell_rate_to_usd),
       };
 
       await axios.put(`/admin/currencies/${currency.id}`, payload);

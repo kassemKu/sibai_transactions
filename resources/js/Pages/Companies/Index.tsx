@@ -6,6 +6,8 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import { FiPlus, FiEdit2, FiEye } from 'react-icons/fi';
 import CompanyCreateModal from '@/Components/Companies/CompanyCreateModal';
 import CompanyEditModal from '@/Components/Companies/CompanyEditModal';
+import DialogModal from '@/Components/DialogModal';
+import SecondaryButton from '@/Components/SecondaryButton';
 import {
   Table,
   TableHeader,
@@ -14,6 +16,7 @@ import {
   TableRow,
   TableCell,
 } from '@heroui/react';
+import axios from 'axios';
 
 interface Company {
   id: number;
@@ -34,6 +37,9 @@ export default function CompaniesIndex({ companies }: CompaniesIndexProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editCompany, setEditCompany] = useState<Company | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredCompanies = companies.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -48,6 +54,28 @@ export default function CompaniesIndex({ companies }: CompaniesIndexProps) {
   const handleCloseEdit = () => {
     setEditCompany(null);
     setShowEditModal(false);
+  };
+  const handleOpenDelete = (company: Company) => {
+    setCompanyToDelete(company);
+    setDeleteModalOpen(true);
+  };
+  const handleCloseDelete = () => {
+    setCompanyToDelete(null);
+    setDeleteModalOpen(false);
+  };
+  const handleDelete = async () => {
+    if (!companyToDelete) return;
+    setIsDeleting(true);
+    try {
+      await axios.delete(`/admin/companies/${companyToDelete.id}`);
+      setDeleteModalOpen(false);
+      setCompanyToDelete(null);
+      window.location.reload();
+    } catch (e) {
+      // Optionally show an error toast here
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -154,6 +182,27 @@ export default function CompaniesIndex({ companies }: CompaniesIndexProps) {
                     >
                       <FiEdit2 className="w-4 h-4" />
                     </button>
+                    <button
+                      type="button"
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="حذف"
+                      onClick={() => handleOpenDelete(company)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-4 h-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -196,6 +245,44 @@ export default function CompaniesIndex({ companies }: CompaniesIndexProps) {
           onSuccess={() => window.location.reload()}
         />
       )}
+      {/* Delete Confirmation Modal */}
+      <DialogModal
+        isOpen={deleteModalOpen}
+        onClose={handleCloseDelete}
+        maxWidth="sm"
+      >
+        <DialogModal.Content title="تأكيد حذف الشركة">
+          <div className="text-center p-4">
+            <p className="text-lg font-semibold text-red-700 mb-4">
+              هل أنت متأكد أنك تريد حذف هذه الشركة؟
+            </p>
+            <p className="text-gray-600 mb-2">
+              سيتم حذف جميع بيانات الشركة ولا يمكن التراجع عن هذا الإجراء.
+            </p>
+          </div>
+        </DialogModal.Content>
+        <DialogModal.Footer>
+          <div className="flex justify-end gap-2">
+            <SecondaryButton onClick={handleCloseDelete} disabled={isDeleting}>
+              إلغاء
+            </SecondaryButton>
+            <PrimaryButton
+              className="bg-red-600 hover:bg-red-700 border-red-600"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2 align-middle"></span>
+                  جاري الحذف...
+                </>
+              ) : (
+                'حذف نهائي'
+              )}
+            </PrimaryButton>
+          </div>
+        </DialogModal.Footer>
+      </DialogModal>
     </RootLayout>
   );
 }

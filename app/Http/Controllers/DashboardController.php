@@ -176,13 +176,48 @@ class DashboardController extends Controller
             ]);
         }
 
-        $availableCashers = User::whereHas('casherCashSessions', function ($q) use ($session) {
-            $q->where('cash_session_id', $session->id);
+        // Debug: Log $session
+        \Log::info('Current session:', ['id' => $session?->id, 'status' => $session?->status]);
+
+        // Debug: Log all users with their roles and is_active
+        $allUsers = User::with('roles')->get()->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_active' => $user->is_active,
+                'roles' => $user->roles->pluck('name')->toArray(),
+            ];
+        });
+        \Log::info('All users with roles:', $allUsers->toArray());
+
+        // Debug: Log all CasherCashSession records for the current session
+        $allCasherSessions = \App\Models\CasherCashSession::where('cash_session_id', $session?->id)->get();
+        \Log::info('CasherCashSessions for session:', $allCasherSessions->toArray());
+
+        $availableCashers = User::whereHas('roles', function ($q) {
+            $q->whereIn('name', ['casher', 'admin', 'super_admin']);
         })
-            ->whereHas('roles', function ($q) {
-                $q->where('name', 'super_admin');
+            ->where('is_active', true)
+            ->whereHas('casherCashSessions', function ($q) use ($session) {
+                $q->where('cash_session_id', $session->id)
+                  ->whereIn('status', ['active', 'pending']);
             })
             ->get();
+
+        // Always include the session opener if they are active and have the right role
+        if ($session && $session->opened_by) {
+            $opener = User::where('id', $session->opened_by)
+                ->where('is_active', true)
+                ->whereHas('roles', function ($q) {
+                    $q->whereIn('name', ['casher', 'admin', 'super_admin']);
+                })
+                ->first();
+            if ($opener && !$availableCashers->contains('id', $opener->id)) {
+                $availableCashers->push($opener);
+            }
+        }
+        \Log::info('Matched availableCashers:', $availableCashers->toArray());
 
         return $this->success('تم جلب بيانات الجلسة النقدية الحالية بنجاح.', [
             'current_session' => $session,
@@ -190,6 +225,10 @@ class DashboardController extends Controller
             'transactions' => $transactions,
             'cashiers' => $cashiers->values(),
             'available_cashers' => $availableCashers,
+            // Debug info (remove in production)
+            'debug_all_users' => $allUsers,
+            'debug_all_casher_sessions' => $allCasherSessions,
+            'debug_available_cashers' => $availableCashers,
         ]);
     }
 }
