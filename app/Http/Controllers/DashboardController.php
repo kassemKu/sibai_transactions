@@ -201,7 +201,7 @@ class DashboardController extends Controller
             ->where('is_active', true)
             ->whereHas('casherCashSessions', function ($q) use ($session) {
                 $q->where('cash_session_id', $session->id)
-                  ->whereIn('status', ['active', 'pending']);
+                    ->whereIn('status', ['active', 'pending']);
             })
             ->get();
 
@@ -213,7 +213,7 @@ class DashboardController extends Controller
                     $q->whereIn('name', ['casher', 'admin', 'super_admin']);
                 })
                 ->first();
-            if ($opener && !$availableCashers->contains('id', $opener->id)) {
+            if ($opener && ! $availableCashers->contains('id', $opener->id)) {
                 $availableCashers->push($opener);
             }
         }

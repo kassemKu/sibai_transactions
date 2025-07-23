@@ -75,7 +75,7 @@ class CasherCashSessionService
             'opening_balances' => json_encode($data->opening_balances),
             'casher_id' => $data->casher_id,
             'status' => CashSessionEnum::ACTIVE->value,
-            'transfers' => true,
+            'transfers' => $data->transfers,
         ]);
 
         return $session;
