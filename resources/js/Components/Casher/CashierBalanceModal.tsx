@@ -14,6 +14,7 @@ interface Cashier {
   name: string;
   email: string;
   system_balances?: CashierBalance[];
+  has_active_session?: boolean;
 }
 
 interface CashierBalanceModalProps {
@@ -47,6 +48,7 @@ const CashierBalanceModal: React.FC<CashierBalanceModalProps> = ({
   };
 
   if (!cashier) return null;
+  console.log('Casher', cashier);
 
   return (
     <DialogModal isOpen={isOpen} onClose={onClose} maxWidth="2xl">
@@ -67,7 +69,7 @@ const CashierBalanceModal: React.FC<CashierBalanceModalProps> = ({
           </div>
 
           {/* Balances Table */}
-          {cashier.system_balances && cashier.system_balances.length > 0 ? (
+          {currencies && currencies.length > 0 ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <FiDollarSign className="w-4 h-4 text-green-600" />
@@ -84,49 +86,32 @@ const CashierBalanceModal: React.FC<CashierBalanceModalProps> = ({
                         العملة
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        الرصيد الافتتاحي
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        إجمالي الدخل
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        إجمالي الصرف
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         الرصيد الحالي
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {cashier.system_balances.map((balance, index) => (
-                      <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm font-medium text-gray-900">
-                            {getCurrencyName(balance.currency_id)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm font-medium text-gray-500">
-                            {balance.opening_balance ?? '0.00'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm font-medium text-green-600">
-                            {balance.total_in ?? '0.00'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="text-sm font-medium text-red-600">
-                            {balance.total_out ?? '0.00'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className={`text-sm font-bold ${Number(balance.system_balance ?? balance.amount ?? 0) > 0 ? 'text-green-600' : 'text-gray-500'}`}> 
-                            {balance.system_balance ?? balance.amount ?? '0.00'}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {currencies.map(currency => {
+                      const balance = cashier.system_balances?.find(
+                        b => b.currency_id === currency.id,
+                      );
+                      return (
+                        <tr key={currency.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="text-sm font-medium text-gray-900">
+                              {getCurrencyName(currency.id)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div
+                              className={`text-sm font-bold ${Number(balance?.amount ?? 0) > 0 ? 'text-green-600' : 'text-gray-500'}`}
+                            >
+                              {formatAmount(balance?.amount ?? 0, currency)}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

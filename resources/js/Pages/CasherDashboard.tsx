@@ -42,6 +42,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
     currencies: currenciesState,
     transactions,
     availableCashers,
+
     isLoading: isInitialSessionLoading,
     isPolling,
     lastUpdated,
@@ -85,14 +86,8 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
   const handleOpenBalanceModal = () => {
     if (currentUserCashier) {
       setSelectedCashier({
-        id: currentUserCashier.casher.id,
-        name: currentUserCashier.casher.name,
-        email: currentUserCashier.casher.email,
-        // Pass all summary fields for each balance, and ensure 'amount' is present for type compatibility
-        system_balances: (currentUserCashier.system_balances || []).map(b => ({
-          ...b,
-          amount: Number(b.system_balance ?? 0),
-        })),
+        ...currentUserCashier.casher,
+        system_balances: currentUserCashier.system_balances || [],
         has_active_session: currentUserCashier.status === 'active',
       });
       setShowBalanceModal(true);

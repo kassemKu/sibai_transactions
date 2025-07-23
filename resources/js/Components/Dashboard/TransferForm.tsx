@@ -201,7 +201,7 @@ export default function TransferForm({
                   onChange={e => setCompany(e.target.value)}
                   className="border-blue-200 focus:border-blue-500"
                 >
-                  <option value="">اختر الشركة</option>
+                
                   {companies.map(company => (
                     <option key={company.id} value={company.id}>
                       {company.name}

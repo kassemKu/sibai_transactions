@@ -676,7 +676,6 @@ export default function TransactionForm({
                         {isAdmin ? (
                           // Admin can choose any currency
                           <>
-                            <option value="">اختر العملة</option>
                             {currencies.map(currency => (
                               <option key={currency.id} value={currency.id}>
                                 {currency.name} ({currency.code})
@@ -745,7 +744,7 @@ export default function TransactionForm({
                       value={toCurrency}
                       onChange={e => setToCurrency(e.target.value)}
                     >
-                      <option value="">اختر العملة</option>
+                
                       {availableToCurrencies.map(currency => (
                         <option key={currency.id} value={currency.id}>
                           {currency.name} ({currency.code})
