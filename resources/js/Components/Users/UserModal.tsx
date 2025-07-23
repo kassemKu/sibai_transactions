@@ -168,7 +168,6 @@ export default function UserModal({
                 onChange={handleChange}
                 required
               >
-                <option value="">اختر الدور</option>
                 {roles.map(role => (
                   <option key={role.id} value={role.id}>
                     {role.display_name || role.name}

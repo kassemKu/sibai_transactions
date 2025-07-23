@@ -68,10 +68,9 @@ export default function TransactionForm({
     roles &&
     (roles as string[]).some(role => ['super_admin', 'admin'].includes(role));
 
-
-  
   // For edit mode, always show admin features if availableCashers is provided
-  const shouldShowAdminSection = isAdmin || (isEditing && availableCashers && availableCashers.length > 0);
+  const shouldShowAdminSection =
+    isAdmin || (isEditing && availableCashers && availableCashers.length > 0);
 
   // Remove all useState for form fields
   // Keep only internal state for things like isCalculating, isManualAmountEnabled, etc.
@@ -80,10 +79,10 @@ export default function TransactionForm({
   const [isCalculating, setIsCalculating] = useState(false);
   const [internalIsSubmitting, setInternalIsSubmitting] = useState(false);
   const [notes, setNotes] = useState(formData?.notes || '');
-  const [assignedTo, setAssignedTo] = useState(
-    formData?.assignedTo ||
-      (availableCashers.length > 0 ? availableCashers[0].id.toString() : ''),
-  );
+  // Remove: const [assignedTo, setAssignedTo] = useState(
+  //   formData?.assignedTo ||
+  //     (availableCashers.length > 0 ? availableCashers[0].id.toString() : ''),
+  // );
 
   // Use prop isSubmitting if provided, otherwise use internal state
   const isSubmitting =
@@ -133,10 +132,10 @@ export default function TransactionForm({
 
   // Update assignedTo when availableCashers changes
   useEffect(() => {
-    if (availableCashers.length > 0 && !assignedTo) {
-      setAssignedTo(availableCashers[0].id.toString());
+    if (availableCashers.length > 0 && !formData.assignedTo) {
+      onChange('assignedTo', availableCashers[0].id.toString());
     }
-  }, [availableCashers, assignedTo]);
+  }, [availableCashers, formData.assignedTo, onChange]);
 
   // Update manual amount when calculated amount changes in edit mode
   useEffect(() => {
@@ -208,8 +207,11 @@ export default function TransactionForm({
   useEffect(() => {
     if (isAdmin && formData?.fromCurrency && formData?.toCurrency) {
       const matchingRule = getMatchingAssignment();
-      if (matchingRule) {
-        setAssignedTo(matchingRule.user_id.toString());
+      if (
+        matchingRule &&
+        formData.assignedTo !== matchingRule.user_id.toString()
+      ) {
+        onChange('assignedTo', matchingRule.user_id.toString());
       }
     }
   }, [
@@ -218,6 +220,8 @@ export default function TransactionForm({
     assignmentRules,
     isAdmin,
     getMatchingAssignment,
+    formData.assignedTo,
+    onChange,
   ]);
 
   // Reset form
@@ -236,7 +240,8 @@ export default function TransactionForm({
 
       // Only reset assignedTo if preserveHandler is false
       if (!preserveHandler) {
-        setAssignedTo(
+        onChange(
+          'assignedTo',
           availableCashers.length > 0 ? availableCashers[0].id.toString() : '',
         );
       }
@@ -494,7 +499,7 @@ export default function TransactionForm({
         amount: formData?.amount,
         calculatedAmount: finalAmount,
         notes,
-        assignedTo,
+        assignedTo: formData.assignedTo,
       };
       onSubmit(formDataToSubmit);
       return;
@@ -509,7 +514,9 @@ export default function TransactionForm({
         original_amount: parseFloat(formData?.amount),
         converted_amount: parseFloat(finalAmount), // Use the correct value (manual or calculated)
         customer_name: '', // You can add a customer name field later
-        ...(isAdmin && assignedTo ? { assigned_to: parseInt(assignedTo) } : {}),
+        ...(isAdmin && formData.assignedTo
+          ? { assigned_to: parseInt(formData.assignedTo) }
+          : {}),
         ...(notes.trim() ? { notes: notes.trim() } : {}),
       };
 
@@ -517,7 +524,7 @@ export default function TransactionForm({
 
       if (response.data) {
         const selectedUser = availableCashers.find(
-          u => u.id.toString() === assignedTo,
+          u => u.id.toString() === formData.assignedTo,
         );
         const handlerName = selectedUser
           ? selectedUser.name
@@ -565,7 +572,6 @@ export default function TransactionForm({
     formData?.toCurrency,
     formData?.amount,
     getFinalAmount,
-    assignedTo,
     isAdmin,
     isSessionOpen,
     isSessionPending,
@@ -644,7 +650,6 @@ export default function TransactionForm({
                         }
                         className="text-sm"
                       >
-                        <option value="">اختر العملة</option>
                         {currencies.map(currency => (
                           <option key={currency.id} value={currency.id}>
                             {currency.name} ({currency.code})
@@ -677,7 +682,6 @@ export default function TransactionForm({
                           }
                           className="text-sm flex-1"
                         >
-                          <option value="">اختر المستخدم</option>
                           {availableCashers.map(user => (
                             <option key={user.id} value={user.id}>
                               {user.name}
@@ -765,8 +769,8 @@ export default function TransactionForm({
                     ) : availableCashers.length === 0 ? (
                       <option value="">لا يوجد صرافون متاحون</option>
                     ) : (
+                      // Remove the 'اختر المستخدم' option
                       <>
-                        <option value="">اختر المستخدم</option>
                         {availableCashers.map(user => (
                           <option key={user.id} value={user.id}>
                             {user.name} ({user.email})
@@ -804,7 +808,6 @@ export default function TransactionForm({
                   onChange={e => onChange('fromCurrency', e.target.value)}
                   className="border-blue-200 focus:border-blue-500"
                 >
-                  <option value="">اختر العملة</option>
                   {currencies.map(currency => (
                     <option key={currency.id} value={currency.id}>
                       {currency.name} ({currency.code})
