@@ -21,6 +21,7 @@ interface StatusData {
   currencies: Currency[];
   transactions: Transaction[];
   cashiers?: Cashier[];
+  available_cashers?: User[];
 }
 
 interface StatusResponse {
@@ -34,6 +35,7 @@ interface UseStatusPollingReturn {
   currencies: Currency[];
   transactions: Transaction[];
   cashiers: Cashier[];
+  availableCashers: User[];
   isLoading: boolean;
   isPolling: boolean;
   lastUpdated: Date | null;
@@ -51,6 +53,7 @@ export const useStatusPolling = (
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cashiers, setCashiers] = useState<Cashier[]>([]);
+  const [availableCashers, setAvailableCashers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPolling, setIsPolling] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -75,12 +78,14 @@ export const useStatusPolling = (
             currencies: fetchedCurrencies,
             transactions: fetchedTransactions,
             cashiers: fetchedCashiers = [],
+            available_cashers: fetchedAvailableCashers = [],
           } = response.data.data;
 
           setCurrentSession(current_session);
           setCurrencies(fetchedCurrencies);
           setTransactions(fetchedTransactions);
           setCashiers(fetchedCashiers);
+          setAvailableCashers(fetchedAvailableCashers);
           setLastUpdated(new Date());
           setError(null);
         }
@@ -130,6 +135,7 @@ export const useStatusPolling = (
     currencies,
     transactions,
     cashiers,
+    availableCashers,
     isLoading,
     isPolling,
     lastUpdated,

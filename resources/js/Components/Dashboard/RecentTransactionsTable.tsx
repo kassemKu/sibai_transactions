@@ -27,6 +27,7 @@ import {
   Customer,
 } from '@/types';
 import NotesModal from '../NotesModal';
+import EditTransactionModal from '../EditTransactionModal';
 
 interface PendingTransactionsResponse {
   status: boolean;
@@ -44,6 +45,8 @@ interface RecentTransactionsTableProps {
   isPolling?: boolean;
   lastUpdated?: Date | null;
   onRefetch?: () => void;
+  currencies?: any[]; // Add currencies for edit modal
+  availableCashers?: User[]; // Add available cashers for edit modal
 }
 
 export default function RecentTransactionsTable({
@@ -54,6 +57,8 @@ export default function RecentTransactionsTable({
   isPolling = false,
   lastUpdated = null,
   onRefetch,
+  currencies = [],
+  availableCashers = [],
 }: RecentTransactionsTableProps) {
   const { auth } = usePage().props as any;
   const [updatingTransactions, setUpdatingTransactions] = useState<Set<number>>(
@@ -62,6 +67,10 @@ export default function RecentTransactionsTable({
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<GlobalTransaction | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    number | null
+  >(null);
 
   // Use notification hook for new pending transactions
   const { showVisualNotification, hideVisualNotification } =
@@ -192,6 +201,23 @@ export default function RecentTransactionsTable({
   const handleCloseNotesModal = () => {
     setShowNotesModal(false);
     setSelectedTransaction(null);
+  };
+
+  const handleEditTransaction = (transactionId: number) => {
+    setEditingTransactionId(transactionId);
+    setEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setEditingTransactionId(null);
+  };
+
+  const handleEditSuccess = () => {
+    handleCloseEditModal();
+    if (onRefetch) {
+      onRefetch();
+    }
   };
 
   // No need for polling logic since parent handles unified status polling
@@ -406,9 +432,18 @@ export default function RecentTransactionsTable({
                                 transaction.id,
                                 key as 'complete' | 'cancel',
                               );
+                            } else if (key === 'edit') {
+                              handleEditTransaction(transaction.id);
                             }
                           }}
                         >
+                          <DropdownItem
+                            key="edit"
+                            color="primary"
+                            description="تعديل تفاصيل المعاملة"
+                          >
+                            تعديل المعاملة
+                          </DropdownItem>
                           <DropdownItem
                             key="complete"
                             color="success"
@@ -445,6 +480,17 @@ export default function RecentTransactionsTable({
         isOpen={showNotesModal}
         onClose={handleCloseNotesModal}
         transaction={selectedTransaction}
+      />
+
+      {/* Edit Transaction Modal */}
+      <EditTransactionModal
+        open={!!editingTransactionId}
+        onClose={handleCloseEditModal}
+        transactionId={editingTransactionId}
+        currencies={currencies}
+        availableCashers={availableCashers}
+        isSessionOpen={isSessionActive}
+        isSessionPending={isSessionPending}
       />
     </>
   );

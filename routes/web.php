@@ -36,6 +36,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::put('/transactions/{transaction}/cancel', [TransactionController::class, 'cancelStatus'])->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
         Route::put('/transactions/{transaction}', [TransactionController::class, 'update'])->middleware([EnsureActiveCashSession::class]);
         Route::get('/transactions/{transaction}/get', [TransactionController::class, 'getTransaction']);
+        Route::get('/transactions/{transaction}/data', [TransactionController::class, 'getTransactionData'])->name('transaction.data');
     });
 
     Route::group(['middleware' => ['role:super_admin'], 'prefix' => 'admin'], function () {
@@ -53,7 +54,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::controller(TransactionController::class)->group(function () {
             Route::post('/transactions', 'store')->middleware([EnsureActiveCashSession::class]);
             Route::put('/transactions/{transaction}/complete', 'completeStatus')->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
-            Route::put('/transactions/{transaction}/cancel', 'cancelStatus')->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
+            // Route::put('/transactions/{transaction}/cancel', 'cancelStatus')->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
             Route::get('/transactions/{transaction}', 'show')->name('transaction.show');
         });
         Route::post('/cash-sessions/pending', [CashSessionController::class, 'pending'])->middleware([EnsureActiveCashSession::class]);

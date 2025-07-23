@@ -28,7 +28,13 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import PendingTransactionsConfirmModal from '@/Components/PendingTransactionsConfirmModal';
 import AddCashboxModal from '@/Components/AddCashboxModal';
 import DialogModal from '@/Components/DialogModal';
-import { FiUsers, FiEye, FiDollarSign, FiClock } from 'react-icons/fi';
+import {
+  FiUsers,
+  FiEye,
+  FiDollarSign,
+  FiClock,
+  FiRefreshCw,
+} from 'react-icons/fi';
 import { Chip } from '@heroui/react';
 import CashierBoxModal from '@/Components/Casher/CashierBoxModal';
 import UnifiedFormComponent from '@/Components/Dashboard/UnifiedFormComponent';
@@ -103,6 +109,7 @@ export default function Dashboard({
     currentSession: currentCashSession,
     currencies: currenciesState,
     transactions,
+    availableCashers,
     isLoading: isInitialSessionLoading,
     isPolling,
     lastUpdated,
@@ -596,6 +603,22 @@ export default function Dashboard({
     );
   }
 
+  // Add this handler in the Dashboard component
+  const handleChangeCashierStatus = async (userId: number) => {
+    try {
+      const response = await axios.put(`/admin/users/${userId}/change-status`);
+      const message = response.data?.message || 'تم تغيير حالة الصراف بنجاح';
+      toast.success(message);
+      refetch();
+    } catch (error) {
+      let message = 'حدث خطأ أثناء تغيير حالة الصراف';
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        message = error.response.data.message;
+      }
+      toast.error(message);
+    }
+  };
+
   return (
     <RootLayout
       title="لوحة التحكم"
@@ -621,6 +644,7 @@ export default function Dashboard({
             isSessionOpen={!!isSessionOpen}
             isSessionPending={!!isSessionPending}
             onStartSession={handleOpenSession}
+            availableCashers={availableCashers}
           />
         )}
       </div>
@@ -633,6 +657,8 @@ export default function Dashboard({
         isPolling={isPolling}
         lastUpdated={lastUpdated}
         onRefetch={refetch}
+        currencies={currenciesState}
+        availableCashers={availableCashers}
       />
 
       {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -651,7 +677,11 @@ export default function Dashboard({
             {activeCashiers.length > 0 ? (
               <div className="space-y-3">
                 {activeCashiers.map(cashier => {
-                  const openedDateTime = formatDateTime(cashier.opened_at);
+                  const isPresent = availableCashers.some(
+                    u => u.id === cashier.casher.id,
+                  );
+                  const isActiveSession = cashier.status === 'active';
+
                   return (
                     <div
                       key={cashier.id}
@@ -669,11 +699,25 @@ export default function Dashboard({
                           <div className="text-sm text-gray-500">
                             {cashier.casher.email}
                           </div>
-                          <div className="text-xs text-gray-400 flex items-center space-x-1 space-x-reverse">
+                          <div className="flex items-center gap-2 mt-1">
+                            {/* Session Status */}
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-bold ${cashier.status === 'active' ? 'bg-green-100 text-green-700' : cashier.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-200 text-gray-600'}`}
+                            >
+                              {getStatusChip(cashier.status)?.props.children}
+                            </span>
+                            {/* Presence Status */}
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-bold ${isPresent ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red'}`}
+                            >
+                              {isPresent ? 'متواجد' : 'غير متواجد'}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-400 flex items-center space-x-1 space-x-reverse mt-1">
                             <FiClock className="w-3 h-3" />
                             <span>
-                              بدأت في {openedDateTime.date} -{' '}
-                              {openedDateTime.time}
+                              بدأت في {formatDateTime(cashier.opened_at).date} -{' '}
+                              {formatDateTime(cashier.opened_at).time}
                             </span>
                           </div>
                         </div>
@@ -691,6 +735,17 @@ export default function Dashboard({
                             ? 'إغلاق الصندوق'
                             : 'عرض التفاصيل'}
                         </SecondaryButton>
+                        {isActiveSession && (
+                          <SecondaryButton
+                            onClick={() =>
+                              handleChangeCashierStatus(cashier.casher.id)
+                            }
+                            className="text-orange-600"
+                          >
+                            <FiRefreshCw className="w-4 h-4 ml-1" />
+                            تغيير حالة التواجد
+                          </SecondaryButton>
+                        )}
                       </div>
                     </div>
                   );

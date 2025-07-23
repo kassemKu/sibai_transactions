@@ -25,26 +25,22 @@ interface AssignmentRule {
   user_name: string;
 }
 
-interface AssignmentRule {
-  id: string;
-  currency_id: number;
-  direction: 'receive' | 'spend';
-  user_id: number;
-  user_name: string;
-}
-
 interface TransactionFormProps {
   currencies: CurrenciesResponse;
   isSessionOpen?: boolean;
   isSessionPending?: boolean;
+  availableCashers?: User[];
+  isUnavailable?: boolean;
 }
 
 export default function TransactionForm({
   currencies,
   isSessionOpen = true,
   isSessionPending = false,
+  availableCashers = [],
+  isUnavailable = false,
 }: TransactionFormProps) {
-  const { auth, roles } = usePage().props as any;
+  const { roles } = usePage().props as any;
   const isAdmin = roles && (roles as string[]).includes('admin');
 
   const [fromCurrency, setFromCurrency] = useState('');
@@ -55,10 +51,8 @@ export default function TransactionForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notes, setNotes] = useState('');
   const [assignedTo, setAssignedTo] = useState(
-    auth?.user?.id?.toString() || '',
+    availableCashers.length > 0 ? availableCashers[0].id.toString() : '',
   );
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
   // Assignment settings state
   const [showSettings, setShowSettings] = useState(false);
@@ -92,6 +86,13 @@ export default function TransactionForm({
       JSON.stringify(assignmentRules),
     );
   }, [assignmentRules]);
+
+  // Update assignedTo when availableCashers changes
+  useEffect(() => {
+    if (availableCashers.length > 0 && !assignedTo) {
+      setAssignedTo(availableCashers[0].id.toString());
+    }
+  }, [availableCashers, assignedTo]);
 
   // Check if current transaction matches any assignment rule
   const getMatchingAssignment = useCallback(() => {
@@ -155,26 +156,6 @@ export default function TransactionForm({
     }
   }, [isAdmin, currencies, fromCurrency, toCurrency]);
 
-  // Fetch users for admin dropdown
-  useEffect(() => {
-    if (isAdmin) {
-      const fetchUsers = async () => {
-        setIsLoadingUsers(true);
-        try {
-          const response = await axios.get('/admin/get-users');
-          setUsers(response.data.data.users || []);
-        } catch (error) {
-          console.error('Error fetching users:', error);
-          toast.error('فشل في تحميل قائمة المستخدمين');
-        } finally {
-          setIsLoadingUsers(false);
-        }
-      };
-
-      fetchUsers();
-    }
-  }, [isAdmin]);
-
   // Assignment settings handlers
   const handleAddRule = () => {
     if (!newRule.currency_id || !newRule.user_id) {
@@ -182,7 +163,9 @@ export default function TransactionForm({
       return;
     }
 
-    const selectedUser = users.find(u => u.id.toString() === newRule.user_id);
+    const selectedUser = availableCashers.find(
+      u => u.id.toString() === newRule.user_id,
+    );
     if (!selectedUser) {
       toast.error('المستخدم المحدد غير موجود');
       return;
@@ -267,30 +250,24 @@ export default function TransactionForm({
   // Reset form
   const resetForm = useCallback(
     (showToast = false, preserveHandler = true) => {
-      if (isAdmin) {
-        // Admin users can choose any currency
-        setFromCurrency('');
-        setToCurrency('');
-        setAssignedTo(''); // Reset assigned_to for admin users
-      } else {
-        // Regular cashiers always keep SYP as "From" currency
-        const sypCurrency = currencies.find(c => c.code === 'SYP');
-        setFromCurrency(sypCurrency ? sypCurrency.id.toString() : '');
-        setToCurrency('');
-      }
+      setFromCurrency('');
+      setToCurrency('');
       setAmount('');
       setCalculatedAmount('');
       setNotes('');
 
       // Only reset assignedTo if preserveHandler is false
       if (!preserveHandler) {
-        setAssignedTo(auth?.user?.id?.toString() || '');
+        setAssignedTo(
+          availableCashers.length > 0 ? availableCashers[0].id.toString() : '',
+        );
       }
+
       if (showToast) {
         toast.success('تم إعادة تعيين النموذج');
       }
     },
-    [currencies, isAdmin],
+    [availableCashers],
   );
 
   // Calculate currency conversion
@@ -393,7 +370,9 @@ export default function TransactionForm({
       );
 
       if (response.data) {
-        const selectedUser = users.find(u => u.id.toString() === assignedTo);
+        const selectedUser = availableCashers.find(
+          u => u.id.toString() === assignedTo,
+        );
         const handlerName = selectedUser
           ? selectedUser.name
           : 'المستخدم المحدد';
@@ -447,7 +426,7 @@ export default function TransactionForm({
     notes,
     isAdmin,
     assignedTo,
-    users,
+    availableCashers,
   ]);
 
   // Helper function to format amount for display
@@ -463,6 +442,8 @@ export default function TransactionForm({
       useGrouping: true,
     }).format(numAmount);
   };
+
+  const isLoadingAvailableCashers = availableCashers == null;
 
   return (
     <div className="w-full mb-8 relative">
@@ -562,7 +543,7 @@ export default function TransactionForm({
                               className="text-sm flex-1"
                             >
                               <option value="">اختر المستخدم</option>
-                              {users.map(user => (
+                              {availableCashers.map(user => (
                                 <option key={user.id} value={user.id}>
                                   {user.name}
                                 </option>
@@ -640,14 +621,19 @@ export default function TransactionForm({
                         value={assignedTo}
                         onChange={e => setAssignedTo(e.target.value)}
                         className="border-blue-300 focus:border-blue-500"
-                        disabled={isLoadingUsers}
+                        disabled={
+                          isLoadingAvailableCashers ||
+                          availableCashers.length === 0
+                        }
                       >
-                        {isLoadingUsers ? (
+                        {isLoadingAvailableCashers ? (
                           <option value="">جاري التحميل...</option>
+                        ) : availableCashers.length === 0 ? (
+                          <option value="">لا يوجد صرافون متاحون</option>
                         ) : (
                           <>
                             <option value="">اختر المستخدم</option>
-                            {users.map(user => (
+                            {availableCashers.map(user => (
                               <option key={user.id} value={user.id}>
                                 {user.name} ({user.email})
                               </option>
@@ -655,7 +641,7 @@ export default function TransactionForm({
                           </>
                         )}
                       </Select>
-                      {isLoadingUsers && (
+                      {availableCashers.length === 0 && (
                         <div className="text-xs text-blue-600 mt-1">
                           جاري تحميل قائمة المستخدمين...
                         </div>
@@ -861,11 +847,36 @@ export default function TransactionForm({
         </CardContent>
       </Card>
 
-      {/* Overlay when session is closed or pending */}
-      {(!isSessionOpen || isSessionPending) && (
+      {/* Overlay when session is closed or pending or cashier unavailable */}
+      {(!isSessionOpen || isSessionPending || isUnavailable) && (
         <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
           <div className="bg-white rounded-xl shadow-lg p-6 mx-4 max-w-md text-center border border-gray-200">
-            {isSessionPending ? (
+            {isUnavailable ? (
+              <>
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full">
+                  <svg
+                    className="w-8 h-8 text-yellow-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  غير متاح
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  لا يمكنك تنفيذ معاملات حالياً لأن حالتك غير متاحة. يرجى تغيير
+                  حالتك إلى "متواجد" للمتابعة.
+                </p>
+              </>
+            ) : isSessionPending ? (
               // Pending session message
               <>
                 <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full">
