@@ -64,7 +64,7 @@ class TransactionController extends Controller
     public function cancelStatus(Transaction $transaction, Request $request)
     {
         // Only admin users can cancel transactions
-        if (!auth()->user()->hasRole('admin')) {
+        if (! auth()->user()->hasRole('admin')) {
             return $this->failed('غير مصرح لك بإلغاء المعاملات.');
         }
 
