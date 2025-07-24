@@ -36,7 +36,7 @@ export default function UsersIndex({ users }: UsersIndexProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editUserId, setEditUserId] = useState<number | null>(null);
-  console.log(users);
+  // console.log(users);
   const filteredUsers = users.filter(
     user =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
