@@ -5,8 +5,6 @@ import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import {
   CurrenciesResponse,
-  CashSession,
-  InertiaSharedProps,
   Currency,
 } from '@/types';
 import { usePage, router } from '@inertiajs/react';
@@ -16,11 +14,7 @@ import { useStatusPolling } from '@/Hooks/useStatusPolling';
 // Import dashboard components
 
 import CurrencyCardsSlider from '@/Components/Dashboard/CurrencyCardsSlider';
-import TransactionForm from '@/Components/Dashboard/TransactionForm';
-import TransferForm from '@/Components/Dashboard/TransferForm';
 import RecentTransactionsTable from '@/Components/Dashboard/RecentTransactionsTable';
-import RecentTransactionsList from '@/Components/Dashboard/RecentTransactionsList';
-import QuickActions from '@/Components/Dashboard/QuickActions';
 import DangerButton from '@/Components/DangerButton';
 import CloseSessionModal from '@/Components/CloseSessionModal';
 import CurrencyEditModal from '@/Components/Dashboard/CurrencyEditModal';
@@ -31,7 +25,6 @@ import DialogModal from '@/Components/DialogModal';
 import {
   FiUsers,
   FiEye,
-  FiDollarSign,
   FiClock,
   FiRefreshCw,
 } from 'react-icons/fi';
@@ -438,9 +431,9 @@ export default function Dashboard({
         setSelectedCashierSession((prev: any) =>
           prev
             ? {
-                ...prev,
-                status: 'pending',
-              }
+              ...prev,
+              status: 'pending',
+            }
             : null,
         );
 
