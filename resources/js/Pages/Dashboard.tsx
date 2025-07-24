@@ -111,7 +111,7 @@ export default function Dashboard({
   } = useStatusPolling(3000, true);
 
   // Get cashier sessions from current cash session
-  const getCashierSessions = () => {
+  const getCashierSessions = useCallback(() => {
     if (!currentCashSession?.casher_cash_sessions) return [];
 
     return currentCashSession.casher_cash_sessions.map((session: any) => ({
@@ -125,7 +125,7 @@ export default function Dashboard({
       closed_at: session.closed_at,
       status: session.status,
     }));
-  };
+  }, [currentCashSession]);
 
   // Handle quick view open
   const handleQuickViewOpen = () => {
@@ -143,7 +143,7 @@ export default function Dashboard({
     if (showQuickView && currentCashSession) {
       setActiveCashiers(getCashierSessions());
     }
-  }, [currentCashSession, showQuickView]);
+  }, [currentCashSession, showQuickView, getCashierSessions]);
 
   // Handle quick view close
   const handleQuickViewClose = () => {

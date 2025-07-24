@@ -65,7 +65,7 @@ export default function CashSessionShow({
   cashSession,
   currencies,
 }: CashSessionShowProps) {
-  console.log(cashSession);
+  // console.log(cashSession);
 
   // State for add cashbox modal
   const [showAddCashboxModal, setShowAddCashboxModal] = useState(false);
@@ -175,7 +175,7 @@ export default function CashSessionShow({
         [casherCashSessionId]:
           response.data.data.balances.system_closing_balances,
       }));
-      console.log(response.data.data.balances.system_closing_balances);
+      // console.log(response.data.data.balances.system_closing_balances);
     } catch (error) {
       console.error('Error fetching cashier balances:', error);
     } finally {

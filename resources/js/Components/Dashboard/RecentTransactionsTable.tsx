@@ -405,61 +405,56 @@ export default function RecentTransactionsTable({
                     </TableCell>
                     <TableCell>{getStatusChip(transaction.status)}</TableCell>
                     <TableCell>
-                      <Dropdown>
-                        <DropdownTrigger>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            isLoading={isUpdating}
-                            isDisabled={
-                              isUpdating || !isSessionActive || isSessionPending
-                            }
-                          >
-                            {isUpdating
-                              ? ''
-                              : isSessionPending
-                                ? 'جلسة معلقة'
-                                : !isSessionActive
-                                  ? 'غير متاح'
-                                  : 'الإجراءات'}
-                          </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu
-                          aria-label="Transaction actions"
-                          onAction={key => {
-                            if (key === 'complete' || key === 'cancel') {
-                              updateTransactionStatus(
-                                transaction.id,
-                                key as 'complete' | 'cancel',
-                              );
-                            } else if (key === 'edit') {
-                              handleEditTransaction(transaction.id);
-                            }
+                      <div className="flex gap-2">
+                        <Button
+                          color="success"
+                          size="sm"
+                          isLoading={isUpdating}
+                          isDisabled={isUpdating || !isSessionActive || isSessionPending}
+                          onClick={e => {
+                            e.stopPropagation();
+                            updateTransactionStatus(transaction.id, 'complete');
                           }}
                         >
-                          <DropdownItem
-                            key="edit"
-                            color="primary"
-                            description="تعديل تفاصيل المعاملة"
-                          >
-                            تعديل المعاملة
-                          </DropdownItem>
-                          <DropdownItem
-                            key="complete"
-                            color="success"
-                            description="تأكيد إكمال المعاملة"
-                          >
-                            تأكيد إكمال
-                          </DropdownItem>
-                          <DropdownItem
-                            key="cancel"
-                            color="danger"
-                            description="إلغاء المعاملة"
-                          >
-                            إلغاء المعاملة
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </Dropdown>
+                          {isUpdating
+                            ? 'جاري التأكيد...'
+                            : isSessionPending
+                            ? 'جلسة معلقة'
+                            : !isSessionActive
+                            ? 'غير متاح'
+                            : 'تأكيد'}
+                        </Button>
+                        <Button
+                          color="danger"
+                          size="sm"
+                          isLoading={isUpdating}
+                          isDisabled={isUpdating || !isSessionActive || isSessionPending}
+                          onClick={e => {
+                            e.stopPropagation();
+                            updateTransactionStatus(transaction.id, 'cancel');
+                          }}
+                        >
+                          {isUpdating
+                            ? 'جاري الإلغاء...'
+                            : isSessionPending
+                            ? 'جلسة معلقة'
+                            : !isSessionActive
+                            ? 'غير متاح'
+                            : 'إلغاء'}
+                        </Button>
+                        <Button
+                          color="primary"
+                          size="sm"
+                          variant="ghost"
+                          isDisabled={isUpdating || !isSessionActive || isSessionPending}
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleEditTransaction(transaction.id);
+                          }}
+                        >
+                          تعديل
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

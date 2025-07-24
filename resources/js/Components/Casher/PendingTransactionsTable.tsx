@@ -365,7 +365,7 @@ export default function PendingTransactionsTable({
             )
           }
         >
-          .{!isUnavailable && !isSessionPending
+          {!isUnavailable && !isSessionPending
             ? transactions
                 .filter(transaction => transaction && transaction.id)
                 .map(transaction => {

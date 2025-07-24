@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Currency, CashSession, User, Customer, Transaction } from '../types';
+import isEqual from 'lodash/isEqual';
 
 interface CashierBalance {
   currency_id: number;
@@ -81,11 +82,24 @@ export const useStatusPolling = (
             available_cashers: fetchedAvailableCashers = [],
           } = response.data.data;
 
-          setCurrentSession(current_session);
-          setCurrencies(fetchedCurrencies);
-          setTransactions(fetchedTransactions);
-          setCashiers(fetchedCashiers);
-          setAvailableCashers(fetchedAvailableCashers);
+          // Only update state if data has changed
+          setCurrentSession(prev =>
+            isEqual(prev, current_session) ? prev : current_session,
+          );
+          setCurrencies(prev =>
+            isEqual(prev, fetchedCurrencies) ? prev : fetchedCurrencies,
+          );
+          setTransactions(prev =>
+            isEqual(prev, fetchedTransactions) ? prev : fetchedTransactions,
+          );
+          setCashiers(prev =>
+            isEqual(prev, fetchedCashiers) ? prev : fetchedCashiers,
+          );
+          setAvailableCashers(prev =>
+            isEqual(prev, fetchedAvailableCashers)
+              ? prev
+              : fetchedAvailableCashers,
+          );
           setLastUpdated(new Date());
           setError(null);
         }

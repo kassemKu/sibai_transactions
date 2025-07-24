@@ -42,7 +42,7 @@ interface Props {
 }
 
 export default function Show({ transaction }: Props) {
-  console.log(transaction);
+  // console.log(transaction);
   // Check if transaction has calculated_converted_amount field for manual adjustment detection
   const isManuallyAdjusted = transaction.calculated_converted_amount
     ? transaction.converted_amount !== transaction.calculated_converted_amount

@@ -121,8 +121,8 @@ export default function CompaniesShow({
     }
   };
 
-  console.log(company);
-  console.log(transfers);
+  // console.log(company);
+  // console.log(transfers);
 
   return (
     <RootLayout
@@ -184,7 +184,7 @@ export default function CompaniesShow({
             <PrimaryButton
               className="bg-red-600 hover:bg-red-700 border-red-600"
               onClick={handleDelete}
-              isLoading={isDeleting}
+            //   isLoading={isDeleting}
               disabled={isDeleting}
             >
               حذف نهائي
