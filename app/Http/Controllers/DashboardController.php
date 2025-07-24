@@ -26,6 +26,7 @@ class DashboardController extends Controller
     {
         return inertia('Dashboard')->with([
             'companies' => Company::all(),
+            'currencies' => Currency::all()
         ]);
     }
 

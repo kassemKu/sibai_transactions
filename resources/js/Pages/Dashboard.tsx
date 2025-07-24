@@ -800,7 +800,7 @@ export default function Dashboard({
         isOpen={isCashierBoxModalOpen}
         onClose={handleCloseCashierBoxModal}
         cashierSession={selectedCashierSession}
-        currencies={currenciesState}
+        currencies={currencies}
         fetchBalancesApi={fetchCashierBoxBalances}
         stage={cashierBoxModalStage}
         onSubmitClose={handleSubmitCashierBoxClose}

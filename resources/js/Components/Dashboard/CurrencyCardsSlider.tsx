@@ -40,7 +40,7 @@ export default function CurrencyCardsSlider({
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-6">
-        <div className="text-bold-x18 text-text-black">
+        <div className="text-bold text-text-black">
           إليك أسعار العملات طبقاً للدولار الأمريكي
         </div>
         <div className="flex items-center gap-2">
@@ -115,7 +115,7 @@ export default function CurrencyCardsSlider({
           grabCursor={true}
           className="!overflow-visible"
         >
-          {currencies.shift() &&
+          {currencies &&
             currencies.map(currency => (
               <SwiperSlide key={currency.id}>
                 <CurrencyCard

@@ -101,11 +101,10 @@ export default function CurrencyCard({
 
   return (
     <Card
-      className={`currency-card border border-gray-200 hover:border-gray-300 bg-gradient-to-br from-white to-gray-50 w-[280px] transition-all duration-200 ${
-        isEditable
-          ? 'relative group hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
-          : 'cursor-grab active:cursor-grabbing'
-      }`}
+      className={`currency-card border border-gray-200 hover:border-gray-300 bg-gradient-to-br from-white to-gray-50 w-[280px] transition-all duration-200 ${isEditable
+        ? 'relative group hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
+        : 'cursor-grab active:cursor-grabbing'
+        }`}
       padding="xs"
     >
       {/* Clickable overlay for admins */}
