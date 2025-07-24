@@ -72,7 +72,7 @@ export default function TransferForm({
         type: transferType,
       };
 
-      await axios.post('/admin/transfers', payload);
+      await axios.post('/transfers', payload);
       toast.success('تم تنفيذ التحويل بنجاح');
       resetForm();
     } catch (error: any) {

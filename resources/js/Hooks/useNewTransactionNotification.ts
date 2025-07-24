@@ -54,9 +54,9 @@ export const useNewTransactionNotification = (
       : newPendingTransactions;
 
     if (externalPendingTransactions.length > 0) {
-      console.log(
-        `New external pending transactions detected: ${externalPendingTransactions.length}`,
-      );
+      // console.log(
+      //   `New external pending transactions detected: ${externalPendingTransactions.length}`,
+      // );
 
       // Play sound notification
       if (soundEnabled) {

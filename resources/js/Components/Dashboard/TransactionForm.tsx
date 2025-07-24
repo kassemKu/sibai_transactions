@@ -64,6 +64,7 @@ export default function TransactionForm({
   // Defensive fallback for formData
   formData = formData || {};
   const { roles } = usePage().props as any;
+  const isSuperAdmin = roles && (roles as string[]).includes('super_admin');
   const isAdmin =
     roles &&
     (roles as string[]).some(role => ['super_admin', 'admin'].includes(role));
@@ -78,7 +79,6 @@ export default function TransactionForm({
   const [isManualAmountEnabled, setIsManualAmountEnabled] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [internalIsSubmitting, setInternalIsSubmitting] = useState(false);
-  const [notes, setNotes] = useState(formData?.notes || '');
   // Remove: const [assignedTo, setAssignedTo] = useState(
   //   formData?.assignedTo ||
   //     (availableCashers.length > 0 ? availableCashers[0].id.toString() : ''),
@@ -110,6 +110,9 @@ export default function TransactionForm({
     amount: string;
   } | null>(null);
 
+  // 1. Add local isManualOverride state
+  const [isManualOverride, setIsManualOverride] = useState(false);
+
   // Load assignment rules from localStorage
   useEffect(() => {
     const savedRules = localStorage.getItem('transactionAssignmentRules');
@@ -130,12 +133,66 @@ export default function TransactionForm({
     );
   }, [assignmentRules]);
 
+  // Memoize onChange to prevent unnecessary re-renders in useEffect dependencies
+  const memoizedOnChange = useCallback(onChange, [onChange]);
+
+  // Memoize getMatchingAssignment to avoid unnecessary re-renders
+  const getMatchingAssignment = useCallback(() => {
+    if (!formData?.fromCurrency || !formData?.toCurrency) return null;
+    // Determine direction based on currency flow
+    const fromCurrencyObj = currencies.find(
+      c => c.id.toString() === formData?.fromCurrency,
+    );
+    const toCurrencyObj = currencies.find(
+      c => c.id.toString() === formData?.toCurrency,
+    );
+    if (!fromCurrencyObj || !toCurrencyObj) return null;
+    // Find matching rule
+    const matchingRule = assignmentRules.find(rule => {
+      if (rule.direction === 'spend') {
+        return rule.currency_id.toString() === formData?.toCurrency;
+      } else {
+        return rule.currency_id.toString() === formData?.fromCurrency;
+      }
+    });
+    return matchingRule;
+  }, [
+    formData?.fromCurrency,
+    formData?.toCurrency,
+    assignmentRules,
+    currencies,
+  ]);
+
   // Update assignedTo when availableCashers changes
   useEffect(() => {
-    if (availableCashers.length > 0 && !formData.assignedTo) {
-      onChange('assignedTo', availableCashers[0].id.toString());
+    // console.log(
+    //   '[useEffect: availableCashers/assignedTo] availableCashers:',
+    //   availableCashers,
+    //   'formData.assignedTo:',
+    //   formData.assignedTo,
+    //   'isManualOverride:',
+    //   isManualOverride,
+    // );
+    if (
+      availableCashers.length > 0 &&
+      !formData.assignedTo &&
+      !isManualOverride
+    ) {
+      const defaultId = availableCashers[0].id.toString();
+      if (formData.assignedTo !== defaultId) {
+            // console.log(
+            // '[useEffect: availableCashers/assignedTo] Setting assignedTo to',
+            // defaultId,
+            // );
+        memoizedOnChange('assignedTo', defaultId);
+      }
     }
-  }, [availableCashers, formData.assignedTo, onChange]);
+  }, [
+    availableCashers,
+    formData.assignedTo,
+    memoizedOnChange,
+    isManualOverride,
+  ]);
 
   // Update manual amount when calculated amount changes in edit mode
   useEffect(() => {
@@ -170,48 +227,38 @@ export default function TransactionForm({
     formData?.calculatedAmount,
   ]);
 
-  // Check if current transaction matches any assignment rule
-  const getMatchingAssignment = useCallback(() => {
-    if (!formData?.fromCurrency || !formData?.toCurrency) return null;
-
-    // Determine direction based on currency flow
-    const fromCurrencyObj = currencies.find(
-      c => c.id.toString() === formData?.fromCurrency,
-    );
-    const toCurrencyObj = currencies.find(
-      c => c.id.toString() === formData?.toCurrency,
-    );
-
-    if (!fromCurrencyObj || !toCurrencyObj) return null;
-
-    // Find matching rule
-    const matchingRule = assignmentRules.find(rule => {
-      // For spend: match when the currency is in "to" field (we're spending this currency)
-      // For receive: match when the currency is in "from" field (we're receiving this currency)
-      if (rule.direction === 'spend') {
-        return rule.currency_id.toString() === formData?.toCurrency;
-      } else {
-        return rule.currency_id.toString() === formData?.fromCurrency;
-      }
-    });
-
-    return matchingRule;
-  }, [
-    formData?.fromCurrency,
-    formData?.toCurrency,
-    assignmentRules,
-    currencies,
-  ]);
-
   // Auto-assign user based on rules
   useEffect(() => {
-    if (isAdmin && formData?.fromCurrency && formData?.toCurrency) {
+    // console.log(
+    //   '[useEffect: auto-assign] isAdmin:',
+    //   isAdmin,
+    //   'fromCurrency:',
+    //   formData?.fromCurrency,
+    //   'toCurrency:',
+    //   formData?.toCurrency,
+    //   'assignmentRules:',
+    //   assignmentRules,
+    //   'formData.assignedTo:',
+    //   formData.assignedTo,
+    //   'isManualOverride:',
+    //   isManualOverride,
+    // );
+    if (
+      isAdmin &&
+      formData?.fromCurrency &&
+      formData?.toCurrency &&
+      !isManualOverride
+    ) {
       const matchingRule = getMatchingAssignment();
       if (
         matchingRule &&
         formData.assignedTo !== matchingRule.user_id.toString()
       ) {
-        onChange('assignedTo', matchingRule.user_id.toString());
+        // console.log(
+        //   '[useEffect: auto-assign] Auto-assigning assignedTo to',
+        //   matchingRule.user_id.toString(),
+        // );
+        memoizedOnChange('assignedTo', matchingRule.user_id.toString());
       }
     }
   }, [
@@ -221,36 +268,61 @@ export default function TransactionForm({
     isAdmin,
     getMatchingAssignment,
     formData.assignedTo,
-    onChange,
+    memoizedOnChange,
+    isManualOverride,
   ]);
 
-  // Reset form
+  // 1. When currency changes, clear override and assign default
+  useEffect(() => {
+    setIsManualOverride(false);
+    const matchingRule = getMatchingAssignment();
+    if (
+      formData?.fromCurrency &&
+      formData?.toCurrency &&
+      matchingRule &&
+      formData.assignedTo !== matchingRule.user_id.toString()
+    ) {
+      memoizedOnChange('assignedTo', matchingRule.user_id.toString());
+    } else if (
+      formData?.fromCurrency &&
+      formData?.toCurrency &&
+      !matchingRule &&
+      formData.assignedTo
+    ) {
+      memoizedOnChange('assignedTo', '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData?.fromCurrency, formData?.toCurrency]);
+
+  // 2. When user selects a cashier, set manual override
+  const handleAssignedToChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setIsManualOverride(true);
+    memoizedOnChange('assignedTo', e.target.value);
+    // console.log(
+    //   '[Manual Override] assignedTo set to',
+    //   e.target.value,
+    //   'isManualOverride set to true',
+    // );
+  };
+
+  // 3. On submit or reset, clear override and assignedTo
   const resetForm = useCallback(
     (showToast = false, preserveHandler = true) => {
-      onChange('fromCurrency', '');
-      onChange('toCurrency', '');
-      onChange('amount', '');
-      onChange('calculatedAmount', '');
+      memoizedOnChange('fromCurrency', '');
+      memoizedOnChange('toCurrency', '');
+      memoizedOnChange('amount', '');
+      memoizedOnChange('calculatedAmount', '');
       setManualAmount('');
       setIsManualAmountEnabled(false);
-      setNotes('');
-
-      // Clear the last calculation reference
       lastCalculationRef.current = null;
-
-      // Only reset assignedTo if preserveHandler is false
-      if (!preserveHandler) {
-        onChange(
-          'assignedTo',
-          availableCashers.length > 0 ? availableCashers[0].id.toString() : '',
-        );
-      }
-
-      if (showToast) {
-        toast.success('تم إعادة تعيين النموذج');
-      }
+      setIsManualOverride(false);
+      memoizedOnChange('assignedTo', '');
+    //   console.log('[Reset] assignedTo cleared, isManualOverride set to false');
+    //   if (showToast) {
+    //     toast.success('تم إعادة تعيين النموذج');
+    //   }
     },
-    [onChange, availableCashers],
+    [memoizedOnChange, availableCashers],
   );
 
   // Set default currency values for admin
@@ -261,13 +333,13 @@ export default function TransactionForm({
         // Find USD currency for "From" default
         const usdCurrency = currencies.find(c => c.code === 'USD');
         if (usdCurrency) {
-          onChange('fromCurrency', usdCurrency.id.toString());
+          memoizedOnChange('fromCurrency', usdCurrency.id.toString());
         }
 
         // Find SYP currency for "To" default
         const sypCurrency = currencies.find(c => c.code === 'SYP');
         if (sypCurrency) {
-          onChange('toCurrency', sypCurrency.id.toString());
+          memoizedOnChange('toCurrency', sypCurrency.id.toString());
         }
       }
     }
@@ -276,7 +348,7 @@ export default function TransactionForm({
     currencies,
     formData?.fromCurrency,
     formData?.toCurrency,
-    onChange,
+    memoizedOnChange,
   ]);
 
   // Reset "To" currency if it becomes invalid when "From" currency changes
@@ -286,11 +358,11 @@ export default function TransactionForm({
       formData?.toCurrency &&
       formData?.fromCurrency === formData?.toCurrency
     ) {
-      onChange('toCurrency', '');
-      onChange('calculatedAmount', '');
+      memoizedOnChange('toCurrency', '');
+      memoizedOnChange('calculatedAmount', '');
       setManualAmount('');
     }
-  }, [formData?.fromCurrency, formData?.toCurrency, onChange]);
+  }, [formData?.fromCurrency, formData?.toCurrency, memoizedOnChange]);
 
   // Assignment settings handlers
   const handleAddRule = () => {
@@ -359,7 +431,7 @@ export default function TransactionForm({
       !formData?.amount ||
       parseFloat(formData?.amount) <= 0
     ) {
-      onChange('calculatedAmount', '');
+      memoizedOnChange('calculatedAmount', '');
       return;
     }
 
@@ -392,10 +464,10 @@ export default function TransactionForm({
       const newCalculatedAmount =
         response.data.data.calculation_result.converted_amount || '0';
 
-      onChange('calculatedAmount', newCalculatedAmount);
+      memoizedOnChange('calculatedAmount', newCalculatedAmount);
     } catch (error) {
       console.error('Error calculating currency:', error);
-      onChange('calculatedAmount', 'خطأ في الحساب');
+      memoizedOnChange('calculatedAmount', 'خطأ في الحساب');
 
       // Handle validation errors from backend
       if (axios.isAxiosError(error) && error.response?.data?.errors) {
@@ -426,7 +498,7 @@ export default function TransactionForm({
     formData?.fromCurrency,
     formData?.toCurrency,
     formData?.amount,
-    onChange,
+    memoizedOnChange,
   ]);
 
   // Debounced calculation effect
@@ -465,7 +537,7 @@ export default function TransactionForm({
   // Handle transaction execution
   const handleExecuteTransaction = useCallback(async () => {
     const finalAmount = getFinalAmount();
-
+    // console.log('[Submit] assignedTo being sent:', formData.assignedTo);
     if (
       !formData?.fromCurrency ||
       !formData?.toCurrency ||
@@ -498,10 +570,12 @@ export default function TransactionForm({
         toCurrency: formData?.toCurrency,
         amount: formData?.amount,
         calculatedAmount: finalAmount,
-        notes,
+        notes: formData.notes,
         assignedTo: formData.assignedTo,
       };
       onSubmit(formDataToSubmit);
+      setIsManualOverride(false);
+      memoizedOnChange('assignedTo', '');
       return;
     }
 
@@ -514,13 +588,15 @@ export default function TransactionForm({
         original_amount: parseFloat(formData?.amount),
         converted_amount: parseFloat(finalAmount), // Use the correct value (manual or calculated)
         customer_name: '', // You can add a customer name field later
-        ...(isAdmin && formData.assignedTo
-          ? { assigned_to: parseInt(formData.assignedTo) }
-          : {}),
-        ...(notes.trim() ? { notes: notes.trim() } : {}),
+        assigned_to: formData.assignedTo ? parseInt(formData.assignedTo) : '',
+        notes: formData.notes ?? '',
       };
 
-      const response = await axios.post('/admin/transactions', transactionData);
+      // Determine endpoint based on role
+      const endpoint = isSuperAdmin
+        ? '/admin/transactions'
+        : 'casher/transactions';
+      const response = await axios.post(endpoint, transactionData);
 
       if (response.data) {
         const selectedUser = availableCashers.find(
@@ -532,6 +608,8 @@ export default function TransactionForm({
         toast.success(
           `تم تنفيذ العملية بنجاح - سيتم الاحتفاظ بـ ${handlerName} للعملية التالية`,
         );
+        setIsManualOverride(false);
+        memoizedOnChange('assignedTo', '');
         resetForm(false, true); // Preserve the handler
       }
     } catch (error) {
@@ -573,14 +651,17 @@ export default function TransactionForm({
     formData?.amount,
     getFinalAmount,
     isAdmin,
+    isSuperAdmin,
     isSessionOpen,
     isSessionPending,
     resetForm,
     currencies,
     availableCashers,
-    notes,
+    formData.notes,
     isEditing,
     onSubmit,
+    memoizedOnChange,
+    setIsManualOverride,
   ]);
 
   // Helper function to format amount for display
@@ -760,7 +841,7 @@ export default function TransactionForm({
                     id="assigned_to"
                     aria-label="تعيين العملية إلى"
                     value={formData.assignedTo || ''}
-                    onChange={e => onChange('assignedTo', e.target.value)}
+                    onChange={handleAssignedToChange}
                     className="border-blue-300 focus:border-blue-500"
                     disabled={
                       isLoadingAvailableCashers || availableCashers.length === 0
@@ -807,7 +888,9 @@ export default function TransactionForm({
                   aria-label="اختر العملة المصدر"
                   placeholder="اختر العملة"
                   value={formData?.fromCurrency}
-                  onChange={e => onChange('fromCurrency', e.target.value)}
+                  onChange={e =>
+                    memoizedOnChange('fromCurrency', e.target.value)
+                  }
                   className="border-blue-200 focus:border-blue-500"
                 >
                   {currencies.map(currency => (
@@ -826,7 +909,9 @@ export default function TransactionForm({
                   placeholder="أدخل المبلغ"
                   className="w-full text-right"
                   value={formData?.amount}
-                  onValueChange={values => onChange('amount', values.value)}
+                  onValueChange={values =>
+                    memoizedOnChange('amount', values.value)
+                  }
                   min={0}
                   decimalScale={2}
                   thousandSeparator={true}
@@ -850,7 +935,7 @@ export default function TransactionForm({
                   aria-label="اختر العملة الهدف"
                   placeholder="اختر العملة"
                   value={formData?.toCurrency}
-                  onChange={e => onChange('toCurrency', e.target.value)}
+                  onChange={e => memoizedOnChange('toCurrency', e.target.value)}
                   className="border-blue-200 focus:border-blue-500"
                 >
                   <option value="">اختر العملة</option>
@@ -936,7 +1021,7 @@ export default function TransactionForm({
               id="notes"
               placeholder="أضف ملاحظة للعملية (اختياري)"
               value={formData.notes || ''}
-              onChange={e => onChange('notes', e.target.value)}
+              onChange={e => memoizedOnChange('notes', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
               rows={3}
               maxLength={255}

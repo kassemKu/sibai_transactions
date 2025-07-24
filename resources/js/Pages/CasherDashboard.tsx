@@ -15,10 +15,13 @@ import { toast } from 'react-hot-toast';
 import TransactionForm from '@/Components/Casher/TransactionForm';
 import PendingTransactionsTable from '@/Components/Casher/PendingTransactionsTable';
 import CurrencyCardsSlider from '@/Components/Dashboard/CurrencyCardsSlider';
+import TransferForm from '@/Components/Dashboard/TransferForm';
+import UnifiedFormComponent from '@/Components/Dashboard/UnifiedFormComponent';
 
 interface CasherDashboardProps {
   currencies: CurrenciesResponse;
   cashSessions: any;
+  companies: any[];
 }
 
 interface Cashier {
@@ -33,7 +36,7 @@ interface Cashier {
   has_active_session?: boolean;
 }
 
-const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
+const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
   const { auth, cash_session, roles } = usePage<InertiaSharedProps>().props;
 
   // Use unified status polling hook
@@ -42,6 +45,7 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
     currencies: currenciesState,
     transactions,
     availableCashers,
+    cashiers,
 
     isLoading: isInitialSessionLoading,
     isPolling,
@@ -54,6 +58,11 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [selectedCashier, setSelectedCashier] = useState<Cashier | null>(null);
 
+  // Add form type toggle state for transfer/transaction
+  const [formType, setFormType] = useState<'transaction' | 'transfer'>(
+    'transaction',
+  );
+
   const isSessionOpen = !!(
     currentCashSession && currentCashSession.status === 'active'
   );
@@ -61,11 +70,14 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
     currentCashSession && currentCashSession.status === 'pending'
   );
 
-  // Check if current user has an active cashier session
-  const currentUserCashier = currentCashSession?.casher_cash_sessions?.find(
-    (session: any) => session.casher?.id === auth?.user?.id,
-  );
-  const hasActiveCashierSession = currentUserCashier?.status === 'active';
+  // Find the current user in the cashiers array from /status API
+  const currentUserId = auth?.user?.id;
+  const currentUserCashier = cashiers.find(c => c.id === currentUserId) || null;
+  const hasActiveCashierSession = currentUserCashier?.has_active_session;
+  const isPresent = availableCashers?.some(u => u.id === currentUserId);
+
+  // Determine if user can transfer (if you have a field for this in the new API, otherwise keep as false or implement as needed)
+  const canTransfer = false; // TODO: Update if /status API provides this info
 
   // Check if user is admin (Admin Cashier)
   const isAdmin =
@@ -82,14 +94,10 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       currentUserEmail: auth?.user?.email, // Pass current user email to filter self-created transactions
     });
 
-  // Handle opening balance modal
+  // Handle opening balance modal using /status API cashier data
   const handleOpenBalanceModal = () => {
     if (currentUserCashier) {
-      setSelectedCashier({
-        ...currentUserCashier.casher,
-        system_balances: currentUserCashier.system_balances || [],
-        has_active_session: currentUserCashier.status === 'active',
-      });
+      setSelectedCashier(currentUserCashier);
       setShowBalanceModal(true);
     }
   };
@@ -99,10 +107,6 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
     setShowBalanceModal(false);
     setSelectedCashier(null);
   };
-
-  const currentUserId = auth?.user?.id;
-  const isPresent = availableCashers?.some(u => u.id === currentUserId);
-
   const handleSelfChangeStatus = async () => {
     try {
       const response = await axios.put('/casher/change-status');
@@ -295,15 +299,27 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       {/* Currency Cards Slider */}
       <CurrencyCardsSlider currencies={currenciesState} />
 
-      {/* Transaction Form */}
+      {/* Transaction/Transfer Form Toggle */}
       <div id="transaction-form">
-        <TransactionForm
-          currencies={currenciesState}
-          isSessionOpen={!!canPerformTransactions}
-          isSessionPending={!!isSessionPending}
-          availableCashers={availableCashers}
-          isUnavailable={!isPresent}
-        />
+        {canTransfer ? (
+          <UnifiedFormComponent
+            formType={formType}
+            setFormType={setFormType}
+            currencies={currenciesState}
+            companies={companies}
+            isSessionOpen={!!canPerformTransactions}
+            isSessionPending={!!isSessionPending}
+            availableCashers={availableCashers}
+          />
+        ) : (
+          <TransactionForm
+            currencies={currenciesState}
+            isSessionOpen={!!canPerformTransactions}
+            isSessionPending={!!isSessionPending}
+            availableCashers={availableCashers}
+            isUnavailable={!isPresent}
+          />
+        )}
       </div>
 
       {/* Pending Transactions Table */}

@@ -32,7 +32,9 @@ class DashboardController extends Controller
 
     public function casherDashboard()
     {
-        return inertia('CasherDashboard');
+        return inertia('CasherDashboard')->with([
+            'companies' => \App\Models\Company::all(),
+        ]);
     }
 
     public function getStatus()
