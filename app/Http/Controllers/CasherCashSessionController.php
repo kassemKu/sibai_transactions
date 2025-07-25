@@ -51,7 +51,7 @@ class CasherCashSessionController extends Controller
             foreach ($request->opening_balances as $balance) {
                 $currencyId = $balance['currency_id'];
                 $amount = $balance['amount'];
-                $available = $this->sessionService->getClosingBalanceForCurrency($request->session, $currencyId);
+                $available = $this->sessionService->getClosingBalanceForCurrency($request->session, $currencyId)['system_closing_balance'];
                 if ($available < $amount) {
                     return $this->failed('لا يوجد رصيد كافٍ للعملة رقم '.$currencyId.' (المتوفر: '.$available.', المطلوب: '.$amount.')');
                 }
