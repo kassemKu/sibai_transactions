@@ -26,7 +26,7 @@ class DashboardController extends Controller
     {
         return inertia('Dashboard')->with([
             'companies' => Company::all(),
-            'currencies' => Currency::all()
+            'currencies' => Currency::all(),
         ]);
     }
 
@@ -179,7 +179,6 @@ class DashboardController extends Controller
             ]);
         }
 
-
         // Debug: Log all users with their roles and is_active
         $allUsers = User::with('roles')->get()->map(function ($user) {
             return [
@@ -191,14 +190,12 @@ class DashboardController extends Controller
             ];
         });
 
-
         // Debug: Log all CasherCashSession records for the current session
         if ($session) {
             $allCasherSessions = \App\Models\CasherCashSession::where('cash_session_id', $session->id)->get();
         } else {
             $allCasherSessions = collect();
         }
-      
 
         $availableCashers = collect();
         if ($session) {
@@ -208,7 +205,7 @@ class DashboardController extends Controller
                 ->where('is_active', true)
                 ->whereHas('casherCashSessions', function ($q) use ($session) {
                     $q->where('cash_session_id', $session->id)
-                      ->whereIn('status', ['active', 'pending']);
+                        ->whereIn('status', ['active', 'pending']);
                 })
                 ->get();
 
@@ -220,12 +217,11 @@ class DashboardController extends Controller
                         $q->whereIn('name', ['casher', 'admin', 'super_admin']);
                     })
                     ->first();
-                if ($opener && !$availableCashers->contains('id', $opener->id)) {
+                if ($opener && ! $availableCashers->contains('id', $opener->id)) {
                     $availableCashers->push($opener);
                 }
             }
         }
-      
 
         return $this->success('تم جلب بيانات الجلسة النقدية الحالية بنجاح.', [
             'current_session' => $session,

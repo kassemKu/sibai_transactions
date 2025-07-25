@@ -92,6 +92,46 @@ class CashSessionService
         return $balances;
     }
 
+    public function getClosingBalanceForCurrency($session, $currencyId)
+    {
+        $currency = Currency::find($currencyId);
+
+        $opening = CashBalance::where('cash_session_id', $session->id)
+            ->where('currency_id', $currency->id)
+            ->first()
+            ->opening_balance ?? 0;
+
+        $totalIn = CashMovement::where('currency_id', $currency->id)
+            ->where('type', CashMovementTypeEnum::IN->value)
+            ->where('cash_session_id', $session->id)
+            ->where('sub', false)
+            ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
+            ->sum('amount');
+
+        $totalOut = CashMovement::where('currency_id', $currency->id)
+            ->where('type', CashMovementTypeEnum::OUT->value)
+            ->where('cash_session_id', $session->id)
+            ->where('sub', false)
+            ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
+            ->sum('amount');
+
+        $systemClosing = $opening + $totalIn - $totalOut;
+
+        return [
+            'currency_id' => $currency->id,
+            'currency' => [
+                'id' => $currency->id,
+                'name' => $currency->name,
+                'code' => $currency->code,
+                'rate_to_usd' => $currency->rate_to_usd,
+            ],
+            'opening_balance' => $opening,
+            'total_in' => $totalIn,
+            'total_out' => $totalOut,
+            'system_closing_balance' => $systemClosing,
+        ];
+    }
+
     protected function getCurrentExchangeRates()
     {
         return Currency::get()

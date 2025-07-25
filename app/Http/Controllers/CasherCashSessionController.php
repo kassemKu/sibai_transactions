@@ -9,17 +9,20 @@ use App\Models\CashBalance;
 use App\Models\CasherCashSession;
 use App\Models\CashSession;
 use App\Services\CasherCashSessionService;
-use App\Services\TransactionService;
+use App\Services\CashSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CasherCashSessionController extends Controller
 {
-    protected $service;
+    protected $casherSessionService;
 
-    public function __construct(CasherCashSessionService $service)
+    protected $sessionService;
+
+    public function __construct(CasherCashSessionService $casherSessionService, CashSessionService $sessionService)
     {
-        $this->service = $service;
+        $this->casherSessionService = $casherSessionService;
+        $this->sessionService = $sessionService;
     }
 
     public function index()
@@ -42,19 +45,19 @@ class CasherCashSessionController extends Controller
         ]);
     }
 
-    public function open(OpenCasherCashSessionRequest $request, TransactionService $service): JsonResponse
+    public function open(OpenCasherCashSessionRequest $request): JsonResponse
     {
         try {
             foreach ($request->opening_balances as $balance) {
                 $currencyId = $balance['currency_id'];
                 $amount = $balance['amount'];
-                $available = $service->getCurrencyAvailableBalance($currencyId);
+                $available = $this->sessionService->getClosingBalanceForCurrency($request->session, $currencyId);
                 if ($available < $amount) {
                     return $this->failed('لا يوجد رصيد كافٍ للعملة رقم '.$currencyId.' (المتوفر: '.$available.', المطلوب: '.$amount.')');
                 }
             }
 
-            $cashSession = $this->service->openCashSession($request);
+            $cashSession = $this->casherSessionService->openCashSession($request);
 
             return $this->success('تم فتح الجلسة النقدية بنجاح.', [
                 'cash_session' => $cashSession,
@@ -69,7 +72,7 @@ class CasherCashSessionController extends Controller
     public function getClosingBalances(CasherCashSession $casherCashSession, Request $request): JsonResponse
     {
         try {
-            $balances = $this->service->getClosingBalances($casherCashSession);
+            $balances = $this->casherSessionService->getClosingBalances($casherCashSession);
 
             return $this->success('تم جلب أرصدة الإغلاق بنجاح.', [
                 'balances' => $balances,
@@ -102,7 +105,7 @@ class CasherCashSessionController extends Controller
     public function close(CloseCasherCashSessionRequest $request, CasherCashSession $casherCashSession): JsonResponse
     {
         try {
-            $result = $this->service->getClosingBalances($casherCashSession);
+            $result = $this->casherSessionService->getClosingBalances($casherCashSession);
 
             $systemBalances = collect($result['system_closing_balances'] ?? [])->map(function ($balance) {
                 return [

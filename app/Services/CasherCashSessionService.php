@@ -14,9 +14,9 @@ use Illuminate\Support\Facades\DB;
 
 class CasherCashSessionService
 {
-    public function getClosingBalanceForCurrency($session, $casherSession, $currencyId)
+    public function getClosingBalanceForCurrency($casherSession, $currencyId)
     {
-        return DB::transaction(function () use ($session, $casherSession, $currencyId) {
+        return DB::transaction(function () use ($casherSession, $currencyId) {
             $currency = Currency::find($currencyId);
             if (! $currency) {
                 return null;
@@ -28,14 +28,14 @@ class CasherCashSessionService
             $totalIn = CashMovement::where('currency_id', $currency->id)
                 ->where('by', $casherSession->casher_id)
                 ->where('type', CashMovementTypeEnum::IN->value)
-                ->where('cash_session_id', $session->id)
+                ->where('cash_session_id', $casherSession->cash_session_id)
                 ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->sum('amount');
 
             $totalOut = CashMovement::where('currency_id', $currency->id)
                 ->where('by', $casherSession->casher_id)
                 ->where('type', CashMovementTypeEnum::OUT->value)
-                ->where('cash_session_id', $session->id)
+                ->where('cash_session_id', $casherSession->cash_session_id)
                 ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
                 ->sum('amount');
 
