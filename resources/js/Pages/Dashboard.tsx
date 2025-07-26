@@ -3,10 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
-import {
-  CurrenciesResponse,
-  Currency,
-} from '@/types';
+import { CurrenciesResponse, Currency } from '@/types';
 import { usePage, router } from '@inertiajs/react';
 import useRoute from '@/Hooks/useRoute';
 import { useStatusPolling } from '@/Hooks/useStatusPolling';
@@ -22,12 +19,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import PendingTransactionsConfirmModal from '@/Components/PendingTransactionsConfirmModal';
 import AddCashboxModal from '@/Components/AddCashboxModal';
 import DialogModal from '@/Components/DialogModal';
-import {
-  FiUsers,
-  FiEye,
-  FiClock,
-  FiRefreshCw,
-} from 'react-icons/fi';
+import { FiUsers, FiEye, FiClock, FiRefreshCw } from 'react-icons/fi';
 import { Chip } from '@heroui/react';
 import CashierBoxModal from '@/Components/Casher/CashierBoxModal';
 import UnifiedFormComponent from '@/Components/Dashboard/UnifiedFormComponent';
@@ -96,6 +88,9 @@ export default function Dashboard({
     'view' | 'pending' | 'closing'
   >('view');
   const [isCashierBoxSubmitting, setIsCashierBoxSubmitting] = useState(false);
+
+  // Add session key state to trigger assignment rules reset when session changes
+  const [sessionKey, setSessionKey] = useState<string>('');
 
   // Use unified status polling hook
   const {
@@ -315,6 +310,9 @@ export default function Dashboard({
     // Close modal first
     setShowCloseModal(false);
 
+    // Update session key to trigger assignment rules reset
+    setSessionKey(`session-${Date.now()}`);
+
     // Refetch status to update local state (with a slight delay to ensure modal is fully closed)
     setTimeout(() => {
       refetch();
@@ -431,9 +429,9 @@ export default function Dashboard({
         setSelectedCashierSession((prev: any) =>
           prev
             ? {
-              ...prev,
-              status: 'pending',
-            }
+                ...prev,
+                status: 'pending',
+              }
             : null,
         );
 
@@ -469,6 +467,14 @@ export default function Dashboard({
         },
       );
       toast.success('تم إغلاق صندوق الصراف بنجاح');
+
+      // Clear assignment rules from localStorage when cashier session is closed
+      localStorage.setItem('transactionAssignmentRules', JSON.stringify([]));
+      console.log(
+        '[Cashier Session Close] Assignment rules cleared from localStorage',
+      );
+      toast.success('تم مسح قواعد التعيين التلقائي مع إغلاق صندوق الصراف');
+
       setIsCashierBoxModalOpen(false);
       setSelectedCashierSession(null);
       setCashierBoxModalStage('view');
@@ -638,6 +644,7 @@ export default function Dashboard({
             isSessionPending={!!isSessionPending}
             onStartSession={handleOpenSession}
             availableCashers={availableCashers}
+            sessionKey={sessionKey}
           />
         )}
       </div>

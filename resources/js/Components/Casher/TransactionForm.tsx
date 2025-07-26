@@ -31,6 +31,7 @@ interface TransactionFormProps {
   isSessionPending?: boolean;
   availableCashers?: User[];
   isUnavailable?: boolean;
+  sessionKey?: string;
 }
 
 export default function TransactionForm({
@@ -39,6 +40,7 @@ export default function TransactionForm({
   isSessionPending = false,
   availableCashers = [],
   isUnavailable = false,
+  sessionKey,
 }: TransactionFormProps) {
   const { roles } = usePage().props as any;
   const isAdmin = roles && (roles as string[]).includes('admin');
@@ -79,6 +81,20 @@ export default function TransactionForm({
     }
   }, []);
 
+  // Set default currency for assignment rules form
+  useEffect(() => {
+    if (currencies && currencies.length > 0 && !newRule.currency_id) {
+      // Find USD currency for default
+      const usdCurrency = currencies.find(c => c.code === 'USD');
+      if (usdCurrency) {
+        setNewRule(prev => ({
+          ...prev,
+          currency_id: usdCurrency.id.toString(),
+        }));
+      }
+    }
+  }, [currencies, newRule.currency_id]);
+
   // Save assignment rules to localStorage
   useEffect(() => {
     localStorage.setItem(
@@ -87,12 +103,80 @@ export default function TransactionForm({
     );
   }, [assignmentRules]);
 
+  // Auto-cleanup assignment rules when cashiers become unavailable
+  useEffect(() => {
+    if (
+      assignmentRules.length > 0 &&
+      availableCashers &&
+      availableCashers.length > 0
+    ) {
+      const availableCashierIds = new Set(
+        availableCashers.map(cashier => cashier.id),
+      );
+      const validRules = assignmentRules.filter(rule =>
+        availableCashierIds.has(rule.user_id),
+      );
+
+      // If any rules were filtered out, update the state
+      if (validRules.length !== assignmentRules.length) {
+        const removedRulesCount = assignmentRules.length - validRules.length;
+        console.log(
+          `[Assignment Cleanup] Removed ${removedRulesCount} assignment rule(s) for unavailable cashiers`,
+        );
+        setAssignmentRules(validRules);
+
+        // Show a toast notification if rules were removed
+        if (removedRulesCount > 0) {
+          toast.success(
+            `تم إزالة ${removedRulesCount} قاعدة تعيين للصرافين غير المتاحين`,
+          );
+        }
+      }
+    }
+  }, [availableCashers]); // Remove assignmentRules from dependencies to prevent infinite loop
+
   // Update assignedTo when availableCashers changes
   useEffect(() => {
+    // Check if currently assigned cashier is still available
+    if (assignedTo && availableCashers.length > 0) {
+      const currentAssignedCashier = availableCashers.find(
+        cashier => cashier.id.toString() === assignedTo,
+      );
+
+      // If currently assigned cashier is no longer available, reset assignment
+      if (!currentAssignedCashier) {
+        console.log(
+          '[Assignment Reset] Currently assigned cashier is no longer available, resetting assignment',
+        );
+        setAssignedTo('');
+        toast.success('تم إعادة تعيين الصراف المختار لأنه لم يعد متاحاً');
+        return; // Return early to let the next condition handle the default assignment
+      }
+    }
+
+    // Set default assignment if none is set
     if (availableCashers.length > 0 && !assignedTo) {
       setAssignedTo(availableCashers[0].id.toString());
     }
   }, [availableCashers, assignedTo]);
+
+  // Reset assignment rules when sessionKey changes
+  useEffect(() => {
+    if (sessionKey) {
+      const savedRules = localStorage.getItem('transactionAssignmentRules');
+      if (savedRules) {
+        try {
+          const parsedRules = JSON.parse(savedRules);
+          setAssignmentRules(parsedRules);
+        } catch (error) {
+          console.error('Error loading assignment rules:', error);
+          setAssignmentRules([]);
+        }
+      } else {
+        setAssignmentRules([]);
+      }
+    }
+  }, [sessionKey]);
 
   // Check if current transaction matches any assignment rule
   const getMatchingAssignment = useCallback(() => {
@@ -158,8 +242,12 @@ export default function TransactionForm({
 
   // Assignment settings handlers
   const handleAddRule = () => {
-    if (!newRule.currency_id || !newRule.user_id) {
-      toast.error('يرجى ملء جميع الحقول المطلوبة');
+    if (!newRule.currency_id) {
+      toast.error('يرجى اختيار العملة');
+      return;
+    }
+    if (!newRule.user_id) {
+      toast.error('يرجى اختيار المستخدم');
       return;
     }
 
@@ -211,7 +299,7 @@ export default function TransactionForm({
 
   const handleClearAllSettings = () => {
     setAssignmentRules([]);
-    localStorage.removeItem('transactionAssignmentRules');
+    localStorage.setItem('transactionAssignmentRules', JSON.stringify([]));
     toast.success('تم مسح جميع إعدادات التعيين');
   };
 
@@ -744,7 +832,6 @@ export default function TransactionForm({
                       value={toCurrency}
                       onChange={e => setToCurrency(e.target.value)}
                     >
-                
                       {availableToCurrencies.map(currency => (
                         <option key={currency.id} value={currency.id}>
                           {currency.name} ({currency.code})

@@ -360,6 +360,14 @@ export default function CashSessionShow({
         },
       );
       toast.success('تم إغلاق صندوق الصراف بنجاح');
+
+      // Clear assignment rules from localStorage when cashier session is closed
+      localStorage.setItem('transactionAssignmentRules', JSON.stringify([]));
+      console.log(
+        '[Cashier Session Close] Assignment rules cleared from localStorage',
+      );
+      toast.success('تم مسح قواعد التعيين التلقائي مع إغلاق صندوق الصراف');
+
       setIsCashierBoxModalOpen(false);
       setSelectedCashierSession(null);
       setCashierBoxModalStage('view');

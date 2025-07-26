@@ -18,6 +18,7 @@ interface UnifiedFormComponentProps {
   isSessionPending: boolean;
   onStartSession?: () => void;
   availableCashers?: User[];
+  sessionKey?: string;
 }
 
 export default function UnifiedFormComponent({
@@ -29,6 +30,7 @@ export default function UnifiedFormComponent({
   isSessionPending,
   onStartSession,
   availableCashers = [],
+  sessionKey,
 }: UnifiedFormComponentProps) {
   // Add local state for formData and onChange handler
   const [formData, setFormData] = useState({
@@ -130,6 +132,7 @@ export default function UnifiedFormComponent({
               availableCashers={availableCashers}
               formData={formData}
               onChange={handleFormDataChange}
+              sessionKey={sessionKey}
             />
           ) : (
             <TransferForm

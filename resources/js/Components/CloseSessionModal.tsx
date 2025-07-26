@@ -234,6 +234,13 @@ export default function CloseSessionModal({
       if (response.data.status || response.data.success) {
         toast.success('تم إغلاق الجلسة النقدية بنجاح');
 
+        // Clear assignment rules from localStorage when session is closed
+        localStorage.setItem('transactionAssignmentRules', JSON.stringify([]));
+        console.log(
+          '[Session Close] Assignment rules cleared from localStorage',
+        );
+        toast.success('تم مسح قواعد التعيين التلقائي مع إغلاق الجلسة');
+
         // Clean up modal state first
         setBalances([]);
         setActualAmounts({});

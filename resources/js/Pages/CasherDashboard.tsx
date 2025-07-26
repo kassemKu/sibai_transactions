@@ -63,6 +63,16 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
     'transaction',
   );
 
+  // Add session key state to trigger assignment rules reset when session changes
+  const [sessionKey, setSessionKey] = useState<string>('');
+
+  // Update session key when session status changes
+  useEffect(() => {
+    if (currentCashSession) {
+      setSessionKey(`session-${currentCashSession.id}-${currentCashSession.status}-${Date.now()}`);
+    }
+  }, [currentCashSession?.id, currentCashSession?.status]);
+
   const isSessionOpen = !!(
     currentCashSession && currentCashSession.status === 'active'
   );
@@ -310,6 +320,7 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
             isSessionOpen={!!canPerformTransactions}
             isSessionPending={!!isSessionPending}
             availableCashers={availableCashers}
+            sessionKey={sessionKey}
           />
         ) : (
           <TransactionForm
@@ -318,6 +329,7 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
             isSessionPending={!!isSessionPending}
             availableCashers={availableCashers}
             isUnavailable={!isPresent}
+            sessionKey={sessionKey}
           />
         )}
       </div>
