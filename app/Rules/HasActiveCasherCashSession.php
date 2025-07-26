@@ -16,6 +16,12 @@ class HasActiveCasherCashSession implements ValidationRule
 
             return;
         }
+
+        // Allow super_admin to pass
+        if ($user->hasRole('super_admin')) {
+            return;
+        }
+
         $lastSession = $user->casherCashSessions()->latest()->first();
         if (! ($lastSession && $lastSession->status === CashSessionEnum::ACTIVE->value)) {
             $fail('لا يوجد لدى المستخدم المعين جلسة نقدية نشطة.');
