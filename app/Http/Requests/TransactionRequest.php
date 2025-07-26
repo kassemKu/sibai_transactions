@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\HasActiveCasherCashSession;
 use App\Rules\SufficientBalance;
 use App\Services\TransactionService;
 use Illuminate\Foundation\Http\FormRequest;
@@ -33,7 +34,11 @@ class TransactionRequest extends FormRequest
         return [
             'from_currency_id' => 'required|exists:currencies,id',
             'to_currency_id' => 'required|exists:currencies,id',
-            'assigned_to' => 'required|exists:users,id',
+            'assigned_to' => [
+                'required',
+                'exists:users,id',
+                new HasActiveCasherCashSession,
+            ],
             'original_amount' => [
                 'required',
                 'numeric',

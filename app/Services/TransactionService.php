@@ -62,11 +62,8 @@ class TransactionService
         ];
     }
 
-    public function calculateProfitsFromConvertedAmount(
-        int $fromCurrencyId,
-        int $toCurrencyId,
-        float $convertedAmount
-    ): array {
+    public function calculateProfitsFromConvertedAmount(int $fromCurrencyId, int $toCurrencyId, float $convertedAmount): array
+    {
         $fromCurrency = Currency::findOrFail($fromCurrencyId);
         $toCurrency = Currency::findOrFail($toCurrencyId);
 
