@@ -175,29 +175,69 @@ class TransactionService
         });
     }
 
-    public function getCurrencyAvailableBalance($currencyId)
+    // public function getCurrencyAvailableBalance($currencyId)
+    // {
+    //     $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])->first();
+    //     if (! $session) {
+    //         throw new \Exception('No open cash session found.');
+    //     }
+
+    //     $opening = CashBalance::where('cash_session_id', $session->id)
+    //         ->where('currency_id', $currencyId)
+    //         ->first()
+    //         ->opening_balance ?? 0;
+
+    //     $totalIn = CashMovement::where('currency_id', $currencyId)
+    //         ->whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
+    //         ->where('type', CashMovementTypeEnum::IN->value)
+    //         ->sum('amount');
+
+    //     $totalOut = CashMovement::where('currency_id', $currencyId)
+    //         ->whereHas('transaction', fn($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
+    //         ->where('type', CashMovementTypeEnum::OUT->value)
+    //         ->sum('amount');
+
+    //     return $opening + $totalIn - $totalOut;
+    // }
+
+    public function getCurrencyAvailableBalance($currencyId, $session)
     {
-        $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])->first();
-        if (! $session) {
-            throw new \Exception('No open cash session found.');
-        }
+        $currency = Currency::find($currencyId);
 
         $opening = CashBalance::where('cash_session_id', $session->id)
-            ->where('currency_id', $currencyId)
+            ->where('currency_id', $currency->id)
             ->first()
             ->opening_balance ?? 0;
 
-        $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
-            ->where('currency_id', $currencyId)
+        $totalIn = CashMovement::where('currency_id', $currency->id)
             ->where('type', CashMovementTypeEnum::IN->value)
+            ->where('cash_session_id', $session->id)
+            ->where('sub', false)
+            ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
             ->sum('amount');
 
-        $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id)->where('status', TransactionStatusEnum::COMPLETED->value))
-            ->where('currency_id', $currencyId)
+        $totalOut = CashMovement::where('currency_id', $currency->id)
             ->where('type', CashMovementTypeEnum::OUT->value)
+            ->where('cash_session_id', $session->id)
+            ->where('sub', false)
+            ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
             ->sum('amount');
 
-        return $opening + $totalIn - $totalOut;
+        $systemClosing = $opening + $totalIn - $totalOut;
+
+        return [
+            'currency_id' => $currency->id,
+            'currency' => [
+                'id' => $currency->id,
+                'name' => $currency->name,
+                'code' => $currency->code,
+                'rate_to_usd' => $currency->rate_to_usd,
+            ],
+            'opening_balance' => $opening,
+            'total_in' => $totalIn,
+            'total_out' => $totalOut,
+            'system_closing_balance' => $systemClosing,
+        ];
     }
 
     public function hasSufficientBalance($currencyId, $amount)

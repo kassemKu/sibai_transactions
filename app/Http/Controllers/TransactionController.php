@@ -7,6 +7,7 @@ use App\Http\Requests\TransactionCalculateRequest;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
 use App\Services\TransactionService;
+use Illuminate\Http\Request;
 
 class TransactionController extends Controller
 {
@@ -52,10 +53,11 @@ class TransactionController extends Controller
         }
     }
 
-    public function completeStatus(Transaction $transaction)
+    public function completeStatus(Request $request, Transaction $transaction)
     {
         try {
-            if ($this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id) < $transaction->converted_amount) {
+            $availableBalance = $this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id, $request->session)['system_closing_balance'];
+            if ($availableBalance < $transaction->converted_amount) {
                 return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
             }
 
