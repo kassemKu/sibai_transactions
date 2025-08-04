@@ -57,10 +57,9 @@ class TransactionController extends Controller
     {
         try {
             $availableBalance = $this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id, $request->session)['system_closing_balance'];
-            // if ($availableBalance < $transaction->converted_amount) {
-            //     return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
-            // }
-            dd($availableBalance);
+            if ($availableBalance < $transaction->converted_amount) {
+                return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
+            }
 
             $transaction->update([
                 'status' => TransactionStatusEnum::COMPLETED->value,
