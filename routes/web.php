@@ -103,10 +103,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::resource('/transfers', TransferController::class)->except(['store']);
     });
 
-    Route::group(['middleware' => ['role:casher|admin'], 'prefix' => 'casher'], function () {
+    Route::group(['middleware' => ['role:casher|admin'], 'prefix' => 'casher', 'middleware' => EnsureIsActiveCasherCashSession::class], function () {
         Route::get('/', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
-        Route::post('/transactions', [CasherTransactionController::class, 'store'])->middleware(EnsureIsActiveCasherCashSession::class);
-        Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware([EnsurePendingTransaction::class, EnsureIsActiveCasherCashSession::class]);
-        Route::put('/change-status', [UserController::class, 'casherChangeStatus'])->middleware(EnsureIsActiveCasherCashSession::class);
+        Route::post('/transactions', [CasherTransactionController::class, 'store']);
+        Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware(EnsurePendingTransaction::class);
+        Route::put('/change-status', [UserController::class, 'casherChangeStatus']);
     });
 });
