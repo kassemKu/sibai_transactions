@@ -66,8 +66,6 @@ class TransactionController extends Controller
                 'closed_by' => auth()->id(),
             ]);
 
-            // $this->transactionService->confirmCashMovement($transaction);
-
             return $this->success('تم تغيير حالة المعاملة إلى مكتملة.', [
                 'transaction' => $transaction->refresh(),
             ]);
@@ -146,7 +144,6 @@ class TransactionController extends Controller
                 'createdBy',
                 'closedBy',
                 'assignedTo',
-                'cashMovements',
             ]),
         ]);
     }

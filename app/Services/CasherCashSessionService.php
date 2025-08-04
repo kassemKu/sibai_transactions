@@ -2,12 +2,10 @@
 
 namespace App\Services;
 
-use App\Enums\CashMovementTypeEnum;
 use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
 use App\Models\CashBalance;
 use App\Models\CasherCashSession;
-use App\Models\CashMovement;
 use App\Models\Currency;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\Auth;
@@ -25,20 +23,6 @@ class CasherCashSessionService
 
             $openingBalances = collect($casherSession->opening_balances)->keyBy('currency_id');
             $opening = $openingBalances[$currency->id]['amount'] ?? 0;
-
-            // $totalIn = CashMovement::where('currency_id', $currency->id)
-            //     ->where('by', $casherSession->casher_id)
-            //     ->where('type', CashMovementTypeEnum::IN->value)
-            //     ->where('cash_session_id', $casherSession->cash_session_id)
-            //     ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-            //     ->sum('amount');
-
-            // $totalOut = CashMovement::where('currency_id', $currency->id)
-            //     ->where('by', $casherSession->casher_id)
-            //     ->where('type', CashMovementTypeEnum::OUT->value)
-            //     ->where('cash_session_id', $casherSession->cash_session_id)
-            //     ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-            //     ->sum('amount');
 
             $totalIn = Transaction::where('from_currency_id', $currency->id)
                 ->where('cash_session_id', $casherSession->cash_session_id)
@@ -110,20 +94,6 @@ class CasherCashSessionService
 
             foreach ($currencies as $currency) {
                 $opening = $openingBalances[$currency->id]['amount'] ?? 0;
-
-                // $totalIn = CashMovement::where('currency_id', $currency->id)
-                //     ->where('by', $casherSession->casher_id)
-                //     ->where('type', CashMovementTypeEnum::IN->value)
-                //     ->where('cash_session_id', $casherSession->cash_session_id)
-                //     ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-                //     ->sum('amount');
-
-                // $totalOut = CashMovement::where('currency_id', $currency->id)
-                //     ->where('by', $casherSession->casher_id)
-                //     ->where('type', CashMovementTypeEnum::OUT->value)
-                //     ->where('cash_session_id', $casherSession->cash_session_id)
-                //     ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-                //     ->sum('amount');
 
                 $totalIn = Transaction::where('from_currency_id', $currency->id)
                     ->where('cash_session_id', $casherSession->cash_session_id)

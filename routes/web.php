@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Casher\TransactionController as CasherTransactionController;
 use App\Http\Controllers\CasherCashSessionController;
-use App\Http\Controllers\CashMovementController;
 use App\Http\Controllers\CashSessionController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CurrencyController;
@@ -78,9 +77,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
             Route::get('/casher-cash-sessions/{casherCashSession}', 'show')->name('casher_cash_sessions.show');
             Route::get('/get-closing-balances/{casherCashSession}', 'getClosingBalances');
         });
-
-        // CashMovementController
-        Route::get('/casher-cash-movements', [CashMovementController::class, 'getCasherCashMovements']);
 
         // UserController
         Route::controller(UserController::class)->group(function () {
