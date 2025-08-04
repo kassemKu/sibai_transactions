@@ -122,58 +122,58 @@ class TransactionService
         return $transaction;
     }
 
-    public function confirmCashMovement(Transaction $transaction)
-    {
-        DB::transaction(function () use ($transaction) {
+    // public function confirmCashMovement(Transaction $transaction)
+    // {
+    //     DB::transaction(function () use ($transaction) {
 
-            CashMovement::create([
-                'transaction_id' => $transaction->id,
-                'currency_id' => $transaction->from_currency_id,
-                'type' => CashMovementTypeEnum::IN->value,
-                'amount' => $transaction->original_amount,
-                'cash_session_id' => $transaction->cash_session_id,
-                'exchange_rate' => $transaction->from_currency_rates_snapshot['buy_rate_to_usd'],
-                'by' => $transaction->created_by,
-                'sub' => $transaction->created_by != $transaction->closed_by, // Only mark as sub if created and closed by different users
-            ]);
+    //         CashMovement::create([
+    //             'transaction_id' => $transaction->id,
+    //             'currency_id' => $transaction->from_currency_id,
+    //             'type' => CashMovementTypeEnum::IN->value,
+    //             'amount' => $transaction->original_amount,
+    //             'cash_session_id' => $transaction->cash_session_id,
+    //             'exchange_rate' => $transaction->from_currency_rates_snapshot['buy_rate_to_usd'],
+    //             'by' => $transaction->created_by,
+    //             'sub' => $transaction->created_by != $transaction->closed_by, // Only mark as sub if created and closed by different users
+    //         ]);
 
-            CashMovement::create([
-                'transaction_id' => $transaction->id,
-                'currency_id' => $transaction->to_currency_id,
-                'type' => CashMovementTypeEnum::OUT->value,
-                'amount' => $transaction->converted_amount,
-                'cash_session_id' => $transaction->cash_session_id,
-                'exchange_rate' => $transaction->to_currency_rates_snapshot['sell_rate_to_usd'],
-                'by' => $transaction->closed_by,
-            ]);
-        });
-    }
+    //         CashMovement::create([
+    //             'transaction_id' => $transaction->id,
+    //             'currency_id' => $transaction->to_currency_id,
+    //             'type' => CashMovementTypeEnum::OUT->value,
+    //             'amount' => $transaction->converted_amount,
+    //             'cash_session_id' => $transaction->cash_session_id,
+    //             'exchange_rate' => $transaction->to_currency_rates_snapshot['sell_rate_to_usd'],
+    //             'by' => $transaction->closed_by,
+    //         ]);
+    //     });
+    // }
 
-    public function confirmCasherCashMovement(Transaction $transaction)
-    {
-        DB::transaction(function () use ($transaction) {
-            CashMovement::create([
-                'transaction_id' => $transaction->id,
-                'currency_id' => $transaction->from_currency_id,
-                'type' => CashMovementTypeEnum::IN->value,
-                'amount' => $transaction->original_amount,
-                'cash_session_id' => $transaction->cash_session_id,
-                'exchange_rate' => $transaction->from_currency_rates_snapshot['buy_rate_to_usd'],
-                'by' => $transaction->created_by,
-            ]);
+    // public function confirmCasherCashMovement(Transaction $transaction)
+    // {
+    //     DB::transaction(function () use ($transaction) {
+    //         CashMovement::create([
+    //             'transaction_id' => $transaction->id,
+    //             'currency_id' => $transaction->from_currency_id,
+    //             'type' => CashMovementTypeEnum::IN->value,
+    //             'amount' => $transaction->original_amount,
+    //             'cash_session_id' => $transaction->cash_session_id,
+    //             'exchange_rate' => $transaction->from_currency_rates_snapshot['buy_rate_to_usd'],
+    //             'by' => $transaction->created_by,
+    //         ]);
 
-            CashMovement::create([
-                'transaction_id' => $transaction->id,
-                'currency_id' => $transaction->to_currency_id,
-                'type' => CashMovementTypeEnum::OUT->value,
-                'amount' => $transaction->converted_amount,
-                'cash_session_id' => $transaction->cash_session_id,
-                'exchange_rate' => $transaction->to_currency_rates_snapshot['sell_rate_to_usd'],
-                'by' => $transaction->closed_by,
-                'sub' => true,
-            ]);
-        });
-    }
+    //         CashMovement::create([
+    //             'transaction_id' => $transaction->id,
+    //             'currency_id' => $transaction->to_currency_id,
+    //             'type' => CashMovementTypeEnum::OUT->value,
+    //             'amount' => $transaction->converted_amount,
+    //             'cash_session_id' => $transaction->cash_session_id,
+    //             'exchange_rate' => $transaction->to_currency_rates_snapshot['sell_rate_to_usd'],
+    //             'by' => $transaction->closed_by,
+    //             'sub' => true,
+    //         ]);
+    //     });
+    // }
 
     // public function getCurrencyAvailableBalance($currencyId)
     // {
@@ -200,6 +200,46 @@ class TransactionService
     //     return $opening + $totalIn - $totalOut;
     // }
 
+    // public function getCurrencyAvailableBalance($currencyId, $session)
+    // {
+    //     $currency = Currency::find($currencyId);
+
+    //     $opening = CashBalance::where('cash_session_id', $session->id)
+    //         ->where('currency_id', $currency->id)
+    //         ->first()
+    //         ->opening_balance ?? 0;
+
+    //     $totalIn = CashMovement::where('currency_id', $currency->id)
+    //         ->where('type', CashMovementTypeEnum::IN->value)
+    //         ->where('cash_session_id', $session->id)
+    //         ->where('sub', false)
+    //         ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
+    //         ->sum('amount');
+
+    //     $totalOut = CashMovement::where('currency_id', $currency->id)
+    //         ->where('type', CashMovementTypeEnum::OUT->value)
+    //         ->where('cash_session_id', $session->id)
+    //         ->where('sub', false)
+    //         ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
+    //         ->sum('amount');
+
+    //     $systemClosing = $opening + $totalIn - $totalOut;
+
+    //     return [
+    //         'currency_id' => $currency->id,
+    //         'currency' => [
+    //             'id' => $currency->id,
+    //             'name' => $currency->name,
+    //             'code' => $currency->code,
+    //             'rate_to_usd' => $currency->rate_to_usd,
+    //         ],
+    //         'opening_balance' => $opening,
+    //         'total_in' => $totalIn,
+    //         'total_out' => $totalOut,
+    //         'system_closing_balance' => $systemClosing,
+    //     ];
+    // }
+
     public function getCurrencyAvailableBalance($currencyId, $session)
     {
         $currency = Currency::find($currencyId);
@@ -209,19 +249,19 @@ class TransactionService
             ->first()
             ->opening_balance ?? 0;
 
-        $totalIn = CashMovement::where('currency_id', $currency->id)
-            ->where('type', CashMovementTypeEnum::IN->value)
+        $totalIn = Transaction::where('from_currency_id', $currency->id)
             ->where('cash_session_id', $session->id)
-            ->where('sub', false)
-            ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-            ->sum('amount');
+            // ->where('sub', false)
+            ->where('status', TransactionStatusEnum::COMPLETED->value)
+            ->where('created_by', auth()->id())
+            ->sum('original_amount');
 
-        $totalOut = CashMovement::where('currency_id', $currency->id)
-            ->where('type', CashMovementTypeEnum::OUT->value)
+        $totalOut = Transaction::where('to_currency_id', $currency->id)
             ->where('cash_session_id', $session->id)
-            ->where('sub', false)
-            ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-            ->sum('amount');
+            // ->where('sub', false)
+            ->where('status', TransactionStatusEnum::COMPLETED->value)
+            ->where('closed_by', auth()->id())
+            ->sum('converted_amount');
 
         $systemClosing = $opening + $totalIn - $totalOut;
 
@@ -240,10 +280,10 @@ class TransactionService
         ];
     }
 
-    public function hasSufficientBalance($currencyId, $amount)
-    {
-        $closingBalance = $this->getCurrencyAvailableBalance($currencyId);
+    // public function hasSufficientBalance($currencyId, $amount)
+    // {
+    //     $closingBalance = $this->getCurrencyAvailableBalance($currencyId);
 
-        return $closingBalance >= $amount;
-    }
+    //     return $closingBalance >= $amount;
+    // }
 }

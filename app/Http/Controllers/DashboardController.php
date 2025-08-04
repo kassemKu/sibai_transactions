@@ -79,19 +79,37 @@ class DashboardController extends Controller
                     $opening = $openingBalances[$currency->id]['amount'] ?? 0;
 
                     // Calculate total in/out movements for this cashier and currency
-                    $totalIn = \App\Models\CashMovement::where('currency_id', $currency->id)
-                        ->where('by', $cashierSession->casher_id)
-                        ->where('type', \App\Enums\CashMovementTypeEnum::IN->value)
-                        ->where('cash_session_id', $cashierSession->cash_session_id)
-                        ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
-                        ->sum('amount');
+                    // $totalIn = \App\Models\CashMovement::where('currency_id', $currency->id)
+                    //     ->where('by', $cashierSession->casher_id)
+                    //     ->where('type', \App\Enums\CashMovementTypeEnum::IN->value)
+                    //     ->where('cash_session_id', $cashierSession->cash_session_id)
+                    //     ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
+                    //     ->sum('amount');
 
-                    $totalOut = \App\Models\CashMovement::where('currency_id', $currency->id)
-                        ->where('by', $cashierSession->casher_id)
-                        ->where('type', \App\Enums\CashMovementTypeEnum::OUT->value)
+                    // $totalOut = \App\Models\CashMovement::where('currency_id', $currency->id)
+                    //     ->where('by', $cashierSession->casher_id)
+                    //     ->where('type', \App\Enums\CashMovementTypeEnum::OUT->value)
+                    //     ->where('cash_session_id', $cashierSession->cash_session_id)
+                    //     ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
+                    //     ->sum('amount');
+
+                    $totalIn = Transaction::where('from_currency_id', $currency->id)
                         ->where('cash_session_id', $cashierSession->cash_session_id)
-                        ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
-                        ->sum('amount');
+                        ->where('status', TransactionStatusEnum::COMPLETED->value)
+                        ->where('created_by', $cashierSession->casher_id)
+                        ->whereHas('createdBy.casherCashSessions', function ($query) use ($cashierSession) {
+                            $query->where('cash_session_id', $cashierSession->cash_session_id);
+                        })
+                        ->sum('original_amount');
+
+                    $totalOut = Transaction::where('to_currency_id', $currency->id)
+                        ->where('cash_session_id', $cashierSession->cash_session_id)
+                        ->where('status', TransactionStatusEnum::COMPLETED->value)
+                        ->where('closed_by', $cashierSession->casher_id)
+                        ->whereHas('closedBy.casherCashSessions', function ($query) use ($cashierSession) {
+                            $query->where('cash_session_id', $cashierSession->cash_session_id);
+                        })
+                        ->sum('converted_amount');
 
                     $systemBalance = $opening + $totalIn - $totalOut;
 
@@ -129,52 +147,52 @@ class DashboardController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->first();
 
-            $systemBalances = [];
-            if ($currentUserSession) {
-                $openingBalances = collect($currentUserSession->opening_balances)->keyBy('currency_id');
+            // $systemBalances = [];
+            // if ($currentUserSession) {
+            //     $openingBalances = collect($currentUserSession->opening_balances)->keyBy('currency_id');
 
-                foreach ($currencies as $currency) {
-                    $opening = $openingBalances[$currency->id]['amount'] ?? 0;
+            //     foreach ($currencies as $currency) {
+            //         $opening = $openingBalances[$currency->id]['amount'] ?? 0;
 
-                    // Calculate total in/out movements for this cashier and currency
-                    $totalIn = \App\Models\CashMovement::where('currency_id', $currency->id)
-                        ->where('by', $currentUserSession->casher_id)
-                        ->where('type', \App\Enums\CashMovementTypeEnum::IN->value)
-                        ->where('cash_session_id', $currentUserSession->cash_session_id)
-                        ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
-                        ->sum('amount');
+            //         // Calculate total in/out movements for this cashier and currency
+            //         $totalIn = \App\Models\CashMovement::where('currency_id', $currency->id)
+            //             ->where('by', $currentUserSession->casher_id)
+            //             ->where('type', \App\Enums\CashMovementTypeEnum::IN->value)
+            //             ->where('cash_session_id', $currentUserSession->cash_session_id)
+            //             ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
+            //             ->sum('amount');
 
-                    $totalOut = \App\Models\CashMovement::where('currency_id', $currency->id)
-                        ->where('by', $currentUserSession->casher_id)
-                        ->where('type', \App\Enums\CashMovementTypeEnum::OUT->value)
-                        ->where('cash_session_id', $currentUserSession->cash_session_id)
-                        ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
-                        ->sum('amount');
+            //         $totalOut = \App\Models\CashMovement::where('currency_id', $currency->id)
+            //             ->where('by', $currentUserSession->casher_id)
+            //             ->where('type', \App\Enums\CashMovementTypeEnum::OUT->value)
+            //             ->where('cash_session_id', $currentUserSession->cash_session_id)
+            //             ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
+            //             ->sum('amount');
 
-                    $systemBalance = $opening + $totalIn - $totalOut;
+            //         $systemBalance = $opening + $totalIn - $totalOut;
 
-                    $systemBalances[] = [
-                        'currency_id' => $currency->id,
-                        'amount' => $systemBalance,
-                        'currency' => $currency,
-                    ];
-                }
-            } else {
-                // If no session, provide zero balances for all currencies
-                $systemBalances = $currencies->map(function ($currency) {
-                    return [
-                        'currency_id' => $currency->id,
-                        'amount' => 0,
-                        'currency' => $currency,
-                    ];
-                })->toArray();
-            }
+            //         $systemBalances[] = [
+            //             'currency_id' => $currency->id,
+            //             'amount' => $systemBalance,
+            //             'currency' => $currency,
+            //         ];
+            //     }
+            // } else {
+            //     // If no session, provide zero balances for all currencies
+            //     $systemBalances = $currencies->map(function ($currency) {
+            //         return [
+            //             'currency_id' => $currency->id,
+            //             'amount' => 0,
+            //             'currency' => $currency,
+            //         ];
+            //     })->toArray();
+            // }
 
             $cashiers->push([
                 'id' => $currentUser->id,
                 'name' => $currentUser->name,
                 'email' => $currentUser->email,
-                'system_balances' => $systemBalances,
+                // 'system_balances' => $systemBalances,
                 'has_active_session' => $currentUserSession && $currentUserSession->status === 'active',
             ]);
         }
