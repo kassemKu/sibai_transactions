@@ -29,11 +29,6 @@ class Transaction extends Model
         'to_currency_rates_snapshot',
     ];
 
-    public function cashMovements()
-    {
-        return $this->hasMany(CashMovement::class);
-    }
-
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by', 'id');

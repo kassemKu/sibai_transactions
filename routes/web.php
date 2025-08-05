@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Casher\TransactionController as CasherTransactionController;
 use App\Http\Controllers\CasherCashSessionController;
-use App\Http\Controllers\CashMovementController;
 use App\Http\Controllers\CashSessionController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CurrencyController;
@@ -54,7 +53,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::controller(TransactionController::class)->group(function () {
             Route::post('/transactions', 'store')->middleware([EnsureActiveCashSession::class]);
             Route::put('/transactions/{transaction}/complete', 'completeStatus')->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
-            // Route::put('/transactions/{transaction}/cancel', 'cancelStatus')->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
             Route::get('/transactions/{transaction}', 'show')->name('transaction.show');
         });
         Route::post('/cash-sessions/pending', [CashSessionController::class, 'pending'])->middleware([EnsureActiveCashSession::class]);
@@ -79,9 +77,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
             Route::get('/casher-cash-sessions/{casherCashSession}', 'show')->name('casher_cash_sessions.show');
             Route::get('/get-closing-balances/{casherCashSession}', 'getClosingBalances');
         });
-
-        // CashMovementController
-        Route::get('/casher-cash-movements', [CashMovementController::class, 'getCasherCashMovements']);
 
         // UserController
         Route::controller(UserController::class)->group(function () {
@@ -108,10 +103,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::resource('/transfers', TransferController::class)->except(['store']);
     });
 
-    Route::group(['middleware' => ['role:casher|admin'], 'prefix' => 'casher'], function () {
+    Route::group(['middleware' => ['role:casher|admin'], 'prefix' => 'casher', 'middleware' => EnsureIsActiveCasherCashSession::class], function () {
         Route::get('/', [DashboardController::class, 'CasherDashboard'])->name('casher.dashboard');
-        Route::post('/transactions', [CasherTransactionController::class, 'store'])->middleware(EnsureIsActiveCasherCashSession::class);
-        Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware([EnsurePendingTransaction::class, EnsureIsActiveCasherCashSession::class]);
-        Route::put('/change-status', [UserController::class, 'casherChangeStatus'])->middleware(EnsureIsActiveCasherCashSession::class);
+        Route::post('/transactions', [CasherTransactionController::class, 'store']);
+        Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware(EnsurePendingTransaction::class);
+        Route::put('/change-status', [UserController::class, 'casherChangeStatus']);
     });
 });

@@ -2,13 +2,12 @@
 
 namespace App\Services;
 
-use App\Enums\CashMovementTypeEnum;
 use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
 use App\Models\CashBalance;
 use App\Models\CasherCashSession;
-use App\Models\CashMovement;
 use App\Models\Currency;
+use App\Models\Transaction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -25,19 +24,23 @@ class CasherCashSessionService
             $openingBalances = collect($casherSession->opening_balances)->keyBy('currency_id');
             $opening = $openingBalances[$currency->id]['amount'] ?? 0;
 
-            $totalIn = CashMovement::where('currency_id', $currency->id)
-                ->where('by', $casherSession->casher_id)
-                ->where('type', CashMovementTypeEnum::IN->value)
+            $totalIn = Transaction::where('from_currency_id', $currency->id)
                 ->where('cash_session_id', $casherSession->cash_session_id)
-                ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-                ->sum('amount');
+                ->where('created_by', $casherSession->casher_id)
+                ->where('status', TransactionStatusEnum::COMPLETED->value)
+                ->whereHas('createdBy.casherCashSessions', function ($query) use ($casherSession) {
+                    $query->where('cash_session_id', $casherSession->cash_session_id);
+                })
+                ->sum('original_amount');
 
-            $totalOut = CashMovement::where('currency_id', $currency->id)
-                ->where('by', $casherSession->casher_id)
-                ->where('type', CashMovementTypeEnum::OUT->value)
+            $totalOut = Transaction::where('to_currency_id', $currency->id)
                 ->where('cash_session_id', $casherSession->cash_session_id)
-                ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-                ->sum('amount');
+                ->where('status', TransactionStatusEnum::COMPLETED->value)
+                ->where('closed_by', $casherSession->casher_id)
+                ->whereHas('closedBy.casherCashSessions', function ($query) use ($casherSession) {
+                    $query->where('cash_session_id', $casherSession->cash_session_id);
+                })
+                ->sum('converted_amount');
 
             $systemClosing = $opening + $totalIn - $totalOut;
 
@@ -92,19 +95,23 @@ class CasherCashSessionService
             foreach ($currencies as $currency) {
                 $opening = $openingBalances[$currency->id]['amount'] ?? 0;
 
-                $totalIn = CashMovement::where('currency_id', $currency->id)
-                    ->where('by', $casherSession->casher_id)
-                    ->where('type', CashMovementTypeEnum::IN->value)
+                $totalIn = Transaction::where('from_currency_id', $currency->id)
                     ->where('cash_session_id', $casherSession->cash_session_id)
-                    ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-                    ->sum('amount');
+                    ->where('status', TransactionStatusEnum::COMPLETED->value)
+                    ->where('created_by', $casherSession->casher_id)
+                    ->whereHas('createdBy.casherCashSessions', function ($query) use ($casherSession) {
+                        $query->where('cash_session_id', $casherSession->cash_session_id);
+                    })
+                    ->sum('original_amount');
 
-                $totalOut = CashMovement::where('currency_id', $currency->id)
-                    ->where('by', $casherSession->casher_id)
-                    ->where('type', CashMovementTypeEnum::OUT->value)
+                $totalOut = Transaction::where('to_currency_id', $currency->id)
                     ->where('cash_session_id', $casherSession->cash_session_id)
-                    ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-                    ->sum('amount');
+                    ->where('status', TransactionStatusEnum::COMPLETED->value)
+                    ->where('closed_by', $casherSession->casher_id)
+                    ->whereHas('closedBy.casherCashSessions', function ($query) use ($casherSession) {
+                        $query->where('cash_session_id', $casherSession->cash_session_id);
+                    })
+                    ->sum('converted_amount');
 
                 $systemClosing = $opening + $totalIn - $totalOut;
 

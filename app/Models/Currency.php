@@ -11,11 +11,6 @@ class Currency extends Model
 
     protected $fillable = ['name', 'code', 'rate_to_usd', 'sell_rate_to_usd', 'buy_rate_to_usd'];
 
-    public function cashMovements()
-    {
-        return $this->hasMany(CashMovement::class);
-    }
-
     public function fromTransactions()
     {
         return $this->hasMany(Transaction::class, 'from_currency_id');

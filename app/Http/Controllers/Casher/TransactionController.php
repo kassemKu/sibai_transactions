@@ -54,8 +54,6 @@ class TransactionController extends Controller
             'closed_by' => auth()->id(),
         ]);
 
-        $this->transactionService->confirmCasherCashMovement($transaction);
-
         return $this->success('Transaction status changed to completed.', [
             'transaction' => $transaction,
         ]);

@@ -149,7 +149,8 @@ export default function PendingTransactionsTable({
     }
     setUpdatingAction({ id: transactionId, action: status });
     try {
-      const endpoint = `/casher/transactions/${transactionId}/${status}`;
+      const base = status === 'cancel' && isAdmin ? '/admin' : '/casher';
+      const endpoint = `${base}/transactions/${transactionId}/${status}`;
       const response = await axios.put(endpoint);
       if (response.data.status) {
         toast.success(`تم ${status} المعاملة بنجاح`);
