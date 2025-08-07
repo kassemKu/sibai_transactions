@@ -42,14 +42,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         // Dashboard
         Route::get('/', [DashboardController::class, 'AdminDashboard'])->name('admin.dashboard');
 
-        // CurrencyController
         Route::controller(CurrencyController::class)->group(function () {
             Route::resource('/currencies', CurrencyController::class)->except(['destroy', 'store']);
             Route::post('/currencies', 'store')->middleware([EnsureOpenCashSession::class]);
         });
         Route::get('/get-session-closing-balances', [CashSessionController::class, 'getClosingBalances'])->middleware([EnsureOpenCashSession::class]);
 
-        // TransactionController
         Route::controller(TransactionController::class)->group(function () {
             Route::post('/transactions', 'store')->middleware([EnsureActiveCashSession::class]);
             Route::put('/transactions/{transaction}/complete', 'completeStatus')->middleware([EnsureActiveCashSession::class, EnsurePendingTransaction::class]);
@@ -58,7 +56,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::post('/cash-sessions/pending', [CashSessionController::class, 'pending'])->middleware([EnsureActiveCashSession::class]);
         Route::get('/get-cash-sessions-available-cashers', [CashSessionController::class, 'getAvailableCashers'])->middleware([EnsureActiveCashSession::class]);
 
-        // CashSessionController
         Route::controller(CashSessionController::class)->group(function () {
             Route::post('/cash-sessions/open', 'open')->middleware([EnsureNoOpenCashSession::class]);
             Route::post('/cash-sessions/close', 'close')->middleware([EnsurePendingCashSession::class]);
@@ -69,7 +66,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
             Route::get('/cash-balances', 'balances')->name('cash_balances.index');
         });
 
-        // CasherCashSessionController
         Route::controller(CasherCashSessionController::class)->group(function () {
             Route::post('/open-casher-session', 'open')->middleware([EnsureNotActiveCasherCashSession::class]);
             Route::post('/casher-cash-session/{casherCashSession}/pending', 'pending')->middleware([EnsureActiveCasherCashSession::class]);
@@ -78,7 +74,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
             Route::get('/get-closing-balances/{casherCashSession}', 'getClosingBalances');
         });
 
-        // UserController
         Route::controller(UserController::class)->group(function () {
             Route::put('/users/{user}/change-status', 'adminChangeStatus');
             Route::get('/users-roles', 'getRoles');
@@ -87,19 +82,16 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
             Route::get('/users/get-user/{user}', 'getUser');
         });
 
-        // EmployeeController
         Route::resource('/employees', EmployeeController::class, [
             'parameters' => ['' => 'employee'],
             'name' => 'employees',
         ]);
 
-        // CompanyController
         Route::controller(CompanyController::class)->group(function () {
             Route::resource('/companies', CompanyController::class);
             Route::get('/companies/get-company/{company}', 'getCompany');
         });
 
-        // TransferController
         Route::resource('/transfers', TransferController::class)->except(['store']);
     });
 
@@ -108,5 +100,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
         Route::post('/transactions', [CasherTransactionController::class, 'store']);
         Route::put('/transactions/{transaction}/confirm', [CasherTransactionController::class, 'confirmStatus'])->middleware(EnsurePendingTransaction::class);
         Route::put('/change-status', [UserController::class, 'casherChangeStatus']);
+        Route::get('/my_balances', [CasherCashSessionController::class, 'myBalances']);
     });
 });
