@@ -7,6 +7,14 @@ import { Currency, CasherCashSession } from '@/types';
 import { FiUser, FiDollarSign } from 'react-icons/fi';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@heroui/react';
 
 interface CashierBoxModalProps {
   isOpen: boolean;
@@ -197,116 +205,77 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
                     ملخص الأرصدة النهائية
                   </div>
                   <div className="overflow-x-auto">
-                    <table
-                      className="min-w-full divide-y divide-gray-200"
-                      dir="rtl"
+                    <Table
+                      aria-label="جدول أرصدة الصندوق"
+                      className="min-w-full"
                     >
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            العملة
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            الرصيد الافتتاحي
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            إجمالي الداخل
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            إجمالي الخارج
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            الرصيد النظامي
-                          </th>
-                          {cashierSession.status === 'closed' && (
-                            <>
-                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                الرصيد الفعلي
-                              </th>
-                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                الفرق
-                              </th>
-                            </>
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <TableHeader>
+                        <TableColumn>العملة</TableColumn>
+                        <TableColumn>الرصيد الافتتاحي</TableColumn>
+                        <TableColumn>إجمالي الداخل</TableColumn>
+                        <TableColumn>إجمالي الخارج</TableColumn>
+                        <TableColumn>الرصيد النظامي</TableColumn>
+                        <TableColumn>القيمة بالدولار</TableColumn>
+                      </TableHeader>
+                      <TableBody>
                         {balances.map((balance: any) => {
+                          const difference =
+                            parseFloat(
+                              actualAmounts[balance.currency_id] || '0',
+                            ) - balance.system_balance;
                           const currency = currencies.find(
                             c => c.code === balance.code,
                           );
-                          let actual = null;
-                          let diff = 0;
-                          if (cashierSession.status === 'closed') {
-                            actual = (
-                              cashierSession.actual_closing_balances || []
-                            ).find(a => a.currency_id === balance.currency_id);
-                            diff = actual
-                              ? parseFloat(actual.amount) -
-                                parseFloat(balance.system_balance)
-                              : 0;
-                          }
                           return (
-                            <tr key={balance.currency_id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <TableRow key={balance.currency_id}>
+                              <TableCell>
                                 <div className="text-sm font-medium text-gray-900">
                                   {balance.name}
                                 </div>
                                 <div className="text-sm text-gray-500">
                                   {balance.code}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm text-gray-900">
                                   {formatAmount(
                                     balance.opening_balance,
                                     currency,
                                   )}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm text-green-600">
                                   {formatAmount(balance.total_in, currency)}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm text-red">
                                   {formatAmount(balance.total_out, currency)}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm font-medium text-blue-600">
                                   {formatAmount(
                                     balance.system_balance,
                                     currency,
                                   )}
                                 </div>
-                              </td>
-                              {cashierSession.status === 'closed' && (
-                                <>
-                                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                                    <div className="text-sm text-green-600 font-medium">
-                                      {actual
-                                        ? formatAmount(actual.amount, currency)
-                                        : '0.00'}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                                    <div
-                                      className={`text-sm font-medium ${diff === 0 ? 'text-green-600' : diff > 0 ? 'text-blue-600' : 'text-red'}`}
-                                    >
-                                      {actual
-                                        ? `${(diff ?? 0) > 0 ? '+' : ''}${formatAmount(Math.abs(diff ?? 0).toString(), currency)}`
-                                        : '0.00'}
-                                    </div>
-                                  </td>
-                                </>
-                              )}
-                            </tr>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm text-gray-600">
+                                  {formatAmount(
+                                    balance.system_balance *
+                                      (currency?.rate_to_usd || 1),
+                                    { code: 'USD', rate_to_usd: 1 },
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
                           );
                         })}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                 </>
               )}
@@ -328,33 +297,19 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
                     </p>
                   </div>
                   <div className="overflow-x-auto">
-                    <table
-                      className="min-w-full divide-y divide-gray-200"
-                      dir="rtl"
+                    <Table
+                      aria-label="جدول أرصدة الصندوق"
+                      className="min-w-full"
                     >
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            العملة
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            الرصيد الافتتاحي
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            إجمالي الداخل
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            إجمالي الخارج
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            الرصيد النظامي
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            القيمة بالدولار
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <TableHeader>
+                        <TableColumn>العملة</TableColumn>
+                        <TableColumn>الرصيد الافتتاحي</TableColumn>
+                        <TableColumn>إجمالي الداخل</TableColumn>
+                        <TableColumn>إجمالي الخارج</TableColumn>
+                        <TableColumn>الرصيد النظامي</TableColumn>
+                        <TableColumn>القيمة بالدولار</TableColumn>
+                      </TableHeader>
+                      <TableBody>
                         {balances.map((balance: any) => {
                           const currency = currencies.find(
                             c => c.code === balance.code,
@@ -364,8 +319,8 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
                             currency,
                           );
                           return (
-                            <tr key={balance.currency_id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <TableRow key={balance.currency_id}>
+                              <TableCell>
                                 <div className="text-sm font-medium text-gray-900">
                                   {balance.name}
                                 </div>
@@ -385,43 +340,43 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
                                       {currency.code}
                                     </div>
                                   )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm text-gray-900">
                                   {formatAmount(
                                     balance.opening_balance,
                                     currency,
                                   )}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm text-green-600">
                                   {formatAmount(balance.total_in, currency)}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm text-red-600">
                                   {formatAmount(balance.total_out, currency)}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm font-medium text-blue-600">
                                   {formatAmount(
                                     balance.system_balance,
                                     currency,
                                   )}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm text-gray-600">
                                   ${formatDisplayAmount(usdValue)}
                                 </div>
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           );
                         })}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                   {/* Summary Section */}
                   <div className="bg-gray-50 rounded-lg p-6 space-y-4">
@@ -438,7 +393,7 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
                           {formatDisplayAmount(
                             balances.reduce((total, balance) => {
                               const currency = currencies.find(
-                                c => c.code === balance.code,
+                                c => c.id === balance.currency_id,
                               );
                               return (
                                 total +
@@ -473,27 +428,17 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
                     يرجى إدخال المبالغ الفعلية المعدودة لكل عملة
                   </div>
                   <div className="overflow-x-auto">
-                    <table
-                      className="min-w-full divide-y divide-gray-200"
-                      dir="rtl"
+                    <Table
+                      aria-label="جدول أرصدة الصندوق"
+                      className="min-w-full"
                     >
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            العملة
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            الرصيد المحسوب
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            الرصيد الفعلي
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            الفرق
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <TableHeader>
+                        <TableColumn>العملة</TableColumn>
+                        <TableColumn>الرصيد المحسوب</TableColumn>
+                        <TableColumn>الرصيد الفعلي</TableColumn>
+                        <TableColumn>الفرق</TableColumn>
+                      </TableHeader>
+                      <TableBody>
                         {balances.map((balance: any) => {
                           const difference =
                             parseFloat(
@@ -503,24 +448,24 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
                             c => c.code === balance.code,
                           );
                           return (
-                            <tr key={balance.currency_id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <TableRow key={balance.currency_id}>
+                              <TableCell>
                                 <div className="text-sm font-medium text-gray-900">
                                   {balance.name}
                                 </div>
                                 <div className="text-sm text-gray-500">
                                   {balance.code}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <div className="text-sm text-gray-900">
                                   {formatAmount(
                                     balance.system_balance,
                                     currency,
                                   )}
                                 </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <NumberInput
                                   value={
                                     actualAmounts[balance.currency_id] || ''
@@ -538,8 +483,8 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
                                   dir="rtl"
                                   aria-label={`الرصيد الفعلي لعملة ${balance.name}`}
                                 />
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              </TableCell>
+                              <TableCell>
                                 <span
                                   className={`text-sm font-medium ${difference > 0 ? 'text-green-600' : difference < 0 ? 'text-red' : 'text-gray-900'}`}
                                 >
@@ -549,12 +494,12 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
                                     currency,
                                   )}
                                 </span>
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           );
                         })}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-6 space-y-4">
                     <h4 className="font-medium text-gray-900 text-right text-lg">

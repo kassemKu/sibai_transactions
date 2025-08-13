@@ -149,7 +149,7 @@ export default function CashSessionShow({
   // Handle add cashbox success
   const handleAddCashboxSuccess = () => {
     // Refresh the page to show updated data
-    window.location.reload();
+    router.visit(route('cash_sessions.show', cashSession.id));
   };
 
   // Fetch cashier box balances API - MEMOIZED to prevent unnecessary re-renders

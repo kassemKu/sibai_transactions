@@ -19,6 +19,7 @@ export interface User {
   profile_photo_url: string;
   two_factor_enabled: boolean;
   email_verified_at: Nullable<DateTime>;
+  is_active?: number;
   created_at: DateTime;
   updated_at: DateTime;
   roles?: any;
@@ -34,6 +35,7 @@ export interface Auth {
     profile_photo_url: string | null;
     two_factor_enabled: boolean;
     two_factor_confirmed_at: string | null;
+    is_active?: number;
     created_at: string;
     updated_at: string;
     permissions: Array<{

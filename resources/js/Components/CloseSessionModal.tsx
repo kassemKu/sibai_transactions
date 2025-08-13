@@ -6,6 +6,14 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import NumberInput from '@/Components/NumberInput';
 import InputLabel from '@/Components/InputLabel';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@heroui/react';
 
 interface CurrencyBalance {
   currency_id: number;
@@ -299,32 +307,26 @@ export default function CloseSessionModal({
             </div>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200" dir="rtl">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      العملة
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      الرصيد المحسوب
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      القيمة بالدولار
-                    </th>
-                    {showActualInputs && (
-                      <>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          الرصيد الفعلي
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          الفرق
-                        </th>
-                      </>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {balances.map(balance => {
+              <Table aria-label="جدول أرصدة الإغلاق" className="min-w-full">
+                <TableHeader>
+                  <TableColumn>العملة</TableColumn>
+                  <TableColumn>الرصيد المحسوب</TableColumn>
+                  <TableColumn>القيمة بالدولار</TableColumn>
+                  <TableColumn className={showActualInputs ? '' : 'hidden'}>
+                    الرصيد الفعلي
+                  </TableColumn>
+                  <TableColumn className={showActualInputs ? '' : 'hidden'}>
+                    الفرق
+                  </TableColumn>
+                </TableHeader>
+                <TableBody
+                  emptyContent={
+                    !balances || balances.length === 0
+                      ? 'لا توجد أرصدة متاحة'
+                      : undefined
+                  }
+                >
+                  {(balances || []).map(balance => {
                     const difference = calculateDifference(
                       balance.currency_id,
                       balance.system_closing_balance,
@@ -335,8 +337,8 @@ export default function CloseSessionModal({
                     );
 
                     return (
-                      <tr key={balance.currency_id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <TableRow key={balance.currency_id}>
+                        <TableCell>
                           <div className="text-sm font-medium text-gray-900">
                             {balance.currency.name}
                           </div>
@@ -355,59 +357,53 @@ export default function CloseSessionModal({
                                 </div>
                               )}
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                        </TableCell>
+                        <TableCell>
                           <div className="text-sm text-gray-900">
                             {formatDisplayAmount(
                               balance.system_closing_balance,
                             )}
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                        </TableCell>
+                        <TableCell>
                           <div className="text-sm text-gray-600">
                             ${formatDisplayAmount(usdValue)}
                           </div>
-                        </td>
-                        {showActualInputs && (
-                          <>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <NumberInput
-                                value={actualAmounts[balance.currency_id] || ''}
-                                onValueChange={values =>
-                                  handleActualAmountChange(
-                                    balance.currency_id,
-                                    values.value,
-                                  )
-                                }
-                                className="w-32 text-right"
-                                decimalScale={2}
-                                min={0}
-                                thousandSeparator={true}
-                                dir="rtl"
-                                aria-label={`الرصيد الفعلي لعملة ${balance.currency.name}`}
-                              />
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <span
-                                className={`text-sm font-medium ${
-                                  difference > 0
-                                    ? 'text-green-600'
-                                    : difference < 0
-                                      ? 'text-red'
-                                      : 'text-gray-900'
-                                }`}
-                              >
-                                {difference > 0 ? '+' : ''}
-                                {formatDisplayAmount(Math.abs(difference))}
-                              </span>
-                            </td>
-                          </>
-                        )}
-                      </tr>
+                        </TableCell>
+                        <TableCell className={showActualInputs ? '' : 'hidden'}>
+                          <NumberInput
+                            value={actualAmounts[balance.currency_id] || ''}
+                            onValueChange={value =>
+                              handleActualAmountChange(
+                                balance.currency_id,
+                                value.value,
+                              )
+                            }
+                            placeholder="0.00"
+                            min={0}
+                            // className="w-full"
+                            aria-label={`الرصيد الفعلي لعملة ${balance.currency.name}`}
+                          />
+                        </TableCell>
+                        <TableCell className={showActualInputs ? '' : 'hidden'}>
+                          <span
+                            className={`text-sm font-medium ${
+                              difference > 0
+                                ? 'text-green-600'
+                                : difference < 0
+                                  ? 'text-red'
+                                  : 'text-gray-900'
+                            }`}
+                          >
+                            {difference > 0 && '+'}
+                            {formatDisplayAmount(difference)}
+                          </span>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {/* Summary Section */}

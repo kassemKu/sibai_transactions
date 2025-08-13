@@ -20,12 +20,7 @@ import { route } from 'ziggy-js';
 import { useNewTransactionNotification } from '@/Hooks/useNewTransactionNotification';
 import NewTransactionNotification from '@/Components/Casher/NewTransactionNotification';
 import { usePage } from '@inertiajs/react';
-import {
-  Transaction as GlobalTransaction,
-  User,
-  Currency,
-  Customer,
-} from '@/types';
+import { Transaction as GlobalTransaction, User, Currency } from '@/types';
 import NotesModal from '../NotesModal';
 import EditTransactionModal from '../EditTransactionModal';
 
@@ -64,6 +59,12 @@ export default function RecentTransactionsTable({
   const [updatingTransactions, setUpdatingTransactions] = useState<Set<number>>(
     new Set(),
   );
+  const [confirmingTransactions, setConfirmingTransactions] = useState<
+    Set<number>
+  >(new Set());
+  const [cancelingTransactions, setCancelingTransactions] = useState<
+    Set<number>
+  >(new Set());
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<GlobalTransaction | null>(null);
@@ -158,7 +159,12 @@ export default function RecentTransactionsTable({
       return;
     }
 
-    setUpdatingTransactions(prev => new Set(prev).add(transactionId));
+    // Set the appropriate loading state based on the action
+    if (status === 'complete') {
+      setConfirmingTransactions(prev => new Set(prev).add(transactionId));
+    } else if (status === 'cancel') {
+      setCancelingTransactions(prev => new Set(prev).add(transactionId));
+    }
 
     try {
       const endpoint = `/admin/transactions/${transactionId}/${status}`;
@@ -181,11 +187,20 @@ export default function RecentTransactionsTable({
         toast.error('حدث خطأ أثناء تحديث حالة المعاملة');
       }
     } finally {
-      setUpdatingTransactions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(transactionId);
-        return newSet;
-      });
+      // Clear the appropriate loading state
+      if (status === 'complete') {
+        setConfirmingTransactions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(transactionId);
+          return newSet;
+        });
+      } else if (status === 'cancel') {
+        setCancelingTransactions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(transactionId);
+          return newSet;
+        });
+      }
     }
   };
 
@@ -265,6 +280,7 @@ export default function RecentTransactionsTable({
           }
         >
           <TableHeader>
+            <TableColumn>رقم المعاملة</TableColumn>
             <TableColumn>التاريخ والوقت</TableColumn>
             {/* <TableColumn>العميل</TableColumn> */}
             <TableColumn>من</TableColumn>
@@ -292,7 +308,9 @@ export default function RecentTransactionsTable({
               .filter(transaction => transaction && transaction.id) // Filter out invalid transactions
               .map(transaction => {
                 const dateTime = formatDateTime(transaction.created_at);
-                const isUpdating = updatingTransactions.has(transaction.id);
+                const isConfirming = confirmingTransactions.has(transaction.id);
+                const isCanceling = cancelingTransactions.has(transaction.id);
+                const isAnyUpdating = isConfirming || isCanceling;
 
                 return (
                   <TableRow
@@ -300,6 +318,11 @@ export default function RecentTransactionsTable({
                     className="cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => handleTransactionClick(transaction.id)}
                   >
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{transaction.id}</div>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="text-sm">
                         <div>{dateTime.date}</div>
@@ -409,44 +432,56 @@ export default function RecentTransactionsTable({
                         <Button
                           color="success"
                           size="sm"
-                          isLoading={isUpdating}
-                          isDisabled={isUpdating || !isSessionActive || isSessionPending}
+                          isLoading={isConfirming}
+                          isDisabled={
+                            isAnyUpdating ||
+                            !isSessionActive ||
+                            isSessionPending
+                          }
                           onClick={e => {
                             e.stopPropagation();
                             updateTransactionStatus(transaction.id, 'complete');
                           }}
                         >
-                          {isUpdating
-                            ? 'جاري التأكيد...'
+                          {isConfirming
+                            ? ''
                             : isSessionPending
-                            ? 'جلسة معلقة'
-                            : !isSessionActive
-                            ? 'غير متاح'
-                            : 'تأكيد'}
+                              ? 'جلسة معلقة'
+                              : !isSessionActive
+                                ? 'غير متاح'
+                                : 'تأكيد'}
                         </Button>
                         <Button
                           color="danger"
                           size="sm"
-                          isLoading={isUpdating}
-                          isDisabled={isUpdating || !isSessionActive || isSessionPending}
+                          isLoading={isCanceling}
+                          isDisabled={
+                            isAnyUpdating ||
+                            !isSessionActive ||
+                            isSessionPending
+                          }
                           onClick={e => {
                             e.stopPropagation();
                             updateTransactionStatus(transaction.id, 'cancel');
                           }}
                         >
-                          {isUpdating
-                            ? 'جاري الإلغاء...'
+                          {isCanceling
+                            ? ''
                             : isSessionPending
-                            ? 'جلسة معلقة'
-                            : !isSessionActive
-                            ? 'غير متاح'
-                            : 'إلغاء'}
+                              ? 'جلسة معلقة'
+                              : !isSessionActive
+                                ? 'غير متاح'
+                                : 'إلغاء'}
                         </Button>
                         <Button
                           color="primary"
                           size="sm"
                           variant="ghost"
-                          isDisabled={isUpdating || !isSessionActive || isSessionPending}
+                          isDisabled={
+                            isAnyUpdating ||
+                            !isSessionActive ||
+                            isSessionPending
+                          }
                           onClick={e => {
                             e.stopPropagation();
                             handleEditTransaction(transaction.id);
@@ -481,7 +516,7 @@ export default function RecentTransactionsTable({
       <EditTransactionModal
         open={!!editingTransactionId}
         onClose={handleCloseEditModal}
-        transactionId={editingTransactionId}
+        transactionId={editingTransactionId || 0}
         currencies={currencies}
         availableCashers={availableCashers}
         isSessionOpen={isSessionActive}
