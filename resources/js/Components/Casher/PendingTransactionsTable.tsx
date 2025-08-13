@@ -318,8 +318,8 @@ export default function PendingTransactionsTable({
         }
       >
         <TableHeader>
+          <TableColumn>رقم المعاملة</TableColumn>
           <TableColumn>التاريخ والوقت</TableColumn>
-
           <TableColumn>من</TableColumn>
           <TableColumn>إلى</TableColumn>
           <TableColumn>المبلغ الأصلي</TableColumn>
@@ -387,6 +387,11 @@ export default function PendingTransactionsTable({
                       className="cursor-pointer hover:bg-gray-50 transition-colors"
                       onClick={() => handleTransactionClick(transaction.id)}
                     >
+                      <TableCell>
+                        <div className="text-sm">
+                          <div>{transaction.id}</div>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="text-sm">
                           <div>{dateTime.date}</div>
@@ -504,7 +509,7 @@ export default function PendingTransactionsTable({
                             }}
                           >
                             {isConfirmLoading
-                              ? 'جاري التأكيد...'
+                              ? ''
                               : isSessionPending
                                 ? 'جلسة معلقة'
                                 : !isSessionActive
@@ -528,7 +533,7 @@ export default function PendingTransactionsTable({
                               }}
                             >
                               {isCancelLoading
-                                ? 'جاري الإلغاء...'
+                                ? ''
                                 : isSessionPending
                                   ? 'جلسة معلقة'
                                   : !isSessionActive

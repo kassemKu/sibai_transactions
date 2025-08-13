@@ -8,6 +8,14 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import DangerButton from '@/Components/DangerButton';
 import { Currency } from '@/types';
 import { FiPlus, FiEdit3, FiLoader, FiEye } from 'react-icons/fi';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@heroui/react';
 
 interface CurrenciesIndexProps {
   currencies: Currency[];
@@ -125,64 +133,45 @@ export default function CurrenciesIndex({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      اسم العملة
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      الرمز
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      السعر المرجعي (USD)
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      سعر الشراء (USD)
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      سعر البيع (USD)
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      النوع
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      الإجراءات
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+              <Table aria-label="جدول العملات" className="min-w-full">
+                <TableHeader>
+                  <TableColumn>اسم العملة</TableColumn>
+                  <TableColumn>الرمز</TableColumn>
+                  <TableColumn>السعر المرجعي (USD)</TableColumn>
+                  <TableColumn>سعر الشراء (USD)</TableColumn>
+                  <TableColumn>سعر البيع (USD)</TableColumn>
+                  <TableColumn>النوع</TableColumn>
+                  <TableColumn>الإجراءات</TableColumn>
+                </TableHeader>
+                <TableBody>
                   {currencies.map(currency => (
-                    <tr
-                      key={currency.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <TableRow key={currency.id}>
+                      <TableCell>
                         <div className="text-sm font-medium text-gray-900">
                           {currency.name}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell>
                         <div className="text-sm text-gray-900 font-mono">
                           {currency.code}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell>
                         <div className="text-sm text-yellow-700 font-mono font-medium">
                           {formatRate(currency.rate_to_usd)}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell>
                         <div className="text-sm text-green-700 font-mono font-medium">
                           {formatRate(currency.buy_rate_to_usd)}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell>
                         <div className="text-sm text-red-700 font-mono font-medium">
                           {formatRate(currency.sell_rate_to_usd)}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell>
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             currency.is_crypto
@@ -192,8 +181,8 @@ export default function CurrenciesIndex({
                         >
                           {currency.is_crypto ? 'رقمية' : 'تقليدية'}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center space-x-2 space-x-reverse">
                           <SecondaryButton
                             onClick={() => handleShow(currency)}
@@ -210,11 +199,11 @@ export default function CurrenciesIndex({
                             تعديل
                           </PrimaryButton>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -70,7 +70,7 @@ export default function CompaniesIndex({ companies }: CompaniesIndexProps) {
       await axios.delete(`/admin/companies/${companyToDelete.id}`);
       setDeleteModalOpen(false);
       setCompanyToDelete(null);
-      window.location.reload();
+      router.visit(route('companies.index'));
     } catch (e) {
       // Optionally show an error toast here
     } finally {
@@ -184,7 +184,7 @@ export default function CompaniesIndex({ companies }: CompaniesIndexProps) {
                     </button>
                     <button
                       type="button"
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-400 hover:text-red hover:bg-red-50 rounded-lg transition-colors"
                       title="حذف"
                       onClick={() => handleOpenDelete(company)}
                     >
@@ -235,14 +235,14 @@ export default function CompaniesIndex({ companies }: CompaniesIndexProps) {
       <CompanyCreateModal
         isOpen={showCreateModal}
         onClose={handleCloseCreate}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => router.visit(route('companies.index'))}
       />
       {editCompany && (
         <CompanyEditModal
           isOpen={showEditModal}
           onClose={handleCloseEdit}
           company={editCompany}
-          onSuccess={() => window.location.reload()}
+          onSuccess={() => router.visit(route('companies.index'))}
         />
       )}
       {/* Delete Confirmation Modal */}

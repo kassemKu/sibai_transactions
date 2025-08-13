@@ -826,7 +826,6 @@ export default function TransactionForm({
                         }
                         className="text-sm"
                       >
-                        <option value="">اختر العملة</option>
                         {currencies.map(currency => (
                           <option key={currency.id} value={currency.id}>
                             {currency.name} ({currency.code})
@@ -1033,7 +1032,7 @@ export default function TransactionForm({
                   onChange={e => memoizedOnChange('toCurrency', e.target.value)}
                   className="border-blue-200 focus:border-blue-500"
                 >
-                  <option value="">اختر العملة</option>
+                  {/* <option value="">اختر العملة</option> */}
                   {currencies
                     .filter(
                       currency =>
@@ -1104,37 +1103,13 @@ export default function TransactionForm({
             </div>
           </div>
         </div>
-
-        {/* Notes Section */}
-        <div className="space-y-4">
-          <div className="text-bold-x16 text-text-black">ملاحظات</div>
-          <div className="space-y-2">
-            <InputLabel htmlFor="notes" className="mb-2">
-              ملاحظة (اختيارية)
-            </InputLabel>
-            <textarea
-              id="notes"
-              placeholder="أضف ملاحظة للعملية (اختياري)"
-              value={formData.notes || ''}
-              onChange={e => memoizedOnChange('notes', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-              rows={3}
-              maxLength={255}
-              dir="rtl"
-            />
-            <div className="text-xs text-gray-500 text-left">
-              {(formData.notes || '').length}/255 حرف
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl">
+      {/* Action Buttons */}
+      <div className="flex justify-between gap-3 pt-4 items-center bg-[#EFF6FF] p-4 rounded-xl my-5">
           <div className="text-med-x14 flex flex-col items-start gap-2">
             {formData?.fromCurrency === formData?.toCurrency &&
             formData?.fromCurrency &&
             formData?.toCurrency ? (
-              <div className="text-red-600 text-sm font-medium">
+              <div className="text-red text-sm font-medium">
                 ⚠️ لا يمكن اختيار نفس العملة في الحقلين
               </div>
             ) : (
@@ -1180,6 +1155,30 @@ export default function TransactionForm({
             </PrimaryButton>
           </div>
         </div>
+        {/* Notes Section */}
+        <div className="space-y-4">
+          <div className="text-bold-x16 text-text-black">ملاحظات</div>
+          <div className="space-y-2">
+            <InputLabel htmlFor="notes" className="mb-2">
+              ملاحظة (اختيارية)
+            </InputLabel>
+            <textarea
+              id="notes"
+              placeholder="أضف ملاحظة للعملية (اختياري)"
+              value={formData.notes || ''}
+              onChange={e => memoizedOnChange('notes', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              rows={3}
+              maxLength={255}
+              dir="rtl"
+            />
+            <div className="text-xs text-gray-500 text-left">
+              {(formData.notes || '').length}/255 حرف
+            </div>
+          </div>
+        </div>
+
+  
       </div>
 
       {/* Overlay when session is closed or pending */}

@@ -1,0 +1,313 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import { Currency, User } from '@/types';
+import {
+  FiDollarSign,
+  FiTrendingUp,
+  FiTrendingDown,
+  FiRefreshCw,
+  FiUser,
+} from 'react-icons/fi';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Select,
+  SelectItem,
+} from '@heroui/react';
+
+interface CashierBalance {
+  currency_id: number;
+  name: string;
+  code: string;
+  opening_balance: number;
+  total_in: number;
+  total_out: number;
+  system_balance: number;
+}
+
+interface CashierSession {
+  id: number;
+  casher: User;
+  status: string;
+}
+
+interface CashierBalancesDisplayProps {
+  currencies: Currency[];
+  availableCashers?: User[];
+  currentSession?: any;
+  isAdmin?: boolean;
+}
+
+const CashierBalancesDisplay: React.FC<CashierBalancesDisplayProps> = ({
+  currencies,
+  availableCashers = [],
+  currentSession,
+  isAdmin = false,
+}) => {
+  const [selectedCashierId, setSelectedCashierId] = useState<number | null>(
+    null,
+  );
+  const [balances, setBalances] = useState<CashierBalance[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Get active cashier sessions from current session
+  const getActiveCashierSessions = (): CashierSession[] => {
+    if (!currentSession?.casher_cash_sessions) return [];
+
+    return currentSession.casher_cash_sessions
+      .filter((session: any) => session.status === 'active')
+      .map((session: any) => ({
+        id: session.id,
+        casher: session.casher,
+        status: session.status,
+      }));
+  };
+
+  const activeCashierSessions = getActiveCashierSessions();
+
+  const fetchBalances = async (casherSessionId: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(
+        `/admin/get-closing-balances/${casherSessionId}`,
+      );
+      if (response.data.status) {
+        setBalances(response.data.data.balances.system_closing_balances || []);
+      } else {
+        setError(response.data.message || 'حدث خطأ أثناء جلب الأرصدة');
+      }
+    } catch (error: any) {
+      console.error('Error fetching balances:', error);
+      let message = 'حدث خطأ أثناء جلب الأرصدة';
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          message = 'لا توجد جلسة نقدية نشطة';
+        } else if (error.response?.data?.message) {
+          message = error.response.data.message;
+        }
+      }
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedCashierId) {
+      fetchBalances(selectedCashierId);
+    }
+  }, [selectedCashierId]);
+
+  const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: true,
+    }).format(amount);
+  };
+
+  const getBalanceColor = (balance: number) => {
+    if (balance > 0) return 'text-green-600';
+    if (balance < 0) return 'text-red';
+    return 'text-gray-600';
+  };
+
+  const handleRefresh = () => {
+    if (selectedCashierId) {
+      fetchBalances(selectedCashierId);
+    }
+  };
+
+  const getSelectedCashier = () => {
+    if (!selectedCashierId) return null;
+    return activeCashierSessions.find(
+      session => session.id === selectedCashierId,
+    )?.casher;
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              أرصدة الصرافين
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">
+              عرض أرصدة الصرافين النشطين في الجلسة الحالية
+            </p>
+          </div>
+          {selectedCashierId && (
+            <button
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors disabled:opacity-50"
+            >
+              <FiRefreshCw
+                className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}
+              />
+              تحديث
+            </button>
+          )}
+        </div>
+
+        {/* Cashier Selection */}
+        <div className="mt-4">
+          <Select
+            label="اختر الصراف"
+            placeholder="اختر صراف لعرض أرصدته"
+            selectedKeys={
+              selectedCashierId ? [selectedCashierId.toString()] : []
+            }
+            onSelectionChange={keys => {
+              const selectedKey = Array.from(keys)[0] as string;
+              setSelectedCashierId(selectedKey ? parseInt(selectedKey) : null);
+            }}
+            className="max-w-xs"
+          >
+            {activeCashierSessions.map(session => (
+              <SelectItem key={session.id}>
+                <div className="flex items-center gap-2">
+                  <FiUser className="w-4 h-4" />
+                  <span>{session.casher.name}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
+      </div>
+
+      <div className="p-6">
+        {/* Selected Cashier Info */}
+        {getSelectedCashier() && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FiUser className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">
+                عرض أرصدة: {getSelectedCashier()?.name}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="mr-3 text-gray-600">جاري تحميل الأرصدة...</span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span className="text-sm font-medium text-red-800">خطأ</span>
+            </div>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+          </div>
+        )}
+
+        {/* Balances Table */}
+        {!isLoading && !error && balances.length > 0 && (
+          <div className="overflow-x-auto">
+            <Table aria-label="جدول أرصدة الصراف" className="min-w-full">
+              <TableHeader>
+                <TableColumn>العملة</TableColumn>
+                <TableColumn>رصيد الأفتتاحى</TableColumn>
+                <TableColumn>إجمالي الداخل</TableColumn>
+                <TableColumn>إجمالي الخارج</TableColumn>
+                <TableColumn>الرصيد الحالي</TableColumn>
+              </TableHeader>
+              <TableBody
+                emptyContent={
+                  balances.length === 0 ? 'لا توجد أرصدة متاحة' : undefined
+                }
+              >
+                {balances.map(balance => (
+                  <TableRow key={balance.currency_id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <FiDollarSign className="w-4 h-4 text-blue-600" />
+                        <div>
+                          <div className="font-semibold text-gray-900">
+                            {balance.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {balance.code}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium text-gray-900">
+                        {formatAmount(balance.opening_balance)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <FiTrendingUp className="w-3 h-3 text-green-500" />
+                        <span className="text-sm font-medium text-green-600">
+                          {formatAmount(balance.total_in)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <FiTrendingDown className="w-3 h-3 text-red-500" />
+                        <span className="text-sm font-medium text-red">
+                          {formatAmount(balance.total_out)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div
+                        className={`text-sm font-bold ${getBalanceColor(balance.system_balance)}`}
+                      >
+                        {formatAmount(balance.system_balance)}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Empty State - No Cashier Selected */}
+        {!selectedCashierId && !isLoading && !error && (
+          <div className="text-center py-8">
+            <FiUser className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <div className="text-gray-500">اختر صراف لعرض أرصدته</div>
+            <div className="text-sm text-gray-400 mt-1">
+              {activeCashierSessions.length === 0
+                ? 'لا توجد جلسات صراف نشطة'
+                : 'استخدم القائمة أعلاه لاختيار صراف'}
+            </div>
+          </div>
+        )}
+
+        {/* Empty State - No Balances */}
+        {selectedCashierId && !isLoading && !error && balances.length === 0 && (
+          <div className="text-center py-8">
+            <FiDollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <div className="text-gray-500">لا توجد أرصدة متاحة</div>
+            <div className="text-sm text-gray-400 mt-1">
+              تأكد من وجود جلسة نقدية نشطة للصراف المحدد
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CashierBalancesDisplay;

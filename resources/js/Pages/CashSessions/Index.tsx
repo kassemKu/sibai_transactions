@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
+import axios from 'axios';
 import RootLayout from '@/Layouts/RootLayout';
 import {
   Accordion,
@@ -13,7 +14,7 @@ import {
   Chip,
   Pagination,
 } from '@heroui/react';
-import { FiCalendar, FiClock, FiUser, FiEye } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiUser, FiEye, FiLoader } from 'react-icons/fi';
 import PrimaryButton from '@/Components/PrimaryButton';
 import {
   Currency,
@@ -28,9 +29,22 @@ interface CashSessionsIndexProps {
   cashSessions: CashSessionsResponse;
 }
 
+interface SessionTransactions {
+  [sessionId: number]: {
+    transactions: Transaction[];
+    totalCount: number;
+    isLoading: boolean;
+    hasLoaded: boolean;
+  };
+}
+
 export default function CashSessionsIndex({
   cashSessions,
 }: CashSessionsIndexProps) {
+  // State for managing transactions per session
+  const [sessionTransactions, setSessionTransactions] =
+    useState<SessionTransactions>({});
+
   // Format date and time
   const formatDateTime = (dateString: string) => {
     try {
@@ -47,6 +61,7 @@ export default function CashSessionsIndex({
       return { date: 'غير متاح', time: 'غير متاح' };
     }
   };
+
   // Get status chip
   const getStatusChip = (status: string) => {
     const configs: Record<
@@ -109,6 +124,7 @@ export default function CashSessionsIndex({
       return 'غير متاح';
     }
   };
+
   // Calculate session duration
   const calculateDuration = (openedAt: string, closedAt: string | null) => {
     const start = new Date(openedAt);
@@ -117,6 +133,72 @@ export default function CashSessionsIndex({
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}س ${minutes}د`;
+  };
+
+  // Fetch transactions for a specific session
+  const fetchSessionTransactions = async (sessionId: number) => {
+    // Don't fetch if already loaded or loading
+    if (
+      sessionTransactions[sessionId]?.hasLoaded ||
+      sessionTransactions[sessionId]?.isLoading
+    ) {
+      return;
+    }
+
+    setSessionTransactions(prev => ({
+      ...prev,
+      [sessionId]: {
+        ...prev[sessionId],
+        isLoading: true,
+      },
+    }));
+
+    try {
+      const response = await axios.get(
+        `/admin/cash-sessions/${sessionId}/transactions`,
+        {
+          params: { page: 1, per_page: 10 }, // Only fetch last 10 transactions
+        },
+      );
+
+      setSessionTransactions(prev => ({
+        ...prev,
+        [sessionId]: {
+          transactions: response.data.data.data || [],
+          totalCount: response.data.data.total || 0,
+          isLoading: false,
+          hasLoaded: true,
+        },
+      }));
+    } catch (error) {
+      console.error('Error fetching session transactions:', error);
+      setSessionTransactions(prev => ({
+        ...prev,
+        [sessionId]: {
+          transactions: [],
+          totalCount: 0,
+          isLoading: false,
+          hasLoaded: true,
+        },
+      }));
+    }
+  };
+
+  // Handle accordion item selection
+  const handleAccordionChange = (keys: any) => {
+    if (typeof keys === 'string') {
+      const sessionId = parseInt(keys);
+      if (!isNaN(sessionId)) {
+        fetchSessionTransactions(sessionId);
+      }
+    } else if (keys instanceof Set) {
+      keys.forEach(key => {
+        const sessionId = parseInt(key);
+        if (!isNaN(sessionId)) {
+          fetchSessionTransactions(sessionId);
+        }
+      });
+    }
   };
 
   // Handle pagination
@@ -156,6 +238,7 @@ export default function CashSessionsIndex({
             variant="splitted"
             selectionMode="multiple"
             className="w-full mb-6"
+            onSelectionChange={handleAccordionChange}
           >
             {cashSessions.data.map(session => {
               const openedDateTime = formatDateTime(session.opened_at);
@@ -252,107 +335,152 @@ export default function CashSessionsIndex({
 
                     {/* Transactions Table */}
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-3">
-                        المعاملات ({session.transactions?.length || 0})
-                      </h3>
-                      {session.transactions &&
-                      session.transactions.length > 0 ? (
-                        <Table aria-label={`معاملات الجلسة ${session.id}`}>
-                          <TableHeader>
-                            <TableColumn>التاريخ والوقت</TableColumn>
-                            <TableColumn>أنشأت بواسطة</TableColumn>
-                            <TableColumn>من</TableColumn>
-                            <TableColumn>إلى</TableColumn>
-                            <TableColumn>المبلغ الأصلي</TableColumn>
-                            <TableColumn>المبلغ المحول</TableColumn>
-                            <TableColumn>الحالة</TableColumn>
-                          </TableHeader>
-                          <TableBody>
-                            {session.transactions.map(transaction => {
-                              const transactionDateTime = formatDateTime(
-                                transaction.created_at,
-                              );
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-gray-900">
+                          المعاملات (
+                          {sessionTransactions[session.id]?.isLoading
+                            ? '...'
+                            : sessionTransactions[session.id]?.hasLoaded
+                              ? sessionTransactions[session.id].totalCount
+                              : '...'}
+                          )
+                        </h3>
+                        {sessionTransactions[session.id]?.hasLoaded && (
+                          <PrimaryButton
+                            onClick={() => viewSessionDetails(session.id)}
+                            className="text-sm"
+                          >
+                            <FiEye className="w-4 h-4 ml-1" />
+                            عرض جميع المعاملات
+                          </PrimaryButton>
+                        )}
+                      </div>
+                      {sessionTransactions[session.id]?.isLoading ? (
+                        <div className="flex justify-center py-8">
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <FiLoader className="w-6 h-6 text-gray-500 animate-spin" />
+                            <span className="text-gray-500">
+                              جاري تحميل المعاملات...
+                            </span>
+                          </div>
+                        </div>
+                      ) : sessionTransactions[session.id]?.transactions &&
+                        sessionTransactions[session.id].transactions.length >
+                          0 ? (
+                        <>
+                          <div className="mb-2 text-sm text-gray-600">
+                            عرض آخر{' '}
+                            {
+                              sessionTransactions[session.id].transactions
+                                .length
+                            }{' '}
+                            معاملة من أصل{' '}
+                            {sessionTransactions[session.id].totalCount} معاملة
+                          </div>
+                          <Table aria-label={`معاملات الجلسة ${session.id}`}>
+                            <TableHeader>
+                              <TableColumn>التاريخ والوقت</TableColumn>
+                              <TableColumn>أنشأت بواسطة</TableColumn>
+                              <TableColumn>من</TableColumn>
+                              <TableColumn>إلى</TableColumn>
+                              <TableColumn>المبلغ الأصلي</TableColumn>
+                              <TableColumn>المبلغ المحول</TableColumn>
+                              <TableColumn>الحالة</TableColumn>
+                            </TableHeader>
+                            <TableBody>
+                              {sessionTransactions[session.id].transactions.map(
+                                transaction => {
+                                  const transactionDateTime = formatDateTime(
+                                    transaction.created_at,
+                                  );
 
-                              return (
-                                <TableRow key={transaction.id}>
-                                  <TableCell>
-                                    <div className="text-sm">
-                                      <div>{transactionDateTime.date}</div>
-                                      <div className="text-gray-500">
-                                        {transactionDateTime.time}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="text-sm">
-                                      <div className="font-medium">
-                                        {transaction.created_by?.name ||
-                                          'غير متاح'}
-                                      </div>
-                                      <div className="text-gray-500">
-                                        {transaction.created_by?.email ||
-                                          'غير متاح'}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="text-sm">
-                                      <div className="font-medium">
-                                        {transaction.from_currency?.name ||
-                                          'غير متاح'}
-                                      </div>
-                                      <div className="text-gray-500">
-                                        {transaction.from_currency?.code ||
-                                          'N/A'}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="text-sm">
-                                      <div className="font-medium">
-                                        {transaction.to_currency?.name ||
-                                          'غير متاح'}
-                                      </div>
-                                      <div className="text-gray-500">
-                                        {transaction.to_currency?.code || 'N/A'}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="font-medium">
-                                      {transaction.from_currency &&
-                                      transaction.original_amount
-                                        ? formatAmount(
-                                            transaction.original_amount.toString(),
-                                            transaction.from_currency,
-                                          )
-                                        : 'غير متاح'}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="font-medium">
-                                      {transaction.to_currency &&
-                                      transaction.converted_amount
-                                        ? formatAmount(
-                                            transaction.converted_amount.toString(),
-                                            transaction.to_currency,
-                                          )
-                                        : 'غير متاح'}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    {getTransactionStatusChip(
-                                      transaction.status,
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      ) : (
+                                  return (
+                                    <TableRow key={transaction.id}>
+                                      <TableCell>
+                                        <div className="text-sm">
+                                          <div>{transactionDateTime.date}</div>
+                                          <div className="text-gray-500">
+                                            {transactionDateTime.time}
+                                          </div>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="text-sm">
+                                          <div className="font-medium">
+                                            {transaction.created_by?.name ||
+                                              'غير متاح'}
+                                          </div>
+                                          <div className="text-gray-500">
+                                            {transaction.created_by?.email ||
+                                              'غير متاح'}
+                                          </div>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="text-sm">
+                                          <div className="font-medium">
+                                            {transaction.from_currency?.name ||
+                                              'غير متاح'}
+                                          </div>
+                                          <div className="text-gray-500">
+                                            {transaction.from_currency?.code ||
+                                              'N/A'}
+                                          </div>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="text-sm">
+                                          <div className="font-medium">
+                                            {transaction.to_currency?.name ||
+                                              'غير متاح'}
+                                          </div>
+                                          <div className="text-gray-500">
+                                            {transaction.to_currency?.code ||
+                                              'N/A'}
+                                          </div>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="font-medium">
+                                          {transaction.from_currency &&
+                                          transaction.original_amount
+                                            ? formatAmount(
+                                                transaction.original_amount.toString(),
+                                                transaction.from_currency,
+                                              )
+                                            : 'غير متاح'}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="font-medium">
+                                          {transaction.to_currency &&
+                                          transaction.converted_amount
+                                            ? formatAmount(
+                                                transaction.converted_amount.toString(),
+                                                transaction.to_currency,
+                                              )
+                                            : 'غير متاح'}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell>
+                                        {getTransactionStatusChip(
+                                          transaction.status,
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                },
+                              )}
+                            </TableBody>
+                          </Table>
+                        </>
+                      ) : sessionTransactions[session.id]?.hasLoaded ? (
                         <div className="text-center py-8 text-gray-500">
                           لا توجد معاملات في هذه الجلسة
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-400">
+                          انقر لتحميل المعاملات
                         </div>
                       )}
                     </div>

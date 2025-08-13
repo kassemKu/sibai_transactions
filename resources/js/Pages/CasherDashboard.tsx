@@ -24,16 +24,25 @@ interface CasherDashboardProps {
   companies: any[];
 }
 
-interface Cashier {
+interface MySession {
   id: number;
-  name: string;
-  email: string;
-  system_balances?: Array<{
-    currency_id: number;
+  opened_at: string;
+  closed_at: string | null;
+  opened_by: number;
+  closed_by: number | null;
+  opening_balances: Array<{
     amount: number;
-    currency?: any;
+    currency_id: number;
   }>;
-  has_active_session?: boolean;
+  system_balances: any;
+  differences: any;
+  actual_closing_balances: any;
+  cash_session_id: number;
+  casher_id: number;
+  transfers: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
@@ -45,18 +54,20 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
     currencies: currenciesState,
     transactions,
     availableCashers,
-    cashiers,
+    mySession,
 
     isLoading: isInitialSessionLoading,
     isPolling,
     lastUpdated,
     error,
     refetch,
+    updateCurrentSession,
+    updateMySession,
+    updateTransactions,
   } = useStatusPolling(3000, true);
 
   // State for cashier balance modal
   const [showBalanceModal, setShowBalanceModal] = useState(false);
-  const [selectedCashier, setSelectedCashier] = useState<Cashier | null>(null);
 
   // Add form type toggle state for transfer/transaction
   const [formType, setFormType] = useState<'transaction' | 'transfer'>(
@@ -66,10 +77,17 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
   // Add session key state to trigger assignment rules reset when session changes
   const [sessionKey, setSessionKey] = useState<string>('');
 
+  // Local state for user availability status
+  const [localIsActive, setLocalIsActive] = useState<number | undefined>(
+    auth?.user?.is_active,
+  );
+
   // Update session key when session status changes
   useEffect(() => {
     if (currentCashSession) {
-      setSessionKey(`session-${currentCashSession.id}-${currentCashSession.status}-${Date.now()}`);
+      setSessionKey(
+        `session-${currentCashSession.id}-${currentCashSession.status}-${Date.now()}`,
+      );
     }
   }, [currentCashSession?.id, currentCashSession?.status]);
 
@@ -80,11 +98,11 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
     currentCashSession && currentCashSession.status === 'pending'
   );
 
-  // Find the current user in the cashiers array from /status API
-  const currentUserId = auth?.user?.id;
-  const currentUserCashier = cashiers.find(c => c.id === currentUserId) || null;
-  const hasActiveCashierSession = currentUserCashier?.has_active_session;
-  const isPresent = availableCashers?.some(u => u.id === currentUserId);
+  // Use my_session from the new API structure
+  const hasActiveCashierSession = mySession?.status === 'active';
+
+  // Use local state for availability checking, fallback to auth.user.is_active
+  const isPresent = localIsActive === 1 || auth?.user?.is_active === 1;
 
   // Determine if user can transfer (if you have a field for this in the new API, otherwise keep as false or implement as needed)
   const canTransfer = false; // TODO: Update if /status API provides this info
@@ -104,30 +122,60 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
       currentUserEmail: auth?.user?.email, // Pass current user email to filter self-created transactions
     });
 
-  // Handle opening balance modal using /status API cashier data
+  // Handle opening balance modal using my_session data
   const handleOpenBalanceModal = () => {
-    if (currentUserCashier) {
-      setSelectedCashier(currentUserCashier);
-      setShowBalanceModal(true);
-    }
+    setShowBalanceModal(true);
   };
 
   // Handle closing balance modal
   const handleCloseBalanceModal = () => {
     setShowBalanceModal(false);
-    setSelectedCashier(null);
   };
+
   const handleSelfChangeStatus = async () => {
+    // Check if user has an active cashier session before making the request
+    if (!hasActiveCashierSession) {
+      toast.error(
+        'لا توجد جلسة صراف نشطة. يرجى التأكد من وجود جلسة نشطة قبل تغيير حالة التواجد.',
+      );
+      return;
+    }
+
     try {
       const response = await axios.put('/casher/change-status');
-      const message = response.data?.message || 'تم تغيير حالة التواجد بنجاح';
-      toast.success(message);
-      refetch();
-    } catch (error) {
-      let message = 'حدث خطأ أثناء تغيير حالة التواجد';
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        message = error.response.data.message;
+
+      // Check if the response indicates success
+      if (response.data?.status === true) {
+        const message = response.data?.message || 'تم تغيير حالة التواجد بنجاح';
+
+        // Update local state with new is_active value from response
+        if (response.data?.data?.user?.is_active !== undefined) {
+          setLocalIsActive(response.data.data.user.is_active);
+        }
+
+        toast.success(message);
+      } else {
+        // Handle case where status is false but no error was thrown
+        const errorMessage =
+          response.data?.message || 'حدث خطأ أثناء تغيير حالة التواجد';
+        toast.error(errorMessage);
       }
+    } catch (error: any) {
+      let message = 'حدث خطأ أثناء تغيير حالة التواجد';
+
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          message =
+            'لا توجد جلسة نقدية نشطة. يرجى التأكد من وجود جلسة نشطة قبل تغيير حالة التواجد.';
+        } else if (error.response?.data?.message) {
+          message = error.response.data.message;
+        } else if (error.response?.status === 500) {
+          message = 'حدث خطأ في الخادم. يرجى المحاولة مرة أخرى.';
+        } else if (error.response?.status === 401) {
+          message = 'غير مصرح لك بتنفيذ هذا الإجراء.';
+        }
+      }
+
       toast.error(message);
     }
   };
@@ -163,7 +211,7 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
       {!isSessionOpen && !isSessionPending ? (
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-          <span className="text-sm text-red-600 font-medium">
+          <span className="text-sm text-red font-medium">
             لا توجد جلسة نشطة
           </span>
         </div>
@@ -185,7 +233,7 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
       )}
 
       {/* Balance Button - Always show if cashier has a session */}
-      {currentUserCashier && (
+      {mySession && (
         <SecondaryButton className="text-sm" onClick={handleOpenBalanceModal}>
           عرض رصيدي النظامي
         </SecondaryButton>
@@ -360,7 +408,6 @@ const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
       <CashierBalanceModal
         isOpen={showBalanceModal}
         onClose={handleCloseBalanceModal}
-        cashier={selectedCashier}
         currencies={currenciesState}
       />
     </RootLayout>
