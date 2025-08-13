@@ -48,7 +48,7 @@ const CashierBalanceModal: React.FC<CashierBalanceModalProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get('/casher/my_balances');
+      const response = await axios.get('/casher/my-balances');
       if (response.data.status) {
         setBalances(response.data.data.balances.system_closing_balances || []);
       } else {
