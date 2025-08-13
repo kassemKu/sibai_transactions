@@ -23,6 +23,7 @@ import { FiUsers, FiEye, FiClock, FiRefreshCw } from 'react-icons/fi';
 import { Chip } from '@heroui/react';
 import CashierBoxModal from '@/Components/Casher/CashierBoxModal';
 import UnifiedFormComponent from '@/Components/Dashboard/UnifiedFormComponent';
+// import CashierBalancesDisplay from '@/Components/Dashboard/CashierBalancesDisplay';
 
 interface DashboardProps {
   currencies: CurrenciesResponse;
@@ -103,6 +104,9 @@ export default function Dashboard({
     lastUpdated,
     error,
     refetch,
+    updateCurrentSession,
+    updateMySession,
+    updateTransactions,
   } = useStatusPolling(3000, true);
 
   // Get cashier sessions from current cash session
@@ -218,6 +222,12 @@ export default function Dashboard({
       const response = await axios.post('/admin/cash-sessions/open');
       if (response.status) {
         toast.success('تم فتح الجلسة النقدية بنجاح');
+
+        // Immediately update the UI with the new session data
+        if (response.data?.data?.cash_session) {
+          updateCurrentSession(response.data.data.cash_session);
+        }
+
         await refetch();
         setIsSessionLoading(false);
       } else {
@@ -313,7 +323,17 @@ export default function Dashboard({
     // Update session key to trigger assignment rules reset
     setSessionKey(`session-${Date.now()}`);
 
-    // Refetch status to update local state (with a slight delay to ensure modal is fully closed)
+    // Immediately update the UI to reflect session closure
+    if (currentCashSession) {
+      updateCurrentSession({
+        ...currentCashSession,
+        status: 'closed',
+        closed_at: new Date().toISOString(),
+        closed_by: auth?.user?.id,
+      });
+    }
+
+    // Also refetch to ensure we have the latest data from server
     setTimeout(() => {
       refetch();
     }, 300);
@@ -360,6 +380,14 @@ export default function Dashboard({
 
   // Handle session becoming pending
   const handleSessionPending = () => {
+    // Immediately update the UI to reflect session pending status
+    if (currentCashSession) {
+      updateCurrentSession({
+        ...currentCashSession,
+        status: 'pending',
+      });
+    }
+
     // Refetch status to update local state (with a slight delay to avoid race conditions)
     setTimeout(() => {
       refetch();
@@ -473,7 +501,7 @@ export default function Dashboard({
       console.log(
         '[Cashier Session Close] Assignment rules cleared from localStorage',
       );
-      toast.success('تم مسح قواعد التعيين التلقائي مع إغلاق صندوق الصراف');
+    //   toast.success('تم مسح قواعد التعيين التلقائي مع إغلاق صندوق الصراف');
 
       setIsCashierBoxModalOpen(false);
       setSelectedCashierSession(null);
@@ -630,6 +658,17 @@ export default function Dashboard({
         onEditCurrency={isAdmin ? handleEditCurrency : undefined}
         isEditable={isAdmin}
       />
+
+      {/* Cashier Balances Display - Show for super admins when session is active
+      {isAdmin && isSessionOpen && (
+        <div className="mb-8">
+          <CashierBalancesDisplay
+            currencies={currenciesState}
+            currentSession={currentCashSession}
+            isAdmin={true}
+          />
+        </div>
+      )} */}
 
       {/* Always show TransactionForm with overlay when session is not active */}
       <div id="transaction-form">

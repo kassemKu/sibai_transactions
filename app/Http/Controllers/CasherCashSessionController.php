@@ -69,7 +69,7 @@ class CasherCashSessionController extends Controller
         }
     }
 
-    public function getClosingBalances(CasherCashSession $casherCashSession, Request $request): JsonResponse
+    public function getClosingBalances(CasherCashSession $casherCashSession): JsonResponse
     {
         try {
             $balances = $this->casherSessionService->getClosingBalances($casherCashSession);
@@ -116,7 +116,7 @@ class CasherCashSessionController extends Controller
             })->values()->all();
 
             // Add actual_closing_balance to CashBalance opening_balance for each currency
-            $openingBalances = collect($casherCashSession->opening_balances)->keyBy('currency_id');
+            // $openingBalances = collect($casherCashSession->opening_balances)->keyBy('currency_id');
             foreach ($request->actual_closing_balances as $balance) {
                 $currencyId = $balance['currency_id'];
                 $amount = $balance['amount'];
@@ -148,6 +148,21 @@ class CasherCashSessionController extends Controller
             $this->errorLog($e, 'CasherCashSessionController@close');
 
             return $this->failed('حدث خطأ أثناء إغلاق الجلسة النقدية');
+        }
+    }
+
+    public function myBalances(Request $request)
+    {
+        try {
+            $balances = $this->casherSessionService->getClosingBalances($request->casherSession);
+
+            return $this->success('تم جلب أرصدة الإغلاق بنجاح.', [
+                'balances' => $balances,
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'CashSessionController@getClosingBalances');
+
+            return $this->failed('حدث خطأ أثناء جلب أرصدة الإغلاق');
         }
     }
 }

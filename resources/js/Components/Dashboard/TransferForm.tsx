@@ -158,7 +158,7 @@ export default function TransferForm({
                     onChange={e => setCurrency(e.target.value)}
                     className="border-blue-200 focus:border-blue-500"
                   >
-                    <option value="">اختر العملة</option>
+          
                     {currencies.map(currency => (
                       <option key={currency.id} value={currency.id}>
                         {currency.name} ({currency.code})

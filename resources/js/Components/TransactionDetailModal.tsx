@@ -249,7 +249,7 @@ export default function TransactionDetailModal({
             </div>
           ) : error ? (
             <div className="text-center py-12">
-              <div className="text-red-600 text-lg mb-2">{error}</div>
+              <div className="text-red text-lg mb-2">{error}</div>
               <Button
                 color="primary"
                 variant="ghost"
@@ -331,7 +331,7 @@ export default function TransactionDetailModal({
                         <div className="text-xs text-gray-500">
                           {transaction.from_currency?.code}
                         </div>
-                        <div className="text-lg font-bold text-red-600 mt-2">
+                        <div className="text-lg font-bold text-red mt-2">
                           {formatAmount(
                             transaction.original_amount,
                             transaction.from_currency,

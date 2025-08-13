@@ -101,10 +101,11 @@ export default function CurrencyCard({
 
   return (
     <Card
-      className={`currency-card border border-gray-200 hover:border-gray-300 bg-gradient-to-br from-white to-gray-50 w-[280px] transition-all duration-200 ${isEditable
-        ? 'relative group hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
-        : 'cursor-grab active:cursor-grabbing'
-        }`}
+      className={`currency-card border border-gray-200 hover:border-gray-300 bg-gradient-to-br from-white to-gray-50 w-[280px] transition-all duration-200 ${
+        isEditable
+          ? 'relative group hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
+          : 'cursor-grab active:cursor-grabbing'
+      }`}
       padding="xs"
     >
       {/* Clickable overlay for admins */}
@@ -172,10 +173,10 @@ export default function CurrencyCard({
           {/* Sell Rate */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FiArrowUp className="w-4 h-4 text-red-600" />
+              <FiArrowUp className="w-4 h-4 " />
               <span className="text-sm font-medium text-red-700">شراء</span>
             </div>
-            <span className="text-lg font-bold text-red-600">
+            <span className="text-lg font-bold ">
               {formatRate(parseFloat(currency.sell_rate_to_usd), currency.code)}
             </span>
           </div>

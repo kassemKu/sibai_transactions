@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -56,7 +56,7 @@ export default function UsersIndex({ users }: UsersIndexProps) {
     setEditUserId(null);
   };
   const handleSuccess = () => {
-    window.location.reload();
+    router.visit(route('users.index'));
   };
 
   return (

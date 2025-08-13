@@ -151,7 +151,7 @@ export default function CurrenciesShow({ currency }: CurrenciesShowProps) {
               <div className="flex items-start space-x-3 space-x-reverse">
                 <div className="flex-shrink-0">
                   <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                    <FiArrowUp className="w-5 h-5 text-red-600" />
+                    <FiArrowUp className="w-5 h-5 text-red" />
                   </div>
                 </div>
                 <div className="flex-1">
