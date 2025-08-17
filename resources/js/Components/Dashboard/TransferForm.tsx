@@ -72,7 +72,7 @@ export default function TransferForm({
         type: transferType,
       };
 
-      await axios.post('/admin/transfers', payload);
+      await axios.post('/transfers', payload);
       toast.success('تم تنفيذ التحويل بنجاح');
       resetForm();
     } catch (error: any) {
@@ -118,7 +118,7 @@ export default function TransferForm({
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-gray-900">
-                  تحويل إلى
+صادر
                 </span>
               </label>
               <label className="flex items-center space-x-2 space-x-reverse cursor-pointer">
@@ -133,7 +133,7 @@ export default function TransferForm({
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-gray-900">
-                  تحويل من
+             وارد
                 </span>
               </label>
             </div>
@@ -158,7 +158,7 @@ export default function TransferForm({
                     onChange={e => setCurrency(e.target.value)}
                     className="border-blue-200 focus:border-blue-500"
                   >
-                    <option value="">اختر العملة</option>
+          
                     {currencies.map(currency => (
                       <option key={currency.id} value={currency.id}>
                         {currency.name} ({currency.code})
@@ -201,7 +201,7 @@ export default function TransferForm({
                   onChange={e => setCompany(e.target.value)}
                   className="border-blue-200 focus:border-blue-500"
                 >
-                  <option value="">اختر الشركة</option>
+                
                   {companies.map(company => (
                     <option key={company.id} value={company.id}>
                       {company.name}

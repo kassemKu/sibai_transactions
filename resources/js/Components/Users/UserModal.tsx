@@ -52,10 +52,16 @@ export default function UserModal({
   useEffect(() => {
     if (isOpen) {
       axios.get('/admin/users-roles').then(res => {
-        setRoles(res.data.data.roles || []);
+        const fetchedRoles = res.data.data.roles || [];
+        setRoles(fetchedRoles);
+
+        // If creating a new user and no role is selected, set the first role as default
+        if (!userId && fetchedRoles.length > 0 && !data.role_id) {
+          setData(prev => ({ ...prev, role_id: fetchedRoles[0].id }));
+        }
       });
     }
-  }, [isOpen]);
+  }, [isOpen, userId, data.role_id]);
 
   // Fetch user data if editing
   useEffect(() => {
@@ -84,7 +90,6 @@ export default function UserModal({
   ) => {
     setData({ ...data, [e.target.name]: e.target.value });
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
@@ -168,7 +173,6 @@ export default function UserModal({
                 onChange={handleChange}
                 required
               >
-                <option value="">اختر الدور</option>
                 {roles.map(role => (
                   <option key={role.id} value={role.id}>
                     {role.display_name || role.name}

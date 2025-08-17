@@ -1,7 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@heroui/react';
 import TransactionForm from './TransactionForm';
 import TransferForm from './TransferForm';
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
 
 interface UnifiedFormComponentProps {
   formType: 'transaction' | 'transfer';
@@ -11,6 +17,8 @@ interface UnifiedFormComponentProps {
   isSessionOpen: boolean;
   isSessionPending: boolean;
   onStartSession?: () => void;
+  availableCashers?: User[];
+  sessionKey?: string;
 }
 
 export default function UnifiedFormComponent({
@@ -21,7 +29,21 @@ export default function UnifiedFormComponent({
   isSessionOpen,
   isSessionPending,
   onStartSession,
+  availableCashers = [],
+  sessionKey,
 }: UnifiedFormComponentProps) {
+  // Add local state for formData and onChange handler
+  const [formData, setFormData] = useState({
+    fromCurrency: '',
+    toCurrency: '',
+    amount: '',
+    calculatedAmount: '',
+    notes: '',
+    assignedTo: '',
+  });
+  const handleFormDataChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
   return (
     <div className="w-full mb-8 relative">
       <Card className="p-0">
@@ -107,6 +129,10 @@ export default function UnifiedFormComponent({
               isSessionOpen={isSessionOpen}
               isSessionPending={isSessionPending}
               onStartSession={onStartSession}
+              availableCashers={availableCashers}
+              formData={formData}
+              onChange={handleFormDataChange}
+              sessionKey={sessionKey}
             />
           ) : (
             <TransferForm

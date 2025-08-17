@@ -8,7 +8,7 @@ import CurrencyCard from './CurrencyCard';
 // Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/navigation';
-import 'swiper/css/autoplay';
+// import 'swiper/css/autoplay';
 
 interface CurrencyCardsSliderProps {
   currencies: CurrenciesResponse;
@@ -40,14 +40,13 @@ export default function CurrencyCardsSlider({
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-6">
-        <div className="text-bold-x18 text-text-black">
+        <div className="text-bold text-text-black">
           إليك أسعار العملات طبقاً للدولار الأمريكي
         </div>
         <div className="flex items-center gap-2">
           <button
-            className={`currency-prev-btn p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 shadow-sm ${
-              isBeginning ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
-            }`}
+            className={`currency-prev-btn p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 shadow-sm ${isBeginning ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
+              }`}
             onClick={() => {
               swiperRef.current?.slidePrev();
               handleManualNavigation();
@@ -59,9 +58,8 @@ export default function CurrencyCardsSlider({
             <FiChevronRight className="w-4 h-4 text-gray-600" />
           </button>
           <button
-            className={`currency-next-btn p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 shadow-sm ${
-              isEnd ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
-            }`}
+            className={`currency-next-btn p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 shadow-sm ${isEnd ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'
+              }`}
             onClick={() => {
               swiperRef.current?.slideNext();
               handleManualNavigation();
@@ -79,11 +77,11 @@ export default function CurrencyCardsSlider({
         <Swiper
           ref={swiperRef}
           modules={[Navigation, Autoplay]}
-          autoplay={{
-            delay: 3000,
-            disableOnInteraction: false,
-            pauseOnMouseEnter: true,
-          }}
+          // autoplay={{
+          //   delay: 3000,
+          //   disableOnInteraction: false,
+          //   pauseOnMouseEnter: true,
+          // }}
           spaceBetween={160}
           loop={false}
           centeredSlides={false}

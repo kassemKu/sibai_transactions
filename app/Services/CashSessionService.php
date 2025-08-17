@@ -2,11 +2,9 @@
 
 namespace App\Services;
 
-use App\Enums\CashMovementTypeEnum;
 use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
 use App\Models\CashBalance;
-use App\Models\CashMovement;
 use App\Models\CashSession;
 use App\Models\Currency;
 use App\Models\Transaction;
@@ -58,19 +56,21 @@ class CashSessionService
                 ->first()
                 ->opening_balance ?? 0;
 
-            $totalIn = CashMovement::where('currency_id', $currency->id)
-                ->where('type', CashMovementTypeEnum::IN->value)
+            $totalIn = Transaction::where('from_currency_id', $currency->id)
                 ->where('cash_session_id', $session->id)
-                ->where('sub', false)
-                ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-                ->sum('amount');
+                ->where('status', TransactionStatusEnum::COMPLETED->value)
+                ->whereDoesntHave('createdBy.casherCashSessions', function ($query) use ($session) {
+                    $query->where('cash_session_id', $session->id);
+                })
+                ->sum('original_amount');
 
-            $totalOut = CashMovement::where('currency_id', $currency->id)
-                ->where('type', CashMovementTypeEnum::OUT->value)
+            $totalOut = Transaction::where('to_currency_id', $currency->id)
                 ->where('cash_session_id', $session->id)
-                ->where('sub', false)
-                ->whereHas('transaction', fn ($q) => $q->where('status', TransactionStatusEnum::COMPLETED->value))
-                ->sum('amount');
+                ->where('status', TransactionStatusEnum::COMPLETED->value)
+                ->whereDoesntHave('closedBy.casherCashSessions', function ($query) use ($session) {
+                    $query->where('cash_session_id', $session->id);
+                })
+                ->sum('converted_amount');
 
             $systemClosing = $opening + $totalIn - $totalOut;
 
@@ -90,6 +90,48 @@ class CashSessionService
         }
 
         return $balances;
+    }
+
+    public function getClosingBalanceForCurrency($session, $currencyId)
+    {
+        $currency = Currency::find($currencyId);
+
+        $opening = CashBalance::where('cash_session_id', $session->id)
+            ->where('currency_id', $currency->id)
+            ->first()
+            ->opening_balance ?? 0;
+
+        $totalIn = Transaction::where('from_currency_id', $currency->id)
+            ->where('cash_session_id', $session->id)
+            ->where('status', TransactionStatusEnum::COMPLETED->value)
+            ->whereDoesntHave('createdBy.casherCashSessions', function ($query) use ($session) {
+                $query->where('cash_session_id', $session->id);
+            })
+            ->sum('original_amount');
+
+        $totalOut = Transaction::where('to_currency_id', $currency->id)
+            ->where('cash_session_id', $session->id)
+            ->where('status', TransactionStatusEnum::COMPLETED->value)
+            ->whereDoesntHave('closedBy.casherCashSessions', function ($query) use ($session) {
+                $query->where('cash_session_id', $session->id);
+            })
+            ->sum('converted_amount');
+
+        $systemClosing = $opening + $totalIn - $totalOut;
+
+        return [
+            'currency_id' => $currency->id,
+            'currency' => [
+                'id' => $currency->id,
+                'name' => $currency->name,
+                'code' => $currency->code,
+                'rate_to_usd' => $currency->rate_to_usd,
+            ],
+            'opening_balance' => $opening,
+            'total_in' => $totalIn,
+            'total_out' => $totalOut,
+            'system_closing_balance' => $systemClosing,
+        ];
     }
 
     protected function getCurrentExchangeRates()
@@ -124,15 +166,15 @@ class CashSessionService
 
                 $opening = $cashBalance->opening_balance;
 
-                $totalIn = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id))
-                    ->where('currency_id', $currencyId)
-                    ->where('type', CashMovementTypeEnum::IN->value)
-                    ->sum('amount');
+                $totalIn = Transaction::where('from_currency_id', $currencyId)
+                    ->where('cash_session_id', $session->id)
+                    ->where('status', TransactionStatusEnum::COMPLETED->value)
+                    ->sum('original_amount');
 
-                $totalOut = CashMovement::whereHas('transaction', fn ($q) => $q->where('cash_session_id', $session->id))
-                    ->where('currency_id', $currencyId)
-                    ->where('type', CashMovementTypeEnum::OUT->value)
-                    ->sum('amount');
+                $totalOut = Transaction::where('to_currency_id', $currencyId)
+                    ->where('cash_session_id', $session->id)
+                    ->where('status', TransactionStatusEnum::COMPLETED->value)
+                    ->sum('converted_amount');
 
                 $systemClosing = $opening + $totalIn - $totalOut;
                 $difference = $actualClosing - $systemClosing;

@@ -65,7 +65,7 @@ export default function CashSessionShow({
   cashSession,
   currencies,
 }: CashSessionShowProps) {
-  console.log(cashSession);
+  // console.log(cashSession);
 
   // State for add cashbox modal
   const [showAddCashboxModal, setShowAddCashboxModal] = useState(false);
@@ -149,7 +149,7 @@ export default function CashSessionShow({
   // Handle add cashbox success
   const handleAddCashboxSuccess = () => {
     // Refresh the page to show updated data
-    window.location.reload();
+    router.visit(route('cash_sessions.show', cashSession.id));
   };
 
   // Fetch cashier box balances API - MEMOIZED to prevent unnecessary re-renders
@@ -175,7 +175,7 @@ export default function CashSessionShow({
         [casherCashSessionId]:
           response.data.data.balances.system_closing_balances,
       }));
-      console.log(response.data.data.balances.system_closing_balances);
+      // console.log(response.data.data.balances.system_closing_balances);
     } catch (error) {
       console.error('Error fetching cashier balances:', error);
     } finally {
@@ -360,6 +360,14 @@ export default function CashSessionShow({
         },
       );
       toast.success('تم إغلاق صندوق الصراف بنجاح');
+
+      // Clear assignment rules from localStorage when cashier session is closed
+      localStorage.setItem('transactionAssignmentRules', JSON.stringify([]));
+      console.log(
+        '[Cashier Session Close] Assignment rules cleared from localStorage',
+      );
+      toast.success('تم مسح قواعد التعيين التلقائي مع إغلاق صندوق الصراف');
+
       setIsCashierBoxModalOpen(false);
       setSelectedCashierSession(null);
       setCashierBoxModalStage('view');

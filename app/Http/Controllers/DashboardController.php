@@ -26,161 +26,105 @@ class DashboardController extends Controller
     {
         return inertia('Dashboard')->with([
             'companies' => Company::all(),
+            'currencies' => Currency::all(),
         ]);
     }
 
     public function casherDashboard()
     {
-        return inertia('CasherDashboard');
+        return inertia('CasherDashboard')->with([
+            'companies' => \App\Models\Company::all(),
+        ]);
     }
 
     public function getStatus()
     {
-        $session = CashSession::whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value])
-            ->with(['casherCashSessions.casher'])
-            ->first();
-
-        $transactionsQuery = Transaction::where('status', TransactionStatusEnum::PENDING->value)
-            ->whereHas('cashSession', function ($query) {
-                $query->whereIn('status', [CashSessionEnum::ACTIVE->value, CashSessionEnum::PENDING->value]);
-            });
-
-        // Admin users can see all pending transactions, not just those assigned to them
-        if (! Auth::user()->hasRole(['super_admin', 'admin'])) {
-            $transactionsQuery->where('assigned_to', Auth::id());
-        }
-
-        $transactions = $transactionsQuery
-            ->with(['fromCurrency', 'toCurrency', 'createdBy', 'closedBy', 'assignedTo'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // Get all cashiers AND admin users with their system balances and session status
-        $allCashiers = User::whereHas('roles', function ($query) {
-            $query->whereIn('name', ['casher', 'admin']);
-        })->get();
-
-        $currencies = Currency::get();
-        $cashiers = $allCashiers->map(function ($user) use ($currencies) {
-            // Get the user's most recent session (not just for current cash session)
-            $cashierSession = $user->casherCashSessions()
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            // Calculate system balances dynamically
-            $systemBalances = [];
-            if ($cashierSession) {
-                $openingBalances = collect($cashierSession->opening_balances)->keyBy('currency_id');
-
-                foreach ($currencies as $currency) {
-                    $opening = $openingBalances[$currency->id]['amount'] ?? 0;
-
-                    // Calculate total in/out movements for this cashier and currency
-                    $totalIn = \App\Models\CashMovement::where('currency_id', $currency->id)
-                        ->where('by', $cashierSession->casher_id)
-                        ->where('type', \App\Enums\CashMovementTypeEnum::IN->value)
-                        ->where('cash_session_id', $cashierSession->cash_session_id)
-                        ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
-                        ->sum('amount');
-
-                    $totalOut = \App\Models\CashMovement::where('currency_id', $currency->id)
-                        ->where('by', $cashierSession->casher_id)
-                        ->where('type', \App\Enums\CashMovementTypeEnum::OUT->value)
-                        ->where('cash_session_id', $cashierSession->cash_session_id)
-                        ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
-                        ->sum('amount');
-
-                    $systemBalance = $opening + $totalIn - $totalOut;
-
-                    $systemBalances[] = [
-                        'currency_id' => $currency->id,
-                        'amount' => $systemBalance,
-                        'currency' => $currency,
-                    ];
-                }
-            } else {
-                // If no session, provide zero balances for all currencies
-                $systemBalances = $currencies->map(function ($currency) {
-                    return [
-                        'currency_id' => $currency->id,
-                        'amount' => 0,
-                        'currency' => $currency,
-                    ];
-                })->toArray();
-            }
-
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'system_balances' => $systemBalances,
-                'has_active_session' => $cashierSession && $cashierSession->status === 'active',
-            ];
-        });
-
-        // Always include the logged-in user (cashier or admin), even if not in the above list
-        $currentUser = Auth::user();
-        if (($currentUser->hasRole('casher') || $currentUser->hasRole('admin')) && ! $cashiers->contains('id', $currentUser->id)) {
-            // Get the current user's most recent session and system balances
-            $currentUserSession = $currentUser->casherCashSessions()
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            $systemBalances = [];
-            if ($currentUserSession) {
-                $openingBalances = collect($currentUserSession->opening_balances)->keyBy('currency_id');
-
-                foreach ($currencies as $currency) {
-                    $opening = $openingBalances[$currency->id]['amount'] ?? 0;
-
-                    // Calculate total in/out movements for this cashier and currency
-                    $totalIn = \App\Models\CashMovement::where('currency_id', $currency->id)
-                        ->where('by', $currentUserSession->casher_id)
-                        ->where('type', \App\Enums\CashMovementTypeEnum::IN->value)
-                        ->where('cash_session_id', $currentUserSession->cash_session_id)
-                        ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
-                        ->sum('amount');
-
-                    $totalOut = \App\Models\CashMovement::where('currency_id', $currency->id)
-                        ->where('by', $currentUserSession->casher_id)
-                        ->where('type', \App\Enums\CashMovementTypeEnum::OUT->value)
-                        ->where('cash_session_id', $currentUserSession->cash_session_id)
-                        ->whereHas('transaction', fn ($q) => $q->where('status', \App\Enums\TransactionStatusEnum::COMPLETED->value))
-                        ->sum('amount');
-
-                    $systemBalance = $opening + $totalIn - $totalOut;
-
-                    $systemBalances[] = [
-                        'currency_id' => $currency->id,
-                        'amount' => $systemBalance,
-                        'currency' => $currency,
-                    ];
-                }
-            } else {
-                // If no session, provide zero balances for all currencies
-                $systemBalances = $currencies->map(function ($currency) {
-                    return [
-                        'currency_id' => $currency->id,
-                        'amount' => 0,
-                        'currency' => $currency,
-                    ];
-                })->toArray();
-            }
-
-            $cashiers->push([
-                'id' => $currentUser->id,
-                'name' => $currentUser->name,
-                'email' => $currentUser->email,
-                'system_balances' => $systemBalances,
-                'has_active_session' => $currentUserSession && $currentUserSession->status === 'active',
-            ]);
-        }
+        $user = Auth::user();
+        $session = $this->getCurrentCashSession($user);
 
         return $this->success('تم جلب بيانات الجلسة النقدية الحالية بنجاح.', [
             'current_session' => $session,
-            'currencies' => $currencies,
-            'transactions' => $transactions,
-            'cashiers' => $cashiers->values(),
+            'currencies' => $this->getCurrencies(),
+            'transactions' => $this->getPendingTransactions($session, $user),
+            'available_cashers' => $this->getAvailableCashers($session, $user),
+            'my_session' => $this->casherSession($session, $user),
         ]);
+    }
+
+    private function getCurrencies()
+    {
+        return Currency::all();
+    }
+
+    private function getCurrentCashSession($user)
+    {
+        return CashSession::whereIn('status', [
+            CashSessionEnum::ACTIVE->value,
+            CashSessionEnum::PENDING->value,
+        ])
+            ->when($user->hasRole('super_admin'), function ($query) {
+                $query->with(['casherCashSessions.casher']);
+            })
+            ->first();
+    }
+
+    private function getPendingTransactions($session, $user)
+    {
+        if (! $session) {
+            return collect();
+        }
+
+        return Transaction::where('status', TransactionStatusEnum::PENDING->value)
+            ->where('cash_session_id', $session->id)
+            ->whereHas('cashSession', function ($query) {
+                $query->whereIn('status', [
+                    CashSessionEnum::ACTIVE->value,
+                    CashSessionEnum::PENDING->value,
+                ]);
+            })
+            ->when(! $user->hasRole(['super_admin', 'admin']), function ($query) use ($user) {
+                $query->where('assigned_to', $user->id);
+            })
+            ->with(['fromCurrency', 'toCurrency', 'createdBy', 'closedBy', 'assignedTo'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    private function getAvailableCashers($session, $user)
+    {
+
+        if (! $session || ! $user->hasRole(['admin', 'super_admin'])) {
+            return collect();
+        }
+
+        $usersWithSessions = User::where('is_active', true)
+            ->whereHas('casherCashSessions', function ($q) use ($session) {
+                $q->where('cash_session_id', $session->id)
+                    ->whereIn('status', ['active', 'pending']);
+            })
+            ->get();
+
+        $superAdmins = User::where('is_active', true)
+            ->whereHas('roles', function ($q) {
+                $q->where('name', 'super_admin');
+            })
+            ->get();
+
+        return $usersWithSessions->merge($superAdmins)->unique('id');
+    }
+
+    private function casherSession($session, $user)
+    {
+        if (! $user->hasRole(['admin', 'casher'])) {
+            return collect();
+        }
+
+        return $user->casherCashSessions()->whereIn('status', [
+            CashSessionEnum::ACTIVE->value,
+            CashSessionEnum::PENDING->value,
+        ])
+            ->where('cash_session_id', $session->id)
+            ->latest()
+            ->first();
     }
 }

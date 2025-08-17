@@ -20,13 +20,9 @@ import { route } from 'ziggy-js';
 import { useNewTransactionNotification } from '@/Hooks/useNewTransactionNotification';
 import NewTransactionNotification from '@/Components/Casher/NewTransactionNotification';
 import { usePage } from '@inertiajs/react';
-import {
-  Transaction as GlobalTransaction,
-  User,
-  Currency,
-  Customer,
-} from '@/types';
+import { Transaction as GlobalTransaction, User, Currency } from '@/types';
 import NotesModal from '../NotesModal';
+import EditTransactionModal from '../EditTransactionModal';
 
 interface PendingTransactionsResponse {
   status: boolean;
@@ -44,6 +40,8 @@ interface RecentTransactionsTableProps {
   isPolling?: boolean;
   lastUpdated?: Date | null;
   onRefetch?: () => void;
+  currencies?: any[]; // Add currencies for edit modal
+  availableCashers?: User[]; // Add available cashers for edit modal
 }
 
 export default function RecentTransactionsTable({
@@ -54,14 +52,26 @@ export default function RecentTransactionsTable({
   isPolling = false,
   lastUpdated = null,
   onRefetch,
+  currencies = [],
+  availableCashers = [],
 }: RecentTransactionsTableProps) {
   const { auth } = usePage().props as any;
   const [updatingTransactions, setUpdatingTransactions] = useState<Set<number>>(
     new Set(),
   );
+  const [confirmingTransactions, setConfirmingTransactions] = useState<
+    Set<number>
+  >(new Set());
+  const [cancelingTransactions, setCancelingTransactions] = useState<
+    Set<number>
+  >(new Set());
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<GlobalTransaction | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingTransactionId, setEditingTransactionId] = useState<
+    number | null
+  >(null);
 
   // Use notification hook for new pending transactions
   const { showVisualNotification, hideVisualNotification } =
@@ -149,7 +159,12 @@ export default function RecentTransactionsTable({
       return;
     }
 
-    setUpdatingTransactions(prev => new Set(prev).add(transactionId));
+    // Set the appropriate loading state based on the action
+    if (status === 'complete') {
+      setConfirmingTransactions(prev => new Set(prev).add(transactionId));
+    } else if (status === 'cancel') {
+      setCancelingTransactions(prev => new Set(prev).add(transactionId));
+    }
 
     try {
       const endpoint = `/admin/transactions/${transactionId}/${status}`;
@@ -172,11 +187,20 @@ export default function RecentTransactionsTable({
         toast.error('حدث خطأ أثناء تحديث حالة المعاملة');
       }
     } finally {
-      setUpdatingTransactions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(transactionId);
-        return newSet;
-      });
+      // Clear the appropriate loading state
+      if (status === 'complete') {
+        setConfirmingTransactions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(transactionId);
+          return newSet;
+        });
+      } else if (status === 'cancel') {
+        setCancelingTransactions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(transactionId);
+          return newSet;
+        });
+      }
     }
   };
 
@@ -192,6 +216,23 @@ export default function RecentTransactionsTable({
   const handleCloseNotesModal = () => {
     setShowNotesModal(false);
     setSelectedTransaction(null);
+  };
+
+  const handleEditTransaction = (transactionId: number) => {
+    setEditingTransactionId(transactionId);
+    setEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setEditingTransactionId(null);
+  };
+
+  const handleEditSuccess = () => {
+    handleCloseEditModal();
+    if (onRefetch) {
+      onRefetch();
+    }
   };
 
   // No need for polling logic since parent handles unified status polling
@@ -239,6 +280,7 @@ export default function RecentTransactionsTable({
           }
         >
           <TableHeader>
+            <TableColumn>رقم المعاملة</TableColumn>
             <TableColumn>التاريخ والوقت</TableColumn>
             {/* <TableColumn>العميل</TableColumn> */}
             <TableColumn>من</TableColumn>
@@ -266,7 +308,9 @@ export default function RecentTransactionsTable({
               .filter(transaction => transaction && transaction.id) // Filter out invalid transactions
               .map(transaction => {
                 const dateTime = formatDateTime(transaction.created_at);
-                const isUpdating = updatingTransactions.has(transaction.id);
+                const isConfirming = confirmingTransactions.has(transaction.id);
+                const isCanceling = cancelingTransactions.has(transaction.id);
+                const isAnyUpdating = isConfirming || isCanceling;
 
                 return (
                   <TableRow
@@ -274,6 +318,11 @@ export default function RecentTransactionsTable({
                     className="cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => handleTransactionClick(transaction.id)}
                   >
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{transaction.id}</div>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="text-sm">
                         <div>{dateTime.date}</div>
@@ -379,52 +428,68 @@ export default function RecentTransactionsTable({
                     </TableCell>
                     <TableCell>{getStatusChip(transaction.status)}</TableCell>
                     <TableCell>
-                      <Dropdown>
-                        <DropdownTrigger>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            isLoading={isUpdating}
-                            isDisabled={
-                              isUpdating || !isSessionActive || isSessionPending
-                            }
-                          >
-                            {isUpdating
-                              ? ''
-                              : isSessionPending
-                                ? 'جلسة معلقة'
-                                : !isSessionActive
-                                  ? 'غير متاح'
-                                  : 'الإجراءات'}
-                          </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu
-                          aria-label="Transaction actions"
-                          onAction={key => {
-                            if (key === 'complete' || key === 'cancel') {
-                              updateTransactionStatus(
-                                transaction.id,
-                                key as 'complete' | 'cancel',
-                              );
-                            }
+                      <div className="flex gap-2">
+                        <Button
+                          color="success"
+                          size="sm"
+                          isLoading={isConfirming}
+                          isDisabled={
+                            isAnyUpdating ||
+                            !isSessionActive ||
+                            isSessionPending
+                          }
+                          onClick={e => {
+                            e.stopPropagation();
+                            updateTransactionStatus(transaction.id, 'complete');
                           }}
                         >
-                          <DropdownItem
-                            key="complete"
-                            color="success"
-                            description="تأكيد إكمال المعاملة"
-                          >
-                            تأكيد إكمال
-                          </DropdownItem>
-                          <DropdownItem
-                            key="cancel"
-                            color="danger"
-                            description="إلغاء المعاملة"
-                          >
-                            إلغاء المعاملة
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </Dropdown>
+                          {isConfirming
+                            ? ''
+                            : isSessionPending
+                              ? 'جلسة معلقة'
+                              : !isSessionActive
+                                ? 'غير متاح'
+                                : 'تأكيد'}
+                        </Button>
+                        <Button
+                          color="danger"
+                          size="sm"
+                          isLoading={isCanceling}
+                          isDisabled={
+                            isAnyUpdating ||
+                            !isSessionActive ||
+                            isSessionPending
+                          }
+                          onClick={e => {
+                            e.stopPropagation();
+                            updateTransactionStatus(transaction.id, 'cancel');
+                          }}
+                        >
+                          {isCanceling
+                            ? ''
+                            : isSessionPending
+                              ? 'جلسة معلقة'
+                              : !isSessionActive
+                                ? 'غير متاح'
+                                : 'إلغاء'}
+                        </Button>
+                        <Button
+                          color="primary"
+                          size="sm"
+                          variant="ghost"
+                          isDisabled={
+                            isAnyUpdating ||
+                            !isSessionActive ||
+                            isSessionPending
+                          }
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleEditTransaction(transaction.id);
+                          }}
+                        >
+                          تعديل
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -445,6 +510,17 @@ export default function RecentTransactionsTable({
         isOpen={showNotesModal}
         onClose={handleCloseNotesModal}
         transaction={selectedTransaction}
+      />
+
+      {/* Edit Transaction Modal */}
+      <EditTransactionModal
+        open={!!editingTransactionId}
+        onClose={handleCloseEditModal}
+        transactionId={editingTransactionId || 0}
+        currencies={currencies}
+        availableCashers={availableCashers}
+        isSessionOpen={isSessionActive}
+        isSessionPending={isSessionPending}
       />
     </>
   );

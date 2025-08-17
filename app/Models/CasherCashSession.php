@@ -20,6 +20,7 @@ class CasherCashSession extends Model
         'cash_session_id',
         'casher_id',
         'differences',
+        'transfers',
         'status', // 'active', 'closed', 'pending'
     ];
 

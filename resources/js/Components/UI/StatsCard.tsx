@@ -20,7 +20,7 @@ export default function StatsCard({
 }: StatsCardProps) {
   const changeColors = {
     positive: 'text-green-600',
-    negative: 'text-red-600',
+    negative: 'text-red',
     neutral: 'text-gray-600',
   };
 

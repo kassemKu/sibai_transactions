@@ -7,6 +7,7 @@ use App\Http\Requests\TransactionCalculateRequest;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Transaction;
 use App\Services\TransactionService;
+use Illuminate\Http\Request;
 
 class TransactionController extends Controller
 {
@@ -52,10 +53,11 @@ class TransactionController extends Controller
         }
     }
 
-    public function completeStatus(Transaction $transaction)
+    public function completeStatus(Request $request, Transaction $transaction)
     {
         try {
-            if ($this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id) < $transaction->converted_amount) {
+            $availableBalance = $this->transactionService->getCurrencyAvailableBalance($transaction->to_currency_id, $request->session)['system_closing_balance'];
+            if ($availableBalance < $transaction->converted_amount) {
                 return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
             }
 
@@ -64,10 +66,21 @@ class TransactionController extends Controller
                 'closed_by' => auth()->id(),
             ]);
 
-            $this->transactionService->confirmCashMovement($transaction);
-
             return $this->success('تم تغيير حالة المعاملة إلى مكتملة.', [
                 'transaction' => $transaction->refresh(),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransactionController@completeStatus');
+
+            return $this->failed('حدث خطأ أثناء إكمال المعاملة');
+        }
+    }
+
+    public function getTransaction(Transaction $transaction)
+    {
+        try {
+            return $this->success('تم تغيير حالة المعاملة إلى مكتملة.', [
+                'transaction' => $transaction,
             ]);
         } catch (\Exception $e) {
             $this->errorLog($e, 'TransactionController@completeStatus');
@@ -94,6 +107,21 @@ class TransactionController extends Controller
         }
     }
 
+    public function update(TransactionRequest $request, Transaction $transaction)
+    {
+        try {
+            $transaction->update($request->validated());
+
+            return $this->success('تم تعديل المعاملة بنجاح.', [
+                'transaction' => $transaction->refresh(),
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransactionController@cancelStatus');
+
+            return $this->failed('حدث خطأ أثناء تعديل المعاملة');
+        }
+    }
+
     public function calc(TransactionCalculateRequest $request, TransactionService $service)
     {
         $result = $service->calculateCore(
@@ -116,8 +144,43 @@ class TransactionController extends Controller
                 'createdBy',
                 'closedBy',
                 'assignedTo',
-                'cashMovements',
             ]),
         ]);
+    }
+
+    public function getTransactionData(Transaction $transaction)
+    {
+        try {
+            $transaction->load([
+                'fromCurrency',
+                'toCurrency',
+                'createdBy',
+                'closedBy',
+                'assignedTo',
+            ]);
+
+            return $this->success('تم جلب بيانات المعاملة بنجاح.', [
+                'data' => [
+                    'id' => $transaction->id,
+                    'from_currency_id' => $transaction->from_currency_id,
+                    'to_currency_id' => $transaction->to_currency_id,
+                    'original_amount' => $transaction->original_amount,
+                    'converted_amount' => $transaction->converted_amount,
+                    'notes' => $transaction->notes,
+                    'status' => $transaction->status,
+                    'created_at' => $transaction->created_at,
+                    'updated_at' => $transaction->updated_at,
+                    'from_currency' => $transaction->fromCurrency,
+                    'to_currency' => $transaction->toCurrency,
+                    'created_by' => $transaction->createdBy,
+                    'closed_by' => $transaction->closedBy,
+                    'assigned_to' => $transaction->assignedTo,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            $this->errorLog($e, 'TransactionController@getTransactionData');
+
+            return $this->failed('حدث خطأ أثناء جلب بيانات المعاملة');
+        }
     }
 }

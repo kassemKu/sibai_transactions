@@ -12,6 +12,16 @@ import {
   FiChevronRight,
 } from 'react-icons/fi';
 import CompanyEditModal from '@/Components/Companies/CompanyEditModal';
+import DialogModal from '@/Components/DialogModal';
+import axios from 'axios';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@heroui/react';
 
 interface Currency {
   id: number;
@@ -49,6 +59,9 @@ interface Company {
   updated_at: string;
   deleted_at: string | null;
   transfers?: Transfer[];
+  address?: string;
+  phone?: string;
+  email?: string;
 }
 
 interface PaginatedTransfers {
@@ -95,14 +108,29 @@ export default function CompaniesShow({
 }: CompaniesShowProps) {
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [currentCompany, setCurrentCompany] = React.useState(company);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   // Optionally, refresh company data after edit
   const handleEditSuccess = () => {
-    window.location.reload(); // Or use Inertia reload if preferred
+    router.visit(route('companies.show', company.id));
   };
 
-  console.log(company);
-  console.log(transfers);
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await axios.delete(`/admin/companies/${company.id}`);
+      setDeleteModalOpen(false);
+      router.visit('/admin/companies');
+    } catch (e) {
+      // Optionally show an error toast here
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // console.log(company);
+  // console.log(transfers);
 
   return (
     <RootLayout
@@ -120,6 +148,12 @@ export default function CompaniesShow({
             <FiEdit2 className="w-4 h-4 ml-2" />
             تعديل
           </PrimaryButton>
+          <SecondaryButton
+            className="text-sm bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:text-red-900"
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            حذف الشركة
+          </SecondaryButton>
           <Link href={route('companies.index')}>
             <SecondaryButton className="text-sm">
               <FiArrowLeft className="w-4 h-4 ml-2" />
@@ -130,6 +164,42 @@ export default function CompaniesShow({
       }
     >
       <Head title={company.name} />
+
+      {/* Delete Confirmation Modal */}
+      <DialogModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        maxWidth="sm"
+      >
+        <DialogModal.Content title="تأكيد حذف الشركة">
+          <div className="text-center p-4">
+            <p className="text-lg font-semibold text-red-700 mb-4">
+              هل أنت متأكد أنك تريد حذف هذه الشركة؟
+            </p>
+            <p className="text-gray-600 mb-2">
+              سيتم حذف جميع بيانات الشركة ولا يمكن التراجع عن هذا الإجراء.
+            </p>
+          </div>
+        </DialogModal.Content>
+        <DialogModal.Footer>
+          <div className="flex justify-end gap-2">
+            <SecondaryButton
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              إلغاء
+            </SecondaryButton>
+            <PrimaryButton
+              className="bg-red-600 hover:bg-red-700 border-red-600"
+              onClick={handleDelete}
+              //   isLoading={isDeleting}
+              disabled={isDeleting}
+            >
+              حذف نهائي
+            </PrimaryButton>
+          </div>
+        </DialogModal.Footer>
+      </DialogModal>
 
       {/* Edit Modal */}
       <CompanyEditModal
@@ -176,6 +246,20 @@ export default function CompaniesShow({
                   </p>
                 </div>
               </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">العنوان</p>
+                <p className="text-gray-900">{company.address || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">الهاتف</p>
+                <p className="text-gray-900">{company.phone || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  البريد الإلكتروني
+                </p>
+                <p className="text-gray-900">{company.email || '—'}</p>
+              </div>
             </div>
           </div>
           {/* Statistics */}
@@ -194,58 +278,65 @@ export default function CompaniesShow({
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">
                     تفصيل حسب العملة
                   </h4>
-                  <table className="min-w-full text-sm border rounded overflow-hidden">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-right font-medium text-gray-500">
-                          العملة
-                        </th>
-                        <th className="px-3 py-2 text-right font-medium text-green-700">
-                          الوارد
-                        </th>
-                        <th className="px-3 py-2 text-right font-medium text-red-700">
-                          الصادر
-                        </th>
-                        <th className="px-3 py-2 text-center font-medium text-gray-700">
-                          الصافي
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currency_balances.map((cb, idx) => (
-                        <tr
-                          key={cb.currency.id}
-                          className="border-b last:border-b-0"
-                        >
-                          <td className="px-3 py-2 whitespace-nowrap font-bold">
-                            {cb.currency.name} ({cb.currency.code})
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-green-700 font-medium">
-                            {cb.total_incoming.toLocaleString()}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-red-700 font-medium">
-                            {cb.total_outgoing.toLocaleString()}
-                          </td>
-                          <td
-                            className={`px-3 py-2 whitespace-nowrap font-bold rounded-full text-center
-                            ${cb.net > 0 ? 'bg-green-100 text-green-800' : cb.net < 0 ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}
-                          >
-                            {cb.net > 0 && (
-                              <span title="دائن">
-                                {cb.net.toLocaleString()} دائن
-                              </span>
-                            )}
-                            {cb.net < 0 && (
-                              <span title="مدين">
-                                {Math.abs(cb.net).toLocaleString()} مدين
-                              </span>
-                            )}
-                            {cb.net === 0 && <span title="متوازن">متوازن</span>}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="overflow-x-auto">
+                    <Table
+                      aria-label="جدول تفصيل العملات"
+                      className="min-w-full"
+                    >
+                      <TableHeader>
+                        <TableColumn>العملة</TableColumn>
+                        <TableColumn>الوارد</TableColumn>
+                        <TableColumn>الصادر</TableColumn>
+                        <TableColumn>الصافي</TableColumn>
+                      </TableHeader>
+                      <TableBody>
+                        {currency_balances.map((cb, idx) => (
+                          <TableRow key={cb.currency.id}>
+                            <TableCell>
+                              <div className="font-bold">
+                                {cb.currency.name} ({cb.currency.code})
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-green-700 font-medium">
+                                {cb.total_incoming.toLocaleString()}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-red-700 font-medium">
+                                {cb.total_outgoing.toLocaleString()}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div
+                                className={`font-bold text-center px-2 py-1 rounded-full ${
+                                  cb.net > 0
+                                    ? 'bg-green-100 text-green-800'
+                                    : cb.net < 0
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                }`}
+                              >
+                                {cb.net > 0 && (
+                                  <span title="دائن">
+                                    {cb.net.toLocaleString()} دائن
+                                  </span>
+                                )}
+                                {cb.net < 0 && (
+                                  <span title="مدين">
+                                    {Math.abs(cb.net).toLocaleString()} مدين
+                                  </span>
+                                )}
+                                {cb.net === 0 && (
+                                  <span title="متوازن">متوازن</span>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
               {/* End per-currency breakdown */}
@@ -265,26 +356,16 @@ export default function CompaniesShow({
             </h2>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      المبلغ
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      العملة
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      النوع
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      التاريخ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+              <Table aria-label="جدول التحويلات" className="min-w-full">
+                <TableHeader>
+                  <TableColumn>المبلغ</TableColumn>
+                  <TableColumn>العملة</TableColumn>
+                  <TableColumn>النوع</TableColumn>
+                  <TableColumn>التاريخ</TableColumn>
+                </TableHeader>
+                <TableBody>
                   {transfers.data.map(transfer => (
-                    <tr
+                    <TableRow
                       key={transfer.id}
                       className={
                         transfer.type === 'in'
@@ -294,68 +375,76 @@ export default function CompaniesShow({
                             : ''
                       }
                     >
-                      <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${transfer.type === 'in' ? 'text-green-800' : 'text-red-800'}`}
-                      >
-                        {transfer.type === 'in' ? (
-                          <span
-                            title="وارد"
-                            className="inline-flex items-center"
-                          >
-                            <svg
-                              className="w-4 h-4 mr-1 text-green-500"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
+                      <TableCell>
+                        <div
+                          className={`text-sm font-medium ${transfer.type === 'in' ? 'text-green-800' : 'text-red-800'}`}
+                        >
+                          {transfer.type === 'in' ? (
+                            <span
+                              title="وارد"
+                              className="inline-flex items-center"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M12 4v16m8-8H4"
-                              />
-                            </svg>
-                            {parseFloat(transfer.amount).toLocaleString()}
-                          </span>
-                        ) : (
-                          <span
-                            title="صادر"
-                            className="inline-flex items-center"
-                          >
-                            <svg
-                              className="w-4 h-4 mr-1 text-red-500"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
+                              <svg
+                                className="w-4 h-4 mr-1 text-green-500"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M12 4v16m8-8H4"
+                                />
+                              </svg>
+                              {parseFloat(transfer.amount).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span
+                              title="صادر"
+                              className="inline-flex items-center"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M12 20V4m8 8H4"
-                              />
-                            </svg>
-                            {parseFloat(transfer.amount).toLocaleString()}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {transfer.currency.name} ({transfer.currency.code})
-                      </td>
-                      <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${transfer.type === 'in' ? 'text-green-700' : 'text-red-700'}`}
-                      >
-                        {transfer.type === 'in' ? 'وارد' : 'صادر'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(transfer.created_at).toLocaleDateString(
-                          'ar-EG',
-                        )}
-                      </td>
-                    </tr>
+                              <svg
+                                className="w-4 h-4 mr-1 text-red-500"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M12 20V4m8 8H4"
+                                />
+                              </svg>
+                              {parseFloat(transfer.amount).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm text-gray-500">
+                          {transfer.currency.name} ({transfer.currency.code})
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div
+                          className={`text-sm font-bold ${transfer.type === 'in' ? 'text-green-700' : 'text-red-700'}`}
+                        >
+                          {transfer.type === 'in' ? 'وارد' : 'صادر'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm text-gray-500">
+                          {new Date(transfer.created_at).toLocaleDateString(
+                            'ar-EG',
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {/* Pagination */}

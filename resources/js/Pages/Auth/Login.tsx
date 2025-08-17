@@ -194,7 +194,7 @@ export default function Login({ canResetPassword, status, loginImage }: Props) {
         {/* Right side - Image (hidden on mobile, visible on large screens) */}
         <div className="hidden lg:block lg:w-1/2">
           <img
-            src={loginImage}
+            src="/images/login-bg.png"
             alt="login"
             className="w-full h-full object-cover"
           />

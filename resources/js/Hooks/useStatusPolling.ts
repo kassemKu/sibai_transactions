@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Currency, CashSession, User, Customer, Transaction } from '../types';
+import isEqual from 'lodash/isEqual';
 
 interface CashierBalance {
   currency_id: number;
@@ -8,19 +9,33 @@ interface CashierBalance {
   currency?: Currency;
 }
 
-interface Cashier {
+interface MySession {
   id: number;
-  name: string;
-  email: string;
-  system_balances?: CashierBalance[];
-  has_active_session?: boolean;
+  opened_at: string;
+  closed_at: string | null;
+  opened_by: number;
+  closed_by: number | null;
+  opening_balances: Array<{
+    amount: number;
+    currency_id: number;
+  }>;
+  system_balances: any;
+  differences: any;
+  actual_closing_balances: any;
+  cash_session_id: number;
+  casher_id: number;
+  transfers: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface StatusData {
   current_session: CashSession | null;
   currencies: Currency[];
   transactions: Transaction[];
-  cashiers?: Cashier[];
+  available_cashers?: User[];
+  my_session?: MySession;
 }
 
 interface StatusResponse {
@@ -33,12 +48,17 @@ interface UseStatusPollingReturn {
   currentSession: CashSession | null;
   currencies: Currency[];
   transactions: Transaction[];
-  cashiers: Cashier[];
+  availableCashers: User[];
+  mySession: MySession | null;
   isLoading: boolean;
   isPolling: boolean;
   lastUpdated: Date | null;
   error: string | null;
   refetch: () => Promise<void>;
+  // New functions for immediate state updates
+  updateCurrentSession: (session: CashSession | null) => void;
+  updateMySession: (session: MySession | null) => void;
+  updateTransactions: (transactions: Transaction[]) => void;
 }
 
 export const useStatusPolling = (
@@ -50,7 +70,8 @@ export const useStatusPolling = (
   );
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [cashiers, setCashiers] = useState<Cashier[]>([]);
+  const [availableCashers, setAvailableCashers] = useState<User[]>([]);
+  const [mySession, setMySession] = useState<MySession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPolling, setIsPolling] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -74,13 +95,28 @@ export const useStatusPolling = (
             current_session,
             currencies: fetchedCurrencies,
             transactions: fetchedTransactions,
-            cashiers: fetchedCashiers = [],
+            available_cashers: fetchedAvailableCashers = [],
+            my_session: fetchedMySession = null,
           } = response.data.data;
 
-          setCurrentSession(current_session);
-          setCurrencies(fetchedCurrencies);
-          setTransactions(fetchedTransactions);
-          setCashiers(fetchedCashiers);
+          // Only update state if data has changed
+          setCurrentSession(prev =>
+            isEqual(prev, current_session) ? prev : current_session,
+          );
+          setCurrencies(prev =>
+            isEqual(prev, fetchedCurrencies) ? prev : fetchedCurrencies,
+          );
+          setTransactions(prev =>
+            isEqual(prev, fetchedTransactions) ? prev : fetchedTransactions,
+          );
+          setAvailableCashers(prev =>
+            isEqual(prev, fetchedAvailableCashers)
+              ? prev
+              : fetchedAvailableCashers,
+          );
+          setMySession(prev =>
+            isEqual(prev, fetchedMySession) ? prev : fetchedMySession,
+          );
           setLastUpdated(new Date());
           setError(null);
         }
@@ -100,6 +136,22 @@ export const useStatusPolling = (
     },
     [enabled],
   );
+
+  // Functions for immediate state updates
+  const updateCurrentSession = useCallback((session: CashSession | null) => {
+    setCurrentSession(session);
+    setLastUpdated(new Date());
+  }, []);
+
+  const updateMySession = useCallback((session: MySession | null) => {
+    setMySession(session);
+    setLastUpdated(new Date());
+  }, []);
+
+  const updateTransactions = useCallback((newTransactions: Transaction[]) => {
+    setTransactions(newTransactions);
+    setLastUpdated(new Date());
+  }, []);
 
   // Initial fetch
   useEffect(() => {
@@ -129,11 +181,15 @@ export const useStatusPolling = (
     currentSession,
     currencies,
     transactions,
-    cashiers,
+    availableCashers,
+    mySession,
     isLoading,
     isPolling,
     lastUpdated,
     error,
     refetch,
+    updateCurrentSession,
+    updateMySession,
+    updateTransactions,
   };
 };

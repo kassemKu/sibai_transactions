@@ -41,6 +41,7 @@ export default function AddCashboxModal({
   const [openingBalances, setOpeningBalances] = useState<OpeningBalance[]>([
     { currency_id: '', amount: '' },
   ]);
+  const [transfers, setTransfers] = useState(false);
 
   // Fetch users when modal opens
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function AddCashboxModal({
     setCasherId('');
     setOpeningBalances([{ currency_id: '', amount: '' }]);
     setIsSubmitting(false);
+    setTransfers(false);
   };
 
   const addCurrencyRow = () => {
@@ -133,6 +135,7 @@ export default function AddCashboxModal({
           currency_id: parseInt(balance.currency_id),
           amount: parseFloat(balance.amount),
         })),
+        transfers: transfers,
       };
 
       const response = await axios.post('/admin/open-casher-session', payload);
@@ -272,6 +275,22 @@ export default function AddCashboxModal({
             </div>
           </div>
 
+          {/* Transfer Support */}
+          <div className="space-y-2">
+            <InputLabel htmlFor="transfer" className="mb-2">
+              دعم التحويلات
+            </InputLabel>
+            <Select
+              id="transfer"
+              value={transfers ? 'true' : 'false'}
+              onChange={e => setTransfers(e.target.value === 'true')}
+              className="border-blue-200 focus:border-blue-500"
+            >
+              <option value="false">لا</option>
+              <option value="true">نعم</option>
+            </Select>
+          </div>
+
           {/* Summary */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -314,7 +333,7 @@ export default function AddCashboxModal({
             disabled={
               isSubmitting ||
               !casherId ||
-              openingBalances.some(b => !b.currency_id || !b.amount)
+              openingBalances.some(b => !b.currency_id || b.amount === '')
             }
           >
             {isSubmitting ? 'جاري الإضافة...' : 'إضافة الصندوق'}

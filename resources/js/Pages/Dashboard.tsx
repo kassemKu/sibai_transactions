@@ -3,12 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import RootLayout from '@/Layouts/RootLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
-import {
-  CurrenciesResponse,
-  CashSession,
-  InertiaSharedProps,
-  Currency,
-} from '@/types';
+import { CurrenciesResponse, Currency } from '@/types';
 import { usePage, router } from '@inertiajs/react';
 import useRoute from '@/Hooks/useRoute';
 import { useStatusPolling } from '@/Hooks/useStatusPolling';
@@ -16,11 +11,7 @@ import { useStatusPolling } from '@/Hooks/useStatusPolling';
 // Import dashboard components
 
 import CurrencyCardsSlider from '@/Components/Dashboard/CurrencyCardsSlider';
-import TransactionForm from '@/Components/Dashboard/TransactionForm';
-import TransferForm from '@/Components/Dashboard/TransferForm';
 import RecentTransactionsTable from '@/Components/Dashboard/RecentTransactionsTable';
-import RecentTransactionsList from '@/Components/Dashboard/RecentTransactionsList';
-import QuickActions from '@/Components/Dashboard/QuickActions';
 import DangerButton from '@/Components/DangerButton';
 import CloseSessionModal from '@/Components/CloseSessionModal';
 import CurrencyEditModal from '@/Components/Dashboard/CurrencyEditModal';
@@ -28,10 +19,11 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import PendingTransactionsConfirmModal from '@/Components/PendingTransactionsConfirmModal';
 import AddCashboxModal from '@/Components/AddCashboxModal';
 import DialogModal from '@/Components/DialogModal';
-import { FiUsers, FiEye, FiDollarSign, FiClock } from 'react-icons/fi';
+import { FiUsers, FiEye, FiClock, FiRefreshCw } from 'react-icons/fi';
 import { Chip } from '@heroui/react';
 import CashierBoxModal from '@/Components/Casher/CashierBoxModal';
 import UnifiedFormComponent from '@/Components/Dashboard/UnifiedFormComponent';
+// import CashierBalancesDisplay from '@/Components/Dashboard/CashierBalancesDisplay';
 
 interface DashboardProps {
   currencies: CurrenciesResponse;
@@ -98,20 +90,27 @@ export default function Dashboard({
   >('view');
   const [isCashierBoxSubmitting, setIsCashierBoxSubmitting] = useState(false);
 
+  // Add session key state to trigger assignment rules reset when session changes
+  const [sessionKey, setSessionKey] = useState<string>('');
+
   // Use unified status polling hook
   const {
     currentSession: currentCashSession,
     currencies: currenciesState,
     transactions,
+    availableCashers,
     isLoading: isInitialSessionLoading,
     isPolling,
     lastUpdated,
     error,
     refetch,
+    updateCurrentSession,
+    updateMySession,
+    updateTransactions,
   } = useStatusPolling(3000, true);
 
   // Get cashier sessions from current cash session
-  const getCashierSessions = () => {
+  const getCashierSessions = useCallback(() => {
     if (!currentCashSession?.casher_cash_sessions) return [];
 
     return currentCashSession.casher_cash_sessions.map((session: any) => ({
@@ -125,7 +124,7 @@ export default function Dashboard({
       closed_at: session.closed_at,
       status: session.status,
     }));
-  };
+  }, [currentCashSession]);
 
   // Handle quick view open
   const handleQuickViewOpen = () => {
@@ -143,7 +142,7 @@ export default function Dashboard({
     if (showQuickView && currentCashSession) {
       setActiveCashiers(getCashierSessions());
     }
-  }, [currentCashSession, showQuickView]);
+  }, [currentCashSession, showQuickView, getCashierSessions]);
 
   // Handle quick view close
   const handleQuickViewClose = () => {
@@ -223,6 +222,12 @@ export default function Dashboard({
       const response = await axios.post('/admin/cash-sessions/open');
       if (response.status) {
         toast.success('تم فتح الجلسة النقدية بنجاح');
+
+        // Immediately update the UI with the new session data
+        if (response.data?.data?.cash_session) {
+          updateCurrentSession(response.data.data.cash_session);
+        }
+
         await refetch();
         setIsSessionLoading(false);
       } else {
@@ -315,7 +320,20 @@ export default function Dashboard({
     // Close modal first
     setShowCloseModal(false);
 
-    // Refetch status to update local state (with a slight delay to ensure modal is fully closed)
+    // Update session key to trigger assignment rules reset
+    setSessionKey(`session-${Date.now()}`);
+
+    // Immediately update the UI to reflect session closure
+    if (currentCashSession) {
+      updateCurrentSession({
+        ...currentCashSession,
+        status: 'closed',
+        closed_at: new Date().toISOString(),
+        closed_by: auth?.user?.id,
+      });
+    }
+
+    // Also refetch to ensure we have the latest data from server
     setTimeout(() => {
       refetch();
     }, 300);
@@ -362,6 +380,14 @@ export default function Dashboard({
 
   // Handle session becoming pending
   const handleSessionPending = () => {
+    // Immediately update the UI to reflect session pending status
+    if (currentCashSession) {
+      updateCurrentSession({
+        ...currentCashSession,
+        status: 'pending',
+      });
+    }
+
     // Refetch status to update local state (with a slight delay to avoid race conditions)
     setTimeout(() => {
       refetch();
@@ -469,6 +495,14 @@ export default function Dashboard({
         },
       );
       toast.success('تم إغلاق صندوق الصراف بنجاح');
+
+      // Clear assignment rules from localStorage when cashier session is closed
+      localStorage.setItem('transactionAssignmentRules', JSON.stringify([]));
+      console.log(
+        '[Cashier Session Close] Assignment rules cleared from localStorage',
+      );
+    //   toast.success('تم مسح قواعد التعيين التلقائي مع إغلاق صندوق الصراف');
+
       setIsCashierBoxModalOpen(false);
       setSelectedCashierSession(null);
       setCashierBoxModalStage('view');
@@ -596,6 +630,22 @@ export default function Dashboard({
     );
   }
 
+  // Add this handler in the Dashboard component
+  const handleChangeCashierStatus = async (userId: number) => {
+    try {
+      const response = await axios.put(`/admin/users/${userId}/change-status`);
+      const message = response.data?.message || 'تم تغيير حالة الصراف بنجاح';
+      toast.success(message);
+      refetch();
+    } catch (error) {
+      let message = 'حدث خطأ أثناء تغيير حالة الصراف';
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        message = error.response.data.message;
+      }
+      toast.error(message);
+    }
+  };
+
   return (
     <RootLayout
       title="لوحة التحكم"
@@ -609,6 +659,17 @@ export default function Dashboard({
         isEditable={isAdmin}
       />
 
+      {/* Cashier Balances Display - Show for super admins when session is active
+      {isAdmin && isSessionOpen && (
+        <div className="mb-8">
+          <CashierBalancesDisplay
+            currencies={currenciesState}
+            currentSession={currentCashSession}
+            isAdmin={true}
+          />
+        </div>
+      )} */}
+
       {/* Always show TransactionForm with overlay when session is not active */}
       <div id="transaction-form">
         {/* Unified Form Component - Admin Only */}
@@ -621,6 +682,8 @@ export default function Dashboard({
             isSessionOpen={!!isSessionOpen}
             isSessionPending={!!isSessionPending}
             onStartSession={handleOpenSession}
+            availableCashers={availableCashers}
+            sessionKey={sessionKey}
           />
         )}
       </div>
@@ -633,6 +696,8 @@ export default function Dashboard({
         isPolling={isPolling}
         lastUpdated={lastUpdated}
         onRefetch={refetch}
+        currencies={currenciesState}
+        availableCashers={availableCashers}
       />
 
       {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -651,7 +716,11 @@ export default function Dashboard({
             {activeCashiers.length > 0 ? (
               <div className="space-y-3">
                 {activeCashiers.map(cashier => {
-                  const openedDateTime = formatDateTime(cashier.opened_at);
+                  const isPresent = availableCashers.some(
+                    u => u.id === cashier.casher.id,
+                  );
+                  const isActiveSession = cashier.status === 'active';
+
                   return (
                     <div
                       key={cashier.id}
@@ -669,11 +738,25 @@ export default function Dashboard({
                           <div className="text-sm text-gray-500">
                             {cashier.casher.email}
                           </div>
-                          <div className="text-xs text-gray-400 flex items-center space-x-1 space-x-reverse">
+                          <div className="flex items-center gap-2 mt-1">
+                            {/* Session Status */}
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-bold ${cashier.status === 'active' ? 'bg-green-100 text-green-700' : cashier.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-200 text-gray-600'}`}
+                            >
+                              {getStatusChip(cashier.status)?.props.children}
+                            </span>
+                            {/* Presence Status */}
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-bold ${isPresent ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red'}`}
+                            >
+                              {isPresent ? 'متواجد' : 'غير متواجد'}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-400 flex items-center space-x-1 space-x-reverse mt-1">
                             <FiClock className="w-3 h-3" />
                             <span>
-                              بدأت في {openedDateTime.date} -{' '}
-                              {openedDateTime.time}
+                              بدأت في {formatDateTime(cashier.opened_at).date} -{' '}
+                              {formatDateTime(cashier.opened_at).time}
                             </span>
                           </div>
                         </div>
@@ -691,6 +774,17 @@ export default function Dashboard({
                             ? 'إغلاق الصندوق'
                             : 'عرض التفاصيل'}
                         </SecondaryButton>
+                        {isActiveSession && (
+                          <SecondaryButton
+                            onClick={() =>
+                              handleChangeCashierStatus(cashier.casher.id)
+                            }
+                            className="text-orange-600"
+                          >
+                            <FiRefreshCw className="w-4 h-4 ml-1" />
+                            تغيير حالة التواجد
+                          </SecondaryButton>
+                        )}
                       </div>
                     </div>
                   );
@@ -752,7 +846,7 @@ export default function Dashboard({
         isOpen={isCashierBoxModalOpen}
         onClose={handleCloseCashierBoxModal}
         cashierSession={selectedCashierSession}
-        currencies={currenciesState}
+        currencies={currencies}
         fetchBalancesApi={fetchCashierBoxBalances}
         stage={cashierBoxModalStage}
         onSubmitClose={handleSubmitCashierBoxClose}

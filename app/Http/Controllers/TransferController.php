@@ -25,6 +25,8 @@ class TransferController extends Controller
     public function store(TransferStoreRequest $request)
     {
         try {
+            $this->authorize('create', Transfer::class);
+
             $transfer = Transfer::create($request->validated());
 
             return $this->success('تم إنشاء الحوالة بنجاح.', [

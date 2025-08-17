@@ -9,30 +9,43 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import NewTransactionNotification from '@/Components/Casher/NewTransactionNotification';
 import CashierBalanceModal from '@/Components/Casher/CashierBalanceModal';
+import { toast } from 'react-hot-toast';
 
 // Import casher-specific components
 import TransactionForm from '@/Components/Casher/TransactionForm';
 import PendingTransactionsTable from '@/Components/Casher/PendingTransactionsTable';
 import CurrencyCardsSlider from '@/Components/Dashboard/CurrencyCardsSlider';
+import TransferForm from '@/Components/Dashboard/TransferForm';
+import UnifiedFormComponent from '@/Components/Dashboard/UnifiedFormComponent';
 
 interface CasherDashboardProps {
   currencies: CurrenciesResponse;
   cashSessions: any;
+  companies: any[];
 }
 
-interface Cashier {
+interface MySession {
   id: number;
-  name: string;
-  email: string;
-  system_balances?: Array<{
-    currency_id: number;
+  opened_at: string;
+  closed_at: string | null;
+  opened_by: number;
+  closed_by: number | null;
+  opening_balances: Array<{
     amount: number;
-    currency?: any;
+    currency_id: number;
   }>;
-  has_active_session?: boolean;
+  system_balances: any;
+  differences: any;
+  actual_closing_balances: any;
+  cash_session_id: number;
+  casher_id: number;
+  transfers: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
-const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
+const CasherDashboard = ({ currencies, companies }: CasherDashboardProps) => {
   const { auth, cash_session, roles } = usePage<InertiaSharedProps>().props;
 
   // Use unified status polling hook
@@ -40,17 +53,43 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
     currentSession: currentCashSession,
     currencies: currenciesState,
     transactions,
-    cashiers,
+    availableCashers,
+    mySession,
+
     isLoading: isInitialSessionLoading,
     isPolling,
     lastUpdated,
     error,
     refetch,
+    updateCurrentSession,
+    updateMySession,
+    updateTransactions,
   } = useStatusPolling(3000, true);
 
   // State for cashier balance modal
   const [showBalanceModal, setShowBalanceModal] = useState(false);
-  const [selectedCashier, setSelectedCashier] = useState<Cashier | null>(null);
+
+  // Add form type toggle state for transfer/transaction
+  const [formType, setFormType] = useState<'transaction' | 'transfer'>(
+    'transaction',
+  );
+
+  // Add session key state to trigger assignment rules reset when session changes
+  const [sessionKey, setSessionKey] = useState<string>('');
+
+  // Local state for user availability status
+  const [localIsActive, setLocalIsActive] = useState<number | undefined>(
+    auth?.user?.is_active,
+  );
+
+  // Update session key when session status changes
+  useEffect(() => {
+    if (currentCashSession) {
+      setSessionKey(
+        `session-${currentCashSession.id}-${currentCashSession.status}-${Date.now()}`,
+      );
+    }
+  }, [currentCashSession?.id, currentCashSession?.status]);
 
   const isSessionOpen = !!(
     currentCashSession && currentCashSession.status === 'active'
@@ -59,11 +98,14 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
     currentCashSession && currentCashSession.status === 'pending'
   );
 
-  // Check if current user has an active cashier session
-  const currentUserCashier = cashiers?.find(
-    (cashier: Cashier) => cashier.email === auth?.user?.email,
-  );
-  const hasActiveCashierSession = currentUserCashier?.has_active_session;
+  // Use my_session from the new API structure
+  const hasActiveCashierSession = mySession?.status === 'active';
+
+  // Use local state for availability checking, fallback to auth.user.is_active
+  const isPresent = localIsActive === 1 || auth?.user?.is_active === 1;
+
+  // Determine if user can transfer (if you have a field for this in the new API, otherwise keep as false or implement as needed)
+  const canTransfer = false; // TODO: Update if /status API provides this info
 
   // Check if user is admin (Admin Cashier)
   const isAdmin =
@@ -80,18 +122,62 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       currentUserEmail: auth?.user?.email, // Pass current user email to filter self-created transactions
     });
 
-  // Handle opening balance modal
+  // Handle opening balance modal using my_session data
   const handleOpenBalanceModal = () => {
-    if (currentUserCashier) {
-      setSelectedCashier(currentUserCashier);
-      setShowBalanceModal(true);
-    }
+    setShowBalanceModal(true);
   };
 
   // Handle closing balance modal
   const handleCloseBalanceModal = () => {
     setShowBalanceModal(false);
-    setSelectedCashier(null);
+  };
+
+  const handleSelfChangeStatus = async () => {
+    // Check if user has an active cashier session before making the request
+    if (!hasActiveCashierSession) {
+      toast.error(
+        'لا توجد جلسة صراف نشطة. يرجى التأكد من وجود جلسة نشطة قبل تغيير حالة التواجد.',
+      );
+      return;
+    }
+
+    try {
+      const response = await axios.put('/casher/change-status');
+
+      // Check if the response indicates success
+      if (response.data?.status === true) {
+        const message = response.data?.message || 'تم تغيير حالة التواجد بنجاح';
+
+        // Update local state with new is_active value from response
+        if (response.data?.data?.user?.is_active !== undefined) {
+          setLocalIsActive(response.data.data.user.is_active);
+        }
+
+        toast.success(message);
+      } else {
+        // Handle case where status is false but no error was thrown
+        const errorMessage =
+          response.data?.message || 'حدث خطأ أثناء تغيير حالة التواجد';
+        toast.error(errorMessage);
+      }
+    } catch (error: any) {
+      let message = 'حدث خطأ أثناء تغيير حالة التواجد';
+
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          message =
+            'لا توجد جلسة نقدية نشطة. يرجى التأكد من وجود جلسة نشطة قبل تغيير حالة التواجد.';
+        } else if (error.response?.data?.message) {
+          message = error.response.data.message;
+        } else if (error.response?.status === 500) {
+          message = 'حدث خطأ في الخادم. يرجى المحاولة مرة أخرى.';
+        } else if (error.response?.status === 401) {
+          message = 'غير مصرح لك بتنفيذ هذا الإجراء.';
+        }
+      }
+
+      toast.error(message);
+    }
   };
 
   // Create header actions for casher
@@ -125,21 +211,33 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       {!isSessionOpen && !isSessionPending ? (
         <div className="flex items-center space-x-2 space-x-reverse">
           <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-          <span className="text-sm text-red-600 font-medium">
+          <span className="text-sm text-red font-medium">
             لا توجد جلسة نشطة
           </span>
         </div>
       ) : null}
 
-      {/* Balance Button - Show if cashier has system balances */}
-      {currentUserCashier?.system_balances &&
-        currentUserCashier.system_balances.some(
-          balance => balance.amount > 0,
-        ) && (
-          <SecondaryButton className="text-sm" onClick={handleOpenBalanceModal}>
-            عرض رصيدي النظامي
-          </SecondaryButton>
-        )}
+      {/* Presence Status Badge */}
+      {hasActiveCashierSession && (
+        <span
+          className={`px-2 py-0.5 rounded text-xs font-bold ${isPresent ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red'}`}
+        >
+          {isPresent ? 'متواجد' : 'غير متواجد'}
+        </span>
+      )}
+      {/* Change Presence Status Button */}
+      {hasActiveCashierSession && (
+        <SecondaryButton className="text-sm" onClick={handleSelfChangeStatus}>
+          تغيير حالة التواجد
+        </SecondaryButton>
+      )}
+
+      {/* Balance Button - Always show if cashier has a session */}
+      {mySession && (
+        <SecondaryButton className="text-sm" onClick={handleOpenBalanceModal}>
+          عرض رصيدي النظامي
+        </SecondaryButton>
+      )}
 
       {/* New Transaction Button - only show if session is open and user can perform transactions */}
       {canPerformTransactions && (
@@ -259,13 +357,29 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       {/* Currency Cards Slider */}
       <CurrencyCardsSlider currencies={currenciesState} />
 
-      {/* Transaction Form */}
+      {/* Transaction/Transfer Form Toggle */}
       <div id="transaction-form">
-        <TransactionForm
-          currencies={currenciesState}
-          isSessionOpen={!!canPerformTransactions}
-          isSessionPending={!!isSessionPending}
-        />
+        {canTransfer ? (
+          <UnifiedFormComponent
+            formType={formType}
+            setFormType={setFormType}
+            currencies={currenciesState}
+            companies={companies}
+            isSessionOpen={!!canPerformTransactions}
+            isSessionPending={!!isSessionPending}
+            availableCashers={availableCashers}
+            sessionKey={sessionKey}
+          />
+        ) : (
+          <TransactionForm
+            currencies={currenciesState}
+            isSessionOpen={!!canPerformTransactions}
+            isSessionPending={!!isSessionPending}
+            availableCashers={availableCashers}
+            isUnavailable={!isPresent}
+            sessionKey={sessionKey}
+          />
+        )}
       </div>
 
       {/* Pending Transactions Table */}
@@ -278,6 +392,9 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
         lastUpdated={lastUpdated}
         onRefetch={refetch}
         isAdmin={!!isAdmin}
+        currencies={currenciesState}
+        availableCashers={availableCashers}
+        isUnavailable={!isPresent}
       />
 
       {/* New Transaction Notification */}
@@ -291,7 +408,6 @@ const CasherDashboard = ({ currencies }: CasherDashboardProps) => {
       <CashierBalanceModal
         isOpen={showBalanceModal}
         onClose={handleCloseBalanceModal}
-        cashier={selectedCashier}
         currencies={currenciesState}
       />
     </RootLayout>

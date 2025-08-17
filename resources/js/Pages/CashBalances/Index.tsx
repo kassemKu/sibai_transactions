@@ -8,6 +8,14 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import { FiDollarSign, FiDownload, FiExternalLink } from 'react-icons/fi';
 import { jsPDF } from 'jspdf';
 import { route } from 'ziggy-js';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@heroui/react';
 
 interface CurrencyBalance {
   currency_id: number;
@@ -320,24 +328,13 @@ export default function CashBalancesIndex() {
             {/* Balances Table */}
             <div className="p-6">
               <div className="overflow-x-auto">
-                <table
-                  className="min-w-full divide-y divide-gray-200"
-                  dir="rtl"
-                >
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        العملة
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        الرصيد الحالي
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        القيمة بالدولار
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                <Table aria-label="جدول الأرصدة النقدية" className="min-w-full">
+                  <TableHeader>
+                    <TableColumn>العملة</TableColumn>
+                    <TableColumn>الرصيد الحالي</TableColumn>
+                    <TableColumn>القيمة بالدولار</TableColumn>
+                  </TableHeader>
+                  <TableBody>
                     {session.cash_balances.map(balance => {
                       const usdValue = convertToUSD(
                         balance.actual_closing_balance,
@@ -345,8 +342,8 @@ export default function CashBalancesIndex() {
                       );
 
                       return (
-                        <tr key={balance.currency_id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <TableRow key={balance.currency_id}>
+                          <TableCell>
                             <div className="text-sm font-medium text-gray-900">
                               {balance.currency.name}
                             </div>
@@ -365,25 +362,25 @@ export default function CashBalancesIndex() {
                                   </div>
                                 )}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                          </TableCell>
+                          <TableCell>
                             <div className="text-sm font-medium text-gray-900">
                               {formatDisplayAmount(
                                 balance.actual_closing_balance,
                               )}{' '}
                               {balance.currency.code}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                          </TableCell>
+                          <TableCell>
                             <div className="text-sm text-gray-600">
                               ${formatDisplayAmount(usdValue)}
                             </div>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </div>
           </div>

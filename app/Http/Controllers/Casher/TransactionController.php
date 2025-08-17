@@ -45,7 +45,7 @@ class TransactionController extends Controller
     {
         $this->authorize('complete', $transaction);
 
-        if ($service->getClosingBalanceForCurrency($request->cash_session, $request->casherSession, $transaction->to_currency_id)['system_balance'] < $transaction->converted_amount) {
+        if ($service->getClosingBalanceForCurrency($request->casherSession, $transaction->to_currency_id)['system_balance'] < $transaction->converted_amount) {
             return $this->failed('الرصيد غير كافٍ لإتمام المعاملة.');
         }
 
@@ -53,8 +53,6 @@ class TransactionController extends Controller
             'status' => TransactionStatusEnum::COMPLETED->value,
             'closed_by' => auth()->id(),
         ]);
-
-        $this->transactionService->confirmCasherCashMovement($transaction);
 
         return $this->success('Transaction status changed to completed.', [
             'transaction' => $transaction,
@@ -64,7 +62,7 @@ class TransactionController extends Controller
     public function cancelStatus(Transaction $transaction, Request $request)
     {
         // Only admin users can cancel transactions
-        if (!auth()->user()->hasRole('admin')) {
+        if (! auth()->user()->hasRole('admin')) {
             return $this->failed('غير مصرح لك بإلغاء المعاملات.');
         }
 

@@ -14,6 +14,14 @@ import {
 import { IoCalculatorSharp } from 'react-icons/io5';
 import { formatDateTime, formatCurrency } from '@/utils';
 import { route } from 'ziggy-js';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '@heroui/react';
 
 interface CashMovement {
   id: number;
@@ -42,7 +50,7 @@ interface Props {
 }
 
 export default function Show({ transaction }: Props) {
-  console.log(transaction);
+  // console.log(transaction);
   // Check if transaction has calculated_converted_amount field for manual adjustment detection
   const isManuallyAdjusted = transaction.calculated_converted_amount
     ? transaction.converted_amount !== transaction.calculated_converted_amount
@@ -404,7 +412,7 @@ export default function Show({ transaction }: Props) {
                       <span className="text-sm font-medium text-gray-700">
                         سعر البيع مقابل الدولار:
                       </span>
-                      <span className="text-sm font-semibold text-red-600">
+                      <span className="text-sm font-semibold text-red">
                         {parseFloat(
                           transaction.from_currency_rates_snapshot.sell_rate_to_usd.toString(),
                         ).toFixed(6)}
@@ -449,7 +457,7 @@ export default function Show({ transaction }: Props) {
                       <span className="text-sm font-medium text-gray-700">
                         سعر البيع مقابل الدولار:
                       </span>
-                      <span className="text-sm font-semibold text-red-600">
+                      <span className="text-sm font-semibold text-red">
                         {parseFloat(
                           transaction.to_currency_rates_snapshot.sell_rate_to_usd.toString(),
                         ).toFixed(6)}
@@ -471,46 +479,44 @@ export default function Show({ transaction }: Props) {
               <div className="mt-8 border-t pt-6">
                 <h2 className="text-lg font-semibold mb-4">حركات النقد</h2>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          النوع
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          المبلغ
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          العملة
-                        </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          التاريخ
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                  <Table aria-label="جدول حركات النقد" className="min-w-full">
+                    <TableHeader>
+                      <TableColumn>النوع</TableColumn>
+                      <TableColumn>المبلغ</TableColumn>
+                      <TableColumn>العملة</TableColumn>
+                      <TableColumn>التاريخ</TableColumn>
+                    </TableHeader>
+                    <TableBody>
                       {transaction.cashMovements.map(movement => (
-                        <tr key={movement.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {movement.type === 'in'
-                              ? 'دخل'
-                              : movement.type === 'out'
-                                ? 'خرج'
-                                : movement.type}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatCurrency(parseFloat(movement.amount))}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {movement.currency?.code || 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatDateTime(movement.created_at)}
-                          </td>
-                        </tr>
+                        <TableRow key={movement.id}>
+                          <TableCell>
+                            <div className="text-sm text-gray-900">
+                              {movement.type === 'in'
+                                ? 'دخل'
+                                : movement.type === 'out'
+                                  ? 'خرج'
+                                  : movement.type}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-900">
+                              {formatCurrency(parseFloat(movement.amount))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-900">
+                              {movement.currency?.code || 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-500">
+                              {formatDateTime(movement.created_at)}
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             )}
