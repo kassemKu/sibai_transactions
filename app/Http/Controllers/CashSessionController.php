@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\CashSessionEnum;
 use App\Enums\TransactionStatusEnum;
 use App\Http\Requests\CloseCashSessionRequest;
-use App\Models\CashBalance;
 use App\Models\CashSession;
 use App\Models\Currency;
 use App\Models\User;
@@ -83,21 +82,25 @@ class CashSessionController extends Controller
     public function getClosingBalances(Request $request): JsonResponse
     {
         try {
-            $lastBalances = CashBalance::whereHas('cashSession', function ($q) {
-                $q->where('status', CashSessionEnum::CLOSED->value);
-            })
-                ->with([
-                    'currency:id,name,code,rate_to_usd',
-                ])
-                ->select('id', 'currency_id', 'cash_session_id', 'actual_closing_balance')
+            $lastCashSession = CashSession::where('status', CashSessionEnum::CLOSED->value)
                 ->latest()
-                ->get();
+                ->with([
+                    'cashBalances' => function ($q) {
+                        $q->select('id', 'cash_session_id', 'currency_id', 'actual_closing_balance')
+                            ->with([
+                                'currency' => function ($c) {
+                                    $c->select('id', 'code', 'name'); // اختار الأعمدة اللي محتاجها من الكرانسي
+                                },
+                            ]);
+                    },
+                ])
+                ->first();
 
             $balances = $this->service->getClosingBalances($request->session);
 
             return $this->success('تم جلب أرصدة الإغلاق بنجاح.', [
                 'balances' => $balances,
-                'last_balances' => $lastBalances,
+                'last_session' => $lastCashSession,
             ]);
         } catch (\Exception $e) {
             $this->errorLog($e, 'CashSessionController@getClosingBalances');
