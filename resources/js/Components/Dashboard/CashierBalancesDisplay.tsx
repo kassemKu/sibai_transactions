@@ -102,6 +102,10 @@ const CashierBalancesDisplay: React.FC<CashierBalancesDisplayProps> = ({
   useEffect(() => {
     if (selectedCashierId) {
       fetchBalances(selectedCashierId);
+    } else {
+      // Clear balances when no cashier is selected
+      setBalances([]);
+      setError(null);
     }
   }, [selectedCashierId]);
 
@@ -132,6 +136,11 @@ const CashierBalancesDisplay: React.FC<CashierBalancesDisplayProps> = ({
     )?.casher;
   };
 
+  const getSelectedCashierName = () => {
+    const selectedCashier = getSelectedCashier();
+    return selectedCashier?.name || '';
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="p-6 border-b border-gray-200">
@@ -160,39 +169,64 @@ const CashierBalancesDisplay: React.FC<CashierBalancesDisplayProps> = ({
 
         {/* Cashier Selection */}
         <div className="mt-4">
-          <Select
-            label="اختر الصراف"
-            placeholder="اختر صراف لعرض أرصدته"
-            selectedKeys={
-              selectedCashierId ? [selectedCashierId.toString()] : []
-            }
-            onSelectionChange={keys => {
-              const selectedKey = Array.from(keys)[0] as string;
-              setSelectedCashierId(selectedKey ? parseInt(selectedKey) : null);
-            }}
-            className="max-w-xs"
-          >
-            {activeCashierSessions.map(session => (
-              <SelectItem key={session.id}>
-                <div className="flex items-center gap-2">
-                  <FiUser className="w-4 h-4" />
-                  <span>{session.casher.name}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </Select>
+          <div className="max-w-xs">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              اختر الصراف
+            </label>
+            <Select
+              placeholder="اختر صراف لعرض أرصدته"
+              selectedKeys={
+                selectedCashierId ? [selectedCashierId.toString()] : []
+              }
+              aria-label="اختر الصراف"
+              onSelectionChange={keys => {
+                const selectedKey = Array.from(keys)[0] as string;
+                setSelectedCashierId(
+                  selectedKey ? parseInt(selectedKey) : null,
+                );
+              }}
+              className="w-full"
+              renderValue={selectedItems => {
+                // Find the selected session
+                const selectedItem = Array.from(selectedItems)[0];
+                const selectedKey = selectedItem?.key || selectedItem;
+                const selectedSession = activeCashierSessions.find(
+                  session => session.id.toString() === selectedKey,
+                );
+                return selectedSession ? selectedSession.casher.name : '';
+              }}
+            >
+              {activeCashierSessions.map(session => (
+                <SelectItem
+                  key={session.id.toString()}
+                  textValue={session.casher.name}
+                >
+                  <div className="flex items-center gap-2">
+                    <FiUser className="w-4 h-4" />
+                    <span>{session.casher.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
         </div>
       </div>
 
       <div className="p-6">
         {/* Selected Cashier Info */}
         {getSelectedCashier() && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2">
-              <FiUser className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">
-                عرض أرصدة: {getSelectedCashier()?.name}
-              </span>
+          <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FiUser className="w-4 h-4 text-gray-600" />
+                <span className="text-sm font-medium text-gray-800">
+                  عرض أرصدة: {getSelectedCashier()?.name}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">الصراف المحدد</span>
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              </div>
             </div>
           </div>
         )}
@@ -286,7 +320,7 @@ const CashierBalancesDisplay: React.FC<CashierBalancesDisplayProps> = ({
         {!selectedCashierId && !isLoading && !error && (
           <div className="text-center py-8">
             <FiUser className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <div className="text-gray-500">اختر صراف لعرض أرصدته</div>
+            <div className="text-gray-500">اختر صراف لعرض البيانات</div>
             <div className="text-sm text-gray-400 mt-1">
               {activeCashierSessions.length === 0
                 ? 'لا توجد جلسات صراف نشطة'

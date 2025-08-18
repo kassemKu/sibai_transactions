@@ -19,11 +19,11 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import PendingTransactionsConfirmModal from '@/Components/PendingTransactionsConfirmModal';
 import AddCashboxModal from '@/Components/AddCashboxModal';
 import DialogModal from '@/Components/DialogModal';
-import { FiUsers, FiEye, FiClock, FiRefreshCw } from 'react-icons/fi';
+import { FiUsers, FiEye, FiClock, FiRefreshCw, FiUser } from 'react-icons/fi';
 import { Chip } from '@heroui/react';
 import CashierBoxModal from '@/Components/Casher/CashierBoxModal';
 import UnifiedFormComponent from '@/Components/Dashboard/UnifiedFormComponent';
-// import CashierBalancesDisplay from '@/Components/Dashboard/CashierBalancesDisplay';
+import CashierBalancesDisplay from '@/Components/Dashboard/CashierBalancesDisplay';
 
 interface DashboardProps {
   currencies: CurrenciesResponse;
@@ -89,6 +89,10 @@ export default function Dashboard({
     'view' | 'pending' | 'closing'
   >('view');
   const [isCashierBoxSubmitting, setIsCashierBoxSubmitting] = useState(false);
+
+  // Add state for confirmation modal
+  const [showCashierCloseConfirmation, setShowCashierCloseConfirmation] =
+    useState(false);
 
   // Add session key state to trigger assignment rules reset when session changes
   const [sessionKey, setSessionKey] = useState<string>('');
@@ -481,6 +485,22 @@ export default function Dashboard({
     }
   };
 
+  // Handle show confirmation modal
+  const handleShowCashierCloseConfirmation = async (): Promise<void> => {
+    setShowCashierCloseConfirmation(true);
+  };
+
+  // Handle confirm cashier close
+  const handleConfirmCashierClose = async () => {
+    setShowCashierCloseConfirmation(false);
+    await handleConfirmPending();
+  };
+
+  // Handle cancel cashier close
+  const handleCancelCashierClose = () => {
+    setShowCashierCloseConfirmation(false);
+  };
+
   // Handle submit close for cashier box
   const handleSubmitCashierBoxClose = async (
     actualClosingBalances: { currency_id: number; amount: number }[],
@@ -501,7 +521,7 @@ export default function Dashboard({
       console.log(
         '[Cashier Session Close] Assignment rules cleared from localStorage',
       );
-    //   toast.success('تم مسح قواعد التعيين التلقائي مع إغلاق صندوق الصراف');
+      //   toast.success('تم مسح قواعد التعيين التلقائي مع إغلاق صندوق الصراف');
 
       setIsCashierBoxModalOpen(false);
       setSelectedCashierSession(null);
@@ -658,17 +678,6 @@ export default function Dashboard({
         onEditCurrency={isAdmin ? handleEditCurrency : undefined}
         isEditable={isAdmin}
       />
-
-      {/* Cashier Balances Display - Show for super admins when session is active
-      {isAdmin && isSessionOpen && (
-        <div className="mb-8">
-          <CashierBalancesDisplay
-            currencies={currenciesState}
-            currentSession={currentCashSession}
-            isAdmin={true}
-          />
-        </div>
-      )} */}
 
       {/* Always show TransactionForm with overlay when session is not active */}
       <div id="transaction-form">
@@ -851,8 +860,64 @@ export default function Dashboard({
         stage={cashierBoxModalStage}
         onSubmitClose={handleSubmitCashierBoxClose}
         isSubmitting={isCashierBoxSubmitting}
-        onConfirmPending={handleConfirmPending}
+        onConfirmPending={handleShowCashierCloseConfirmation}
       />
+
+      {/* Cashier Close Confirmation Modal */}
+      <DialogModal
+        isOpen={showCashierCloseConfirmation}
+        onClose={handleCancelCashierClose}
+        maxWidth="md"
+      >
+        <DialogModal.Content title="تأكيد إغلاق صندوق الصراف">
+          <div className="space-y-4" dir="rtl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FiUser className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                تأكيد إغلاق صندوق الصراف
+              </h3>
+              <p className="text-gray-600">
+                هل أنت متأكد من أنك تريد تحويل صندوق الصراف{' '}
+                <span className="font-medium">
+                  {selectedCashierSession?.casher?.name}
+                </span>{' '}
+                إلى وضع الإغلاق؟
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                بعد التأكيد، سيتم تحويل الصندوق إلى وضع الإغلاق وستحتاج إلى
+                إدخال المبالغ الفعلية المعدودة.
+              </p>
+            </div>
+          </div>
+        </DialogModal.Content>
+
+        <DialogModal.Footer>
+          <div className="flex justify-end space-x-3 space-x-reverse">
+            <SecondaryButton onClick={handleCancelCashierClose}>
+              إلغاء
+            </SecondaryButton>
+            <PrimaryButton
+              onClick={handleConfirmCashierClose}
+              disabled={isCashierBoxSubmitting}
+            >
+              {isCashierBoxSubmitting ? 'جاري التحويل...' : 'تأكيد التحويل'}
+            </PrimaryButton>
+          </div>
+        </DialogModal.Footer>
+      </DialogModal>
+
+      {/* Cashier Balances Display - Show for super admins when session is active */}
+      {isAdmin && isSessionOpen && (
+        <div className="mb-8">
+          <CashierBalancesDisplay
+            currencies={currenciesState}
+            currentSession={currentCashSession}
+            isAdmin={true}
+          />
+        </div>
+      )}
     </RootLayout>
   );
 }

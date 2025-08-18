@@ -29,6 +29,32 @@ interface CurrencyBalance {
   system_closing_balance: number;
 }
 
+interface LastSessionCashBalance {
+  id: number;
+  cash_session_id: number;
+  currency_id: number;
+  actual_closing_balance: string;
+  currency: {
+    id: number;
+    code: string;
+    name: string;
+  };
+}
+
+interface LastSession {
+  id: number;
+  opened_at: string;
+  closed_at: string;
+  open_exchange_rates: string;
+  close_exchange_rates: string;
+  status: string;
+  opened_by: number;
+  closed_by: number;
+  created_at: string;
+  updated_at: string;
+  cash_balances: LastSessionCashBalance[];
+}
+
 interface CloseSessionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,6 +71,7 @@ export default function CloseSessionModal({
   onSessionPending,
 }: CloseSessionModalProps) {
   const [balances, setBalances] = useState<CurrencyBalance[]>([]);
+  const [lastSession, setLastSession] = useState<LastSession | null>(null);
   const [actualAmounts, setActualAmounts] = useState<Record<number, string>>(
     {},
   );
@@ -71,6 +98,7 @@ export default function CloseSessionModal({
     } else {
       // Clean up state when modal closes
       setBalances([]);
+      setLastSession(null);
       setActualAmounts({});
       setIsLoading(false);
       setIsSubmitting(false);
@@ -106,7 +134,11 @@ export default function CloseSessionModal({
       if (response.data.status || response.data.success) {
         const balancesData =
           response.data.data?.balances || response.data.balances || [];
+        const lastSessionData = response.data.data?.last_session || null;
+
         setBalances(balancesData);
+        setLastSession(lastSessionData);
+
         // Initialize actual amounts with system balances
         const initialAmounts: Record<number, string> = {};
         balancesData.forEach((balance: CurrencyBalance) => {
@@ -185,6 +217,19 @@ export default function CloseSessionModal({
       maximumFractionDigits: 2,
       useGrouping: true,
     }).format(amount);
+  };
+
+  // Helper function to get opening balance from last session
+  const getOpeningBalance = (currencyId: number): number => {
+    if (!lastSession?.cash_balances) return 0;
+
+    const lastSessionBalance = lastSession.cash_balances.find(
+      balance => balance.currency_id === currencyId,
+    );
+
+    return lastSessionBalance
+      ? parseFloat(lastSessionBalance.actual_closing_balance)
+      : 0;
   };
 
   const handleContinueToClose = async () => {
@@ -310,13 +355,15 @@ export default function CloseSessionModal({
               <Table aria-label="جدول أرصدة الإغلاق" className="min-w-full">
                 <TableHeader>
                   <TableColumn>العملة</TableColumn>
+                  <TableColumn>الرصيد الافتتاحي</TableColumn>
                   <TableColumn>الرصيد المحسوب</TableColumn>
+                  <TableColumn>الفرق (محسوب - افتتاحي)</TableColumn>
                   <TableColumn>القيمة بالدولار</TableColumn>
                   <TableColumn className={showActualInputs ? '' : 'hidden'}>
                     الرصيد الفعلي
                   </TableColumn>
                   <TableColumn className={showActualInputs ? '' : 'hidden'}>
-                    الفرق
+                    الفرق (فعلي - محسوب)
                   </TableColumn>
                 </TableHeader>
                 <TableBody
@@ -361,8 +408,40 @@ export default function CloseSessionModal({
                         <TableCell>
                           <div className="text-sm text-gray-900">
                             {formatDisplayAmount(
+                              getOpeningBalance(balance.currency_id),
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-900">
+                            {formatDisplayAmount(
                               balance.system_closing_balance,
                             )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-900">
+                            {(() => {
+                              const openingBalance = getOpeningBalance(
+                                balance.currency_id,
+                              );
+                              const calculatedDiff =
+                                balance.system_closing_balance - openingBalance;
+                              return (
+                                <span
+                                  className={`font-medium ${
+                                    calculatedDiff > 0
+                                      ? 'text-green-600'
+                                      : calculatedDiff < 0
+                                        ? 'text-red-600'
+                                        : 'text-gray-900'
+                                  }`}
+                                >
+                                  {calculatedDiff > 0 ? '+' : ''}
+                                  {formatDisplayAmount(calculatedDiff)}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </TableCell>
                         <TableCell>

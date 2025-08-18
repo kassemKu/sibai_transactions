@@ -68,72 +68,34 @@ const CashierBoxModal: React.FC<CashierBoxModalProps> = ({
     {},
   );
 
-  // Cache for balances to prevent repeated fetches
-  const balancesCache = useRef<Record<number, any[]>>({});
-  const lastFetchedSessionId = useRef<number | null>(null);
-
   useEffect(() => {
     if (isOpen && cashierSession) {
       const sessionId = cashierSession.id;
 
-      // Only fetch if:
-      // 1. Modal just opened (isOpen changed from false to true)
-      // 2. Cashier session changed (different session ID)
-      // 3. No cached data for this session
-      const shouldFetch =
-        !balancesCache.current[sessionId] ||
-        lastFetchedSessionId.current !== sessionId;
+      // Always fetch fresh data when modal opens
+      setModalStage(initialStage);
+      setBalances([]);
+      setActualAmounts({});
+      setLoading(true);
 
-      if (shouldFetch) {
-        setModalStage(initialStage);
-        setBalances([]);
-        setActualAmounts({});
-        setLoading(true);
-
-        fetchBalancesApi(sessionId)
-          .then(balancesData => {
-            // Cache the result
-            balancesCache.current[sessionId] = balancesData;
-            lastFetchedSessionId.current = sessionId;
-
-            setBalances(balancesData);
-            // Initialize actual amounts for closing stage
-            const initialAmounts: Record<number, string> = {};
-            balancesData.forEach((balance: any) => {
-              initialAmounts[balance.currency_id] =
-                balance.system_balance?.toString() || '0';
-            });
-            setActualAmounts(initialAmounts);
-          })
-          .catch(error => {
-            console.error('Error fetching cashier box balances:', error);
-            toast.error('حدث خطأ أثناء تحميل بيانات الصندوق');
-          })
-          .finally(() => setLoading(false));
-      } else {
-        // Use cached data
-        const cachedBalances = balancesCache.current[sessionId];
-        setBalances(cachedBalances);
-        setModalStage(initialStage);
-
-        // Initialize actual amounts for closing stage
-        const initialAmounts: Record<number, string> = {};
-        cachedBalances.forEach((balance: any) => {
-          initialAmounts[balance.currency_id] =
-            balance.system_balance?.toString() || '0';
-        });
-        setActualAmounts(initialAmounts);
-      }
+      fetchBalancesApi(sessionId)
+        .then(balancesData => {
+          setBalances(balancesData);
+          // Initialize actual amounts for closing stage
+          const initialAmounts: Record<number, string> = {};
+          balancesData.forEach((balance: any) => {
+            initialAmounts[balance.currency_id] =
+              balance.system_balance?.toString() || '0';
+          });
+          setActualAmounts(initialAmounts);
+        })
+        .catch(error => {
+          console.error('Error fetching cashier box balances:', error);
+          toast.error('حدث خطأ أثناء تحميل بيانات الصندوق');
+        })
+        .finally(() => setLoading(false));
     }
-  }, [isOpen, cashierSession?.id, initialStage]); // Removed fetchBalancesApi from dependencies
-
-  // Clear cache when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      // Optionally clear cache after some time to free memory
-      // For now, we'll keep the cache for better UX
-    }
-  }, [isOpen]);
+  }, [isOpen, cashierSession?.id, initialStage, fetchBalancesApi]);
 
   // Format amount with currency
   const formatAmount = (
